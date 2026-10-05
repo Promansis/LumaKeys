@@ -80,8 +80,6 @@ function downloadJson(filename: string, value: unknown): void {
   URL.revokeObjectURL(url);
 }
 
-const PICKER_FALLBACK_DELAY_MS = 100;
-
 function pickFiles(options: { accept: string; multiple: boolean }): Promise<File[]> {
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
@@ -91,14 +89,9 @@ function pickFiles(options: { accept: string; multiple: boolean }): Promise<File
     input.style.display = 'none';
 
     let settled = false;
-    let fallbackTimer: number | undefined;
     const cleanup = () => {
-      if (fallbackTimer !== undefined) {
-        window.clearTimeout(fallbackTimer);
-      }
       input.removeEventListener('change', onChange);
       input.removeEventListener('cancel', onCancel);
-      window.removeEventListener('focus', onWindowFocus);
       input.remove();
     };
 
@@ -116,21 +109,10 @@ function pickFiles(options: { accept: string; multiple: boolean }): Promise<File
     };
     const onChange = () => settle(Array.from(input.files ?? []));
     const onCancel = () => settle([]);
-    const onWindowFocus = () => {
-      if (fallbackTimer !== undefined) {
-        return;
-      }
-      fallbackTimer = window.setTimeout(() => {
-        fallbackTimer = undefined;
-        if (!input.files?.length) {
-          settle([]);
-        }
-      }, PICKER_FALLBACK_DELAY_MS);
-    };
 
+    // Window focus can return before the picker delivers the selected files.
     input.addEventListener('change', onChange);
     input.addEventListener('cancel', onCancel);
-    window.addEventListener('focus', onWindowFocus);
     try {
       document.body.append(input);
       input.click();
@@ -151,7 +133,7 @@ async function uploadMidiFiles(
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    const filename = file.name.replace(/\.(mid|midi)$/i, '') || 'Untitled';
+    const filename = file.name.replace(/\.(mid|midi|mscz)$/i, '') || 'Untitled';
     const event = { current: i + 1, total: files.length, filename };
     onProgress?.(event.current, event.total, event.filename);
     importProgressListeners.forEach((listener) => listener(event));
@@ -385,7 +367,7 @@ export const webBridge = new Proxy({} as AppBridge, {
 
     if (property === 'importMidiFiles') {
       return async (): Promise<ImportResult> => {
-        const files = await pickFiles({ accept: '.mid,.midi', multiple: true });
+        const files = await pickFiles({ accept: '.mid,.midi,.mscz', multiple: true });
         if (files.length === 0) {
           return { songs: [], errors: [], skipped: 0 };
         }

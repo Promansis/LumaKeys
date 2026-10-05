@@ -205,7 +205,11 @@ That folder contains:
 ## Important Notes
 
 - This is the web version of LumaKeys, not the full Electron desktop version.
-- Browser upload of MIDI files works.
+- Browser uploads accept `.mid`, `.midi`, and `.mscz` (MuseScore) files, up to 10 MB each.
+- MSCZ uploads are converted automatically into playable MIDI-backed library songs. The Linux x86-64 Docker image includes MuseScore Studio 4.7.5; no manual export is needed. This is song import, not MuseScore notation editing.
+- For non-Docker Linux web servers, install MuseScore 4 and `prlimit` (util-linux), then set `LUMAKEYS_MUSESCORE_PATH` to the MuseScore executable. The Electron desktop importer remains MIDI-only.
+- MuseScore conversion runs one score at a time with CPU, memory, output-size, and timeout limits. Invalid or unsupported scores report an import error without adding a library song.
+- The bundled MuseScore binary is GPLv3. Its [license](https://github.com/musescore/MuseScore/blob/v4.7.5/LICENSE.txt) and [corresponding source](https://github.com/musescore/MuseScore/tree/v4.7.5) are available upstream; preserve the GPL distribution obligations if redistributing the Docker image.
 - Some desktop-only actions are not available in web mode, such as native file picker features and some export/save helpers.
 - Cloudflare Tunnel gives you HTTPS, which is useful for browser device APIs.
 - Current web deployment is single-user only. The SQLite database and uploaded MIDI files are shared by anyone who can reach the site, so add auth before exposing it to multiple users.

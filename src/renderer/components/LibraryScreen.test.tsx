@@ -98,9 +98,9 @@ describe('LibraryScreen', () => {
       />,
     );
 
-    await screen.findByText('Build your library by importing MIDI files.');
+    await screen.findByText('Build your library by importing MIDI or MSCZ files.');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Upload MIDI' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Upload MIDI / MSCZ' }));
 
     await waitFor(() => {
       expect(screen.getByText(/Broken: Bad header/)).toBeInTheDocument();
@@ -151,9 +151,9 @@ describe('LibraryScreen', () => {
       />,
     );
 
-    await screen.findByText('Build your library by importing MIDI files.');
+    await screen.findByText('Build your library by importing MIDI or MSCZ files.');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Upload MIDI' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Upload MIDI / MSCZ' }));
 
     await waitFor(() => {
       expect(importMidiFiles).toHaveBeenCalled();

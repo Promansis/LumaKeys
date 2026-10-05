@@ -61,7 +61,7 @@ describe('midiRouter', () => {
     expect(response.status).toBe(200);
     expect(payload.songs).toEqual([]);
     expect(payload.skipped).toBe(0);
-    expect(payload.errors[0].message).toMatch(/Only \.mid and \.midi/);
+    expect(payload.errors[0].message).toMatch(/Only \.mid, \.midi, and \.mscz/);
   });
 
   it('returns 400 when upload contains no files', async () => {
@@ -74,6 +74,25 @@ describe('midiRouter', () => {
 
     expect(response.status).toBe(400);
     expect(payload.error).toMatch(/No files/);
+  });
+
+  it('uses the MIDI filename as the song title rather than its instrument label', async () => {
+    const { app, db } = await makeServer();
+    const midi = new Midi();
+    midi.header.name = 'Electric Drum Kit';
+    const track = midi.addTrack();
+    track.name = 'Electric Drum Kit';
+    track.addNote({ midi: 60, time: 0, duration: 0.5, velocity: 0.8 });
+    const formData = new FormData();
+    formData.append('files', new File([toBlob(midi.toArray())], 'Rock-a-bye a Bear.mid', { type: 'audio/midi' }));
+
+    const response = await app.request('/api/midi/upload', { method: 'POST', body: formData });
+    const result = await response.json();
+    db.close();
+
+    expect(response.status).toBe(200);
+    expect(result.errors).toEqual([]);
+    expect(result.songs).toEqual([expect.objectContaining({ title: 'Rock-a-bye a Bear' })]);
   });
 
   it('returns 413 for oversized MIDI upload requests', async () => {

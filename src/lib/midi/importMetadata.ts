@@ -89,7 +89,8 @@ export function computeSongMetadata(
   existingTrackAssignments: Record<string, TrackAssignment> = {},
 ): ComputedSongMetadata {
   const midiMeta = extractMidiMeta(toArrayBuffer(buffer));
-  const effectiveTitle = midiMeta.suggestedTitle || title;
+  // MIDI track names often identify instruments rather than the song.
+  const effectiveTitle = title.trim() || midiMeta.suggestedTitle || 'Untitled';
   const parsedSong = parseMidiFile(toArrayBuffer(buffer), { songId: 'preview', title: effectiveTitle });
   const defaultAssignments = getTrackAssignments(parsedSong);
 

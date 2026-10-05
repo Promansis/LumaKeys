@@ -173,7 +173,9 @@ export function LibraryScreen({
   const [showMaintenanceTools, setShowMaintenanceTools] = useState(false);
   const [selectedTagFilters, setSelectedTagFilters] = useState<string[]>([]);
   const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(new Set());
-  const [statusMessage, setStatusMessage] = useState('Build your library by importing MIDI files.');
+  const [statusMessage, setStatusMessage] = useState(IS_WEB
+    ? 'Build your library by importing MIDI or MSCZ files.'
+    : 'Build your library by importing MIDI files.');
   const [isLoading, setIsLoading] = useState(true);
   const [isRecommendationsLoading, setIsRecommendationsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
@@ -251,7 +253,9 @@ export function LibraryScreen({
 
       if (!options.preserveStatus) {
         if (snapshot.songs.length === 0) {
-          setStatusMessage('Build your library by importing MIDI files.');
+          setStatusMessage(IS_WEB
+            ? 'Build your library by importing MIDI or MSCZ files.'
+            : 'Build your library by importing MIDI files.');
         } else {
           setStatusMessage(`${snapshot.songs.length} song${snapshot.songs.length === 1 ? '' : 's'} ready to play.`);
         }
@@ -1015,7 +1019,7 @@ export function LibraryScreen({
             </button>
           ) : null}
           <button className="primary-button" onClick={() => void handleImport()} disabled={isImporting}>
-            {isImporting ? 'Importing...' : 'Upload MIDI'}
+            {isImporting ? 'Importing...' : IS_WEB ? 'Upload MIDI / MSCZ' : 'Upload MIDI'}
           </button>
         </div>
       </section>
@@ -1561,8 +1565,10 @@ export function LibraryScreen({
               {songs.length === 0 ? (
                 <>
                   <p className="eyebrow">Library Empty</p>
-                  <h2>Upload MIDI to start your setlist.</h2>
-                  <p className="empty-state">Use Upload MIDI or Import Folder above, then come back here to play, learn, and build practice plans.</p>
+                  <h2>{IS_WEB ? 'Upload MIDI or MSCZ to start your setlist.' : 'Upload MIDI to start your setlist.'}</h2>
+                  <p className="empty-state">{IS_WEB
+                    ? 'Upload MIDI or MuseScore (.mscz) files above. MuseScore scores are converted automatically for playback.'
+                    : 'Use Upload MIDI or Import Folder above, then come back here to play, learn, and build practice plans.'}</p>
                 </>
               ) : (
                 <>

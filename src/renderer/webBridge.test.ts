@@ -141,6 +141,55 @@ describe('webBridge', () => {
     expect(document.querySelectorAll('input')).toHaveLength(0);
   });
 
+  it('uploads selected MIDI files when window focus returns before the picker change event', async () => {
+    vi.useFakeTimers();
+    const file = new File(['midi'], 'selected.mid', { type: 'audio/midi' });
+    const batch = { songs: [{ songId: 'selected-song' }], errors: [], skipped: 0 };
+    const fetchMock = mockFetch(jsonResponse(batch));
+    const inputClick = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+
+    const result = webBridge.importMidiFiles();
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    await vi.advanceTimersByTimeAsync(200);
+    Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+    input.dispatchEvent(new Event('change'));
+
+    await expect(result).resolves.toEqual(batch);
+    expect(inputClick).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith('/api/midi/upload', {
+      method: 'POST',
+      body: expect.any(FormData),
+    });
+    const formData = fetchMock.mock.calls[0][1].body as FormData;
+    expect(formData.get('files')).toBe(file);
+    expect(document.querySelectorAll('input')).toHaveLength(0);
+  });
+
+  it('accepts MSCZ uploads and reports the score name without its extension', async () => {
+    const file = new File(['score'], 'Practice.MSCZ', { type: 'application/octet-stream' });
+    const batch = { songs: [{ songId: 'practice' }], errors: [], skipped: 0 };
+    const fetchMock = mockFetch(jsonResponse(batch));
+    vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => undefined);
+    const onProgress = vi.fn();
+    const unsubscribe = webBridge.onImportProgress(onProgress);
+    try {
+      const result = webBridge.importMidiFiles();
+      const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+      expect(input.accept.split(',')).toContain('.mscz');
+      Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+      input.dispatchEvent(new Event('change'));
+
+      await expect(result).resolves.toEqual(batch);
+      expect((fetchMock.mock.calls[0][1].body as FormData).get('files')).toBe(file);
+      expect(onProgress).toHaveBeenCalledWith({ current: 1, total: 1, filename: 'Practice' });
+      expect(document.querySelectorAll('input')).toHaveLength(0);
+    } finally {
+      unsubscribe();
+    }
+  });
+
   it('settles JSON picker cancellation without importing or leaving input state', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
@@ -152,14 +201,24 @@ describe('webBridge', () => {
     expect(document.querySelectorAll('input')).toHaveLength(0);
   });
 
-  it('uses window focus as the cancellation fallback', async () => {
+  it('waits for native cancellation instead of treating window focus as cancellation', async () => {
     vi.useFakeTimers();
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
     mockPicker([{ event: 'focus' }]);
 
     const result = webBridge.importMidiFiles();
-    await vi.advanceTimersByTimeAsync(100);
+    const settled = vi.fn();
+    void result.then(settled);
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(settled).not.toHaveBeenCalled();
+    expect(input.isConnected).toBe(true);
+    input.dispatchEvent(new Event('cancel'));
 
     await expect(result).resolves.toEqual({ songs: [], errors: [], skipped: 0 });
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(document.querySelectorAll('input')).toHaveLength(0);
   });
 

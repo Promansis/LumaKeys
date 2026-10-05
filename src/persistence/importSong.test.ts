@@ -170,6 +170,27 @@ describe('importSongFromBuffer', () => {
       `discard:${songId}`,
     ]);
   });
+
+  it('preserves an edited title when the same MIDI is reimported or reattached', async () => {
+    const db = await makeDb();
+    const midiStorage = new FakeMidiStorageAdapter();
+    const midi = new Midi();
+    midi.header.name = 'Piano';
+    midi.addTrack().addNote({ midi: 60, time: 0, duration: 0.5, velocity: 0.8 });
+    const bytes = midi.toArray();
+    const imported = await importSongFromBuffer(bytes, 'Let it Go', { db, midiStorage });
+    db.updateSong(imported.songId, { title: 'Let it Go (easy)' });
+
+    try {
+      const reimported = await importSongFromBuffer(bytes, 'Different filename', { db, midiStorage });
+      expect(reimported.title).toBe('Let it Go (easy)');
+      const reattached = await reattachSongFromBuffer(imported.songId, bytes, 'Different filename', { db, midiStorage });
+      expect(reattached.title).toBe('Let it Go (easy)');
+      expect(db.getSong(imported.songId)?.title).toBe('Let it Go (easy)');
+    } finally {
+      db.close();
+    }
+  });
 });
 
 describe('reattachSongFromBuffer', () => {

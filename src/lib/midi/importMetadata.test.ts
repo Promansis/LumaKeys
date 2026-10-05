@@ -1,6 +1,30 @@
 import { describe, expect, it } from 'vitest';
+import { Midi } from '@tonejs/midi';
 import type { ParsedNote, ParsedSong } from '../game/types';
-import { calculateDifficulty } from './importMetadata';
+import { calculateDifficulty, computeSongMetadata } from './importMetadata';
+
+describe('imported song titles', () => {
+  it.each(['Piano', 'Electric Drum Kit', 'Original embedded title'])('keeps the filename title instead of "%s" metadata', (label) => {
+    const midi = new Midi();
+    midi.header.name = label;
+    const track = midi.addTrack();
+    track.name = label;
+    track.addNote({ midi: 60, time: 0, duration: 0.5, velocity: 0.8 });
+
+    expect(computeSongMetadata(midi.toArray(), 'Let it Go').title).toBe('Let it Go');
+  });
+
+  it('uses embedded metadata only when no filename title is available', () => {
+    const midi = new Midi();
+    midi.header.name = 'Embedded song title';
+
+    expect(computeSongMetadata(midi.toArray(), '  ').title).toBe('Embedded song title');
+  });
+
+  it('uses Untitled when neither source provides a title', () => {
+    expect(computeSongMetadata(new Midi().toArray(), '').title).toBe('Untitled');
+  });
+});
 
 function makeNote(overrides: Partial<ParsedNote>): ParsedNote {
   return {

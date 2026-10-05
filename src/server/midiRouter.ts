@@ -3,6 +3,7 @@ import { createSongId, importSongFromBuffer, reattachSongFromBuffer } from '../p
 import type { ImportError, ImportedSong } from '../shared/ipc';
 import type { ServerDependencies } from './types';
 import { MIDI_FILE_LIMIT_BYTES, midiUploadBodyLimit } from './webSecurity';
+import { convertMuseScoreToMidi } from './museScore';
 
 const MAX_MIDI_UPLOAD_BYTES = MIDI_FILE_LIMIT_BYTES;
 
@@ -30,9 +31,10 @@ export function createMidiRouter({ db, midiStorage }: ServerDependencies) {
           continue;
         }
 
-        const title = entry.name.replace(/\.(mid|midi)$/i, '') || 'Untitled';
-        if (!isMidiFilename(entry.name)) {
-          errors.push({ filename: entry.name || title, message: 'Only .mid and .midi files can be uploaded.' });
+        const isMuseScore = /\.mscz$/i.test(entry.name);
+        const title = entry.name.replace(/\.(mid|midi|mscz)$/i, '') || 'Untitled';
+        if (!isMidiFilename(entry.name) && !isMuseScore) {
+          errors.push({ filename: entry.name || title, message: 'Only .mid, .midi, and .mscz files can be uploaded.' });
           continue;
         }
         if (entry.size <= 0) {
@@ -45,7 +47,8 @@ export function createMidiRouter({ db, midiStorage }: ServerDependencies) {
         }
 
         try {
-          const bytes = new Uint8Array(await entry.arrayBuffer());
+          const uploadedBytes = new Uint8Array(await entry.arrayBuffer());
+          const bytes = isMuseScore ? await convertMuseScoreToMidi(uploadedBytes) : uploadedBytes;
           const songId = await createSongId(bytes);
           if (db.getSong(songId)) {
             skipped += 1;
