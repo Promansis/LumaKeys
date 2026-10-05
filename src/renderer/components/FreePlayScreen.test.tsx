@@ -337,6 +337,36 @@ describe('FreePlayScreen', () => {
     expect(popout).toHaveAttribute('aria-hidden', 'true');
   });
 
+  it('keeps the visual popout open while moving from the toggle into the panel', () => {
+    render(
+      <FreePlayScreen
+        audioEngine={buildAudioEngineStub()}
+        midiInputService={new MockMidiInputService() as unknown as MidiInputService}
+        keyboardInputService={new MockKeyboardInputService() as unknown as ComputerKeyboardInputService}
+        inputMode="both"
+        keyboardOverlaySize="medium"
+        postureReminderMinutes={null}
+        breakReminderMinutes={null}
+        pitchBendEnabled
+        stagePalette="default"
+        instrumentId="acoustic-piano"
+        onBackToMainMenu={vi.fn()}
+        onInstrumentChange={vi.fn()}
+        onStagePaletteChange={vi.fn()}
+        onOpenKeyboardSetup={vi.fn()}
+      />,
+    );
+
+    const toggleButton = screen.getByRole('button', { name: 'Show visual mode controls' });
+    const popout = screen.getByTestId('free-play-visual-popout');
+
+    fireEvent.mouseEnter(toggleButton);
+    fireEvent.mouseLeave(toggleButton);
+    fireEvent.mouseEnter(popout);
+
+    expect(popout).toHaveAttribute('aria-hidden', 'false');
+  });
+
   it('changes the active instrument from the immersive HUD', () => {
     const onInstrumentChange = vi.fn();
 
@@ -420,6 +450,33 @@ describe('FreePlayScreen', () => {
     expect(popout).toHaveAttribute('aria-hidden', 'false');
 
     fireEvent.pointerDown(document.body);
+
+    expect(popout).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('closes the pinned visual popout when another stage control is clicked', () => {
+    render(
+      <FreePlayScreen
+        audioEngine={buildAudioEngineStub()}
+        midiInputService={new MockMidiInputService() as unknown as MidiInputService}
+        keyboardInputService={new MockKeyboardInputService() as unknown as ComputerKeyboardInputService}
+        inputMode="both"
+        keyboardOverlaySize="medium"
+        postureReminderMinutes={null}
+        breakReminderMinutes={null}
+        pitchBendEnabled
+        stagePalette="default"
+        instrumentId="acoustic-piano"
+        onBackToMainMenu={vi.fn()}
+        onInstrumentChange={vi.fn()}
+        onStagePaletteChange={vi.fn()}
+        onOpenKeyboardSetup={vi.fn()}
+      />,
+    );
+
+    const popout = screen.getByTestId('free-play-visual-popout');
+    fireEvent.click(screen.getByRole('button', { name: 'Show visual mode controls' }));
+    fireEvent.pointerDown(screen.getByRole('region', { name: 'Classic Piano visualizer' }));
 
     expect(popout).toHaveAttribute('aria-hidden', 'true');
   });

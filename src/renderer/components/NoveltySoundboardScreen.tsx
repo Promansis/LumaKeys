@@ -74,10 +74,13 @@ export function NoveltySoundboardScreen({
   const [openClipInfoId, setOpenClipInfoId] = useState<string | null>(null);
   const [keyboardOctaveShift, setKeyboardOctaveShift] = useState(keyboardInputService.getState().octaveShift);
   const effectCounterRef = useRef(0);
-  const animalStageRef = useRef<HTMLDivElement | null>(null);
   const animalMapButtonRef = useRef<HTMLButtonElement | null>(null);
+  const animalMapPopoutRef = useRef<HTMLElement | null>(null);
   const modeSelectorButtonRef = useRef<HTMLButtonElement | null>(null);
+  const modeSelectorPopoutRef = useRef<HTMLElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const animalMapHoverCloseTimeoutRef = useRef<number | null>(null);
+  const modeSelectorHoverCloseTimeoutRef = useRef<number | null>(null);
   const oneShotPlaybackLockedRef = useRef(false);
   const oneShotUnlockTimeoutRef = useRef<number | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -156,15 +159,16 @@ export function NoveltySoundboardScreen({
     }
 
     const handlePointerDown = (event: PointerEvent) => {
-      const stage = animalStageRef.current;
-      if (!stage || stage.contains(event.target as Node)) {
-        return;
-      }
+      const target = event.target as Node;
       if (isAnimalMapPinned) {
-        closeAnimalMap(true);
+        if (!animalMapButtonRef.current?.contains(target) && !animalMapPopoutRef.current?.contains(target)) {
+          closeAnimalMap(false);
+        }
       }
       if (isModeSelectorPinned) {
-        closeModeSelector(true);
+        if (!modeSelectorButtonRef.current?.contains(target) && !modeSelectorPopoutRef.current?.contains(target)) {
+          closeModeSelector(false);
+        }
       }
     };
 
@@ -278,6 +282,10 @@ export function NoveltySoundboardScreen({
     }
   };
   const closeAnimalMap = (returnFocus = false) => {
+    if (animalMapHoverCloseTimeoutRef.current !== null) {
+      clearTrackedTimeout(animalMapHoverCloseTimeoutRef.current);
+      animalMapHoverCloseTimeoutRef.current = null;
+    }
     setIsAnimalMapPinned(false);
     setIsAnimalMapHovered(false);
     setOpenClipInfoId(null);
@@ -286,12 +294,54 @@ export function NoveltySoundboardScreen({
     }
   };
   const closeModeSelector = (returnFocus = false) => {
+    if (modeSelectorHoverCloseTimeoutRef.current !== null) {
+      clearTrackedTimeout(modeSelectorHoverCloseTimeoutRef.current);
+      modeSelectorHoverCloseTimeoutRef.current = null;
+    }
     setIsModeSelectorPinned(false);
     setIsModeSelectorHovered(false);
     setOpenModeInfoId(null);
     if (returnFocus) {
       focusAfterClose(modeSelectorButtonRef);
     }
+  };
+  const keepAnimalMapOpen = () => {
+    if (animalMapHoverCloseTimeoutRef.current !== null) {
+      clearTrackedTimeout(animalMapHoverCloseTimeoutRef.current);
+      animalMapHoverCloseTimeoutRef.current = null;
+    }
+    setIsAnimalMapHovered(true);
+  };
+  const scheduleAnimalMapClose = () => {
+    if (animalMapHoverCloseTimeoutRef.current !== null) {
+      clearTrackedTimeout(animalMapHoverCloseTimeoutRef.current);
+    }
+    if (isAnimalMapPinned) {
+      return;
+    }
+    animalMapHoverCloseTimeoutRef.current = setTrackedTimeout(() => {
+      setIsAnimalMapHovered(false);
+      animalMapHoverCloseTimeoutRef.current = null;
+    }, 180);
+  };
+  const keepModeSelectorOpen = () => {
+    if (modeSelectorHoverCloseTimeoutRef.current !== null) {
+      clearTrackedTimeout(modeSelectorHoverCloseTimeoutRef.current);
+      modeSelectorHoverCloseTimeoutRef.current = null;
+    }
+    setIsModeSelectorHovered(true);
+  };
+  const scheduleModeSelectorClose = () => {
+    if (modeSelectorHoverCloseTimeoutRef.current !== null) {
+      clearTrackedTimeout(modeSelectorHoverCloseTimeoutRef.current);
+    }
+    if (isModeSelectorPinned) {
+      return;
+    }
+    modeSelectorHoverCloseTimeoutRef.current = setTrackedTimeout(() => {
+      setIsModeSelectorHovered(false);
+      modeSelectorHoverCloseTimeoutRef.current = null;
+    }, 180);
   };
   const resolvedHudNavigationItems = hudNavigationItems.map((item) => ({
     ...item,
@@ -376,6 +426,7 @@ export function NoveltySoundboardScreen({
     >
       <ImmersiveHud
         className={`soundboard-hud ${isAnimalMode ? 'animal-soundboard-hud' : 'regular-soundboard-hud'}`}
+        externalHover={isAnimalMapHovered || isModeSelectorHovered}
         currentDestination={hudCurrentDestination}
         navigationItems={resolvedHudNavigationItems}
         stats={
@@ -422,29 +473,17 @@ export function NoveltySoundboardScreen({
               setIsAnimalMapPinned(true);
               setIsAnimalMapHovered(false);
             }}
-            onMouseEnter={() => setIsAnimalMapHovered(true)}
-            onMouseLeave={() => {
-              if (!isAnimalMapPinned) {
-                setIsAnimalMapHovered(false);
-              }
-            }}
-            onFocus={() => setIsAnimalMapHovered(true)}
-            onBlur={() => {
-              if (!isAnimalMapPinned) {
-                setIsAnimalMapHovered(false);
-              }
-            }}
+             onMouseEnter={keepAnimalMapOpen}
+             onMouseLeave={scheduleAnimalMapClose}
+             onFocus={keepAnimalMapOpen}
+             onBlur={scheduleAnimalMapClose}
           >
             <KeyboardMusic size={17} strokeWidth={2.2} aria-hidden="true" />
           </button>
           <div
             className="immersive-control-wrap soundboard-mode-control"
-            onMouseEnter={() => setIsModeSelectorHovered(true)}
-            onMouseLeave={() => {
-              if (!isModeSelectorPinned) {
-                setIsModeSelectorHovered(false);
-              }
-            }}
+             onMouseEnter={keepModeSelectorOpen}
+             onMouseLeave={scheduleModeSelectorClose}
           >
             <button
               className="immersive-menu-btn soundboard-mode-toggle"
@@ -460,12 +499,8 @@ export function NoveltySoundboardScreen({
                 setIsModeSelectorPinned(true);
                 setIsModeSelectorHovered(false);
               }}
-              onFocus={() => setIsModeSelectorHovered(true)}
-              onBlur={() => {
-                if (!isModeSelectorPinned) {
-                  setIsModeSelectorHovered(false);
-                }
-              }}
+               onFocus={keepModeSelectorOpen}
+               onBlur={scheduleModeSelectorClose}
             >
               {mode.label}
             </button>
@@ -485,30 +520,22 @@ export function NoveltySoundboardScreen({
 
       <div
         className="immersive-canvas-area animal-soundboard-stage"
-        ref={animalStageRef}
         onMouseLeave={() => {
-          if (!isAnimalMapPinned) {
-            setIsAnimalMapHovered(false);
-          }
-          if (!isModeSelectorPinned) {
-            setIsModeSelectorHovered(false);
-          }
+          scheduleAnimalMapClose();
+          scheduleModeSelectorClose();
         }}
       >
         <AnimalSoundboardCanvas clips={mode.clips} activeNotes={activeNotes} recentBursts={animalBursts} />
 
         <section
+          ref={animalMapPopoutRef}
           className={`panel animal-soundboard-map-popout soundboard-key-map-popout${isAnimalMapOpen ? ' open' : ''}`}
           id="soundboard-key-map-popout"
           aria-label={isAnimalMode ? 'Animal key map' : 'Sound key map'}
           aria-hidden={!isAnimalMapOpen}
           data-testid="animal-key-map-popout"
-          onMouseEnter={() => setIsAnimalMapHovered(true)}
-          onMouseLeave={() => {
-            if (!isAnimalMapPinned) {
-              setIsAnimalMapHovered(false);
-            }
-          }}
+           onMouseEnter={keepAnimalMapOpen}
+           onMouseLeave={scheduleAnimalMapClose}
         >
           <div className="panel-heading">
             <div>
@@ -560,17 +587,14 @@ export function NoveltySoundboardScreen({
         </section>
 
         <section
+          ref={modeSelectorPopoutRef}
           className={`panel soundboard-mode-popout${isModeSelectorOpen ? ' open' : ''}`}
           id="soundboard-mode-popout"
           aria-label="Soundboard mode controls"
           aria-hidden={!isModeSelectorOpen}
           data-testid="soundboard-mode-popout"
-          onMouseEnter={() => setIsModeSelectorHovered(true)}
-          onMouseLeave={() => {
-            if (!isModeSelectorPinned) {
-              setIsModeSelectorHovered(false);
-            }
-          }}
+           onMouseEnter={keepModeSelectorOpen}
+           onMouseLeave={scheduleModeSelectorClose}
         >
           <div className="panel-heading">
             <div>

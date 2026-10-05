@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
 import { getInstrumentDefinition, INSTRUMENTS, isInstrumentSelectable } from '../../lib/audio/instrumentCatalog';
@@ -10,7 +10,7 @@ interface ImmersiveInstrumentControlProps {
   instrumentSamplePackStatuses?: Record<string, InstrumentSamplePackStatus>;
   popoutHost?: HTMLElement | null;
   popoutPlacement?: 'hud' | 'stage';
-  outsideClickBoundaryRef?: RefObject<HTMLElement | null>;
+  onPopoutHoverChange?: (hovered: boolean) => void;
   unlockedRewardIds?: Set<string>;
   onInstrumentChange: (instrumentId: string) => void;
 }
@@ -20,15 +20,17 @@ export function ImmersiveInstrumentControl({
   instrumentSamplePackStatuses = {},
   popoutHost = null,
   popoutPlacement = 'hud',
-  outsideClickBoundaryRef,
+  onPopoutHoverChange,
   unlockedRewardIds,
   onInstrumentChange,
 }: ImmersiveInstrumentControlProps) {
+  const HOVER_CLOSE_DELAY_MS = 180;
   const [isPinned, setIsPinned] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [openInfoInstrumentId, setOpenInfoInstrumentId] = useState<string | null>(null);
   const controlRef = useRef<HTMLDivElement | null>(null);
   const popoutRef = useRef<HTMLElement | null>(null);
+  const hoverCloseTimeoutRef = useRef<number | null>(null);
   const selectedInstrument = getInstrumentDefinition(instrumentId);
   const isOpen = isPinned || isHovered;
   const installedPackInstrumentIds = Object.values(instrumentSamplePackStatuses)
@@ -43,25 +45,44 @@ export function ImmersiveInstrumentControl({
     const handlePointerDown = (event: PointerEvent) => {
       const control = controlRef.current;
       const popout = popoutRef.current;
-      const boundary = outsideClickBoundaryRef?.current;
       const target = event.target as Node;
-      if (
-        !control ||
-        control.contains(target) ||
-        popout?.contains(target) ||
-        boundary?.contains(target)
-      ) {
+      if (!control || control.contains(target) || popout?.contains(target)) {
         return;
       }
       setIsPinned(false);
       setIsHovered(false);
+      onPopoutHoverChange?.(false);
     };
 
     window.addEventListener('pointerdown', handlePointerDown);
     return () => {
       window.removeEventListener('pointerdown', handlePointerDown);
     };
-  }, [isPinned, outsideClickBoundaryRef]);
+  }, [isPinned]);
+
+  useEffect(() => () => {
+    if (hoverCloseTimeoutRef.current !== null) {
+      window.clearTimeout(hoverCloseTimeoutRef.current);
+    }
+  }, []);
+
+  const clearHoverClose = () => {
+    if (hoverCloseTimeoutRef.current !== null) {
+      window.clearTimeout(hoverCloseTimeoutRef.current);
+      hoverCloseTimeoutRef.current = null;
+    }
+  };
+  const scheduleHoverClose = () => {
+    clearHoverClose();
+    if (isPinned) {
+      return;
+    }
+    hoverCloseTimeoutRef.current = window.setTimeout(() => {
+      setIsHovered(false);
+      onPopoutHoverChange?.(false);
+      hoverCloseTimeoutRef.current = null;
+    }, HOVER_CLOSE_DELAY_MS);
+  };
 
   const popout = (
     <section
@@ -70,12 +91,12 @@ export function ImmersiveInstrumentControl({
       aria-label="Instrument controls"
       aria-hidden={!isOpen}
       data-testid="immersive-instrument-popout"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        if (!isPinned) {
-          setIsHovered(false);
-        }
+      onMouseEnter={() => {
+        clearHoverClose();
+        onPopoutHoverChange?.(true);
+        setIsHovered(true);
       }}
+      onMouseLeave={scheduleHoverClose}
     >
       <div className="panel-heading">
         <div>
@@ -115,6 +136,8 @@ export function ImmersiveInstrumentControl({
                     return;
                   }
                   onInstrumentChange(instrument.id);
+                  clearHoverClose();
+                  onPopoutHoverChange?.(false);
                   setIsPinned(false);
                   setIsHovered(false);
                 }}
@@ -154,32 +177,32 @@ export function ImmersiveInstrumentControl({
     <div
       className="immersive-control-wrap immersive-instrument-control"
       ref={controlRef}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        if (!isPinned) {
-          setIsHovered(false);
-        }
+      onMouseEnter={() => {
+        clearHoverClose();
+        setIsHovered(true);
       }}
+      onMouseLeave={scheduleHoverClose}
     >
       <button
         className="immersive-menu-btn immersive-instrument-toggle"
         aria-label="Show instrument controls"
         aria-expanded={isOpen}
         onClick={() => {
+          clearHoverClose();
           if (isPinned) {
             setIsPinned(false);
             setIsHovered(false);
+            onPopoutHoverChange?.(false);
             return;
           }
           setIsPinned(true);
           setIsHovered(false);
         }}
-        onFocus={() => setIsHovered(true)}
-        onBlur={() => {
-          if (!isPinned) {
-            setIsHovered(false);
-          }
+        onFocus={() => {
+          clearHoverClose();
+          setIsHovered(true);
         }}
+        onBlur={scheduleHoverClose}
       >
         {selectedInstrument.label}
       </button>

@@ -147,15 +147,17 @@ export function FreePlayScreen({
   const [visualSceneResetToken, setVisualSceneResetToken] = useState(0);
   const [isVisualControlsPinned, setIsVisualControlsPinned] = useState(false);
   const [isVisualControlsHovered, setIsVisualControlsHovered] = useState(false);
+  const [isInstrumentPopoutHovered, setIsInstrumentPopoutHovered] = useState(false);
   const [openVisualInfoMode, setOpenVisualInfoMode] = useState<FreePlayVisualMode | null>(null);
   const [visualStageElement, setVisualStageElement] = useState<HTMLDivElement | null>(null);
   const noteStartMapRef = useRef(new Map<string, { startTimeSec: number; velocity: number; midi: number }>());
   const playbackTimeoutsRef = useRef<number[]>([]);
   const visualNoteTimeoutsRef = useRef<number[]>([]);
   const visualHeldByNoteRef = useRef(new Map<number, Set<string>>());
-  const visualStageRef = useRef<HTMLDivElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const visualToggleRef = useRef<HTMLButtonElement | null>(null);
+  const visualPopoutRef = useRef<HTMLElement | null>(null);
+  const visualHoverCloseTimeoutRef = useRef<number | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
   useModalFocusTrap({
@@ -404,11 +406,12 @@ export function FreePlayScreen({
     }
 
     const handlePointerDown = (event: PointerEvent) => {
-      const stage = visualStageRef.current;
-      if (!stage || stage.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (visualToggleRef.current?.contains(target) || visualPopoutRef.current?.contains(target)) {
         return;
       }
-      closeVisualControls(true);
+      setIsVisualControlsPinned(false);
+      setIsVisualControlsHovered(false);
     };
 
     window.addEventListener('pointerdown', handlePointerDown);
@@ -416,6 +419,12 @@ export function FreePlayScreen({
       window.removeEventListener('pointerdown', handlePointerDown);
     };
   }, [isVisualControlsPinned]);
+
+  useEffect(() => () => {
+    if (visualHoverCloseTimeoutRef.current !== null) {
+      window.clearTimeout(visualHoverCloseTimeoutRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -696,11 +705,34 @@ export function FreePlayScreen({
     }
   };
   const closeVisualControls = (returnFocus = false) => {
+    if (visualHoverCloseTimeoutRef.current !== null) {
+      window.clearTimeout(visualHoverCloseTimeoutRef.current);
+      visualHoverCloseTimeoutRef.current = null;
+    }
     setIsVisualControlsPinned(false);
     setIsVisualControlsHovered(false);
     if (returnFocus) {
       focusAfterClose(visualToggleRef);
     }
+  };
+  const keepVisualControlsOpen = () => {
+    if (visualHoverCloseTimeoutRef.current !== null) {
+      window.clearTimeout(visualHoverCloseTimeoutRef.current);
+      visualHoverCloseTimeoutRef.current = null;
+    }
+    setIsVisualControlsHovered(true);
+  };
+  const scheduleVisualControlsClose = () => {
+    if (visualHoverCloseTimeoutRef.current !== null) {
+      window.clearTimeout(visualHoverCloseTimeoutRef.current);
+    }
+    if (isVisualControlsPinned) {
+      return;
+    }
+    visualHoverCloseTimeoutRef.current = window.setTimeout(() => {
+      setIsVisualControlsHovered(false);
+      visualHoverCloseTimeoutRef.current = null;
+    }, 180);
   };
 
   const clearVisualCanvas = () => {
@@ -732,6 +764,7 @@ export function FreePlayScreen({
     <main className="app-shell app-shell-immersive free-play-immersive-shell" onPointerDownCapture={() => void ensureAudioReady()}>
       <ImmersiveHud
         className="free-play-hud"
+        externalHover={isVisualControlsHovered || isInstrumentPopoutHovered}
         currentDestination={hudCurrentDestination}
         navigationItems={resolvedHudNavigationItems}
         stats={
@@ -757,7 +790,7 @@ export function FreePlayScreen({
             instrumentSamplePackStatuses={instrumentSamplePackStatuses}
             popoutHost={visualStageElement}
             popoutPlacement="stage"
-            outsideClickBoundaryRef={visualStageRef}
+            onPopoutHoverChange={setIsInstrumentPopoutHovered}
             unlockedRewardIds={unlockedRewardIds}
             onInstrumentChange={onInstrumentChange}
           />
@@ -775,18 +808,10 @@ export function FreePlayScreen({
               setIsVisualControlsPinned(true);
               setIsVisualControlsHovered(false);
             }}
-            onMouseEnter={() => setIsVisualControlsHovered(true)}
-            onMouseLeave={() => {
-              if (!isVisualControlsPinned) {
-                setIsVisualControlsHovered(false);
-              }
-            }}
-            onFocus={() => setIsVisualControlsHovered(true)}
-            onBlur={() => {
-              if (!isVisualControlsPinned) {
-                setIsVisualControlsHovered(false);
-              }
-            }}
+            onMouseEnter={keepVisualControlsOpen}
+            onMouseLeave={scheduleVisualControlsClose}
+            onFocus={keepVisualControlsOpen}
+            onBlur={scheduleVisualControlsClose}
           >
             <Sparkles size={17} strokeWidth={2.2} aria-hidden="true" />
           </button>
@@ -805,14 +830,9 @@ export function FreePlayScreen({
 
       <div
         className="immersive-canvas-area free-play-stage-area"
-        ref={(element) => {
-          visualStageRef.current = element;
-          setVisualStageElement(element);
-        }}
+        ref={setVisualStageElement}
         onMouseLeave={() => {
-          if (!isVisualControlsPinned) {
-            setIsVisualControlsHovered(false);
-          }
+          scheduleVisualControlsClose();
         }}
       >
         <FreePlayVisualizer
@@ -827,17 +847,14 @@ export function FreePlayScreen({
         />
 
         <section
+          ref={visualPopoutRef}
           className={`panel free-play-visual-popout${isVisualControlsOpen ? ' open' : ''}`}
           id="free-play-visual-popout"
           aria-label="Visual mode controls"
           aria-hidden={!isVisualControlsOpen}
           data-testid="free-play-visual-popout"
-          onMouseEnter={() => setIsVisualControlsHovered(true)}
-          onMouseLeave={() => {
-            if (!isVisualControlsPinned) {
-              setIsVisualControlsHovered(false);
-            }
-          }}
+           onMouseEnter={keepVisualControlsOpen}
+           onMouseLeave={scheduleVisualControlsClose}
         >
           <div className="panel-heading">
             <div>

@@ -24,6 +24,33 @@ describe('ImmersiveInstrumentControl', () => {
     expect(popout).toHaveAttribute('aria-hidden', 'true');
   });
 
+  it('keeps the hover popout open while moving from the toggle into the panel', () => {
+    render(<ImmersiveInstrumentControl instrumentId="acoustic-piano" onInstrumentChange={vi.fn()} />);
+
+    const toggleButton = screen.getByRole('button', { name: 'Show instrument controls' });
+    const popout = screen.getByTestId('immersive-instrument-popout');
+
+    fireEvent.mouseEnter(toggleButton);
+    fireEvent.mouseLeave(toggleButton);
+    fireEvent.mouseEnter(popout);
+
+    expect(popout).toHaveAttribute('aria-hidden', 'false');
+  });
+
+  it('closes the pinned popout when something else is clicked', () => {
+    render(
+      <div>
+        <ImmersiveInstrumentControl instrumentId="acoustic-piano" onInstrumentChange={vi.fn()} />
+        <button type="button">Outside</button>
+      </div>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show instrument controls' }));
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Outside' }));
+
+    expect(screen.getByTestId('immersive-instrument-popout')).toHaveAttribute('aria-hidden', 'true');
+  });
+
   it('calls through with the selected instrument and closes the popout', () => {
     const onInstrumentChange = vi.fn();
 

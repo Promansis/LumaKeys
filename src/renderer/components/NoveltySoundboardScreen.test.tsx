@@ -182,6 +182,66 @@ describe('NoveltySoundboardScreen', () => {
     expect(screen.getByText('🪈', { selector: '.key-caption.custom' })).toBeInTheDocument();
   });
 
+  it('keeps soundboard popouts and the HUD open while moving into the panels', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(buildCanvasContextStub());
+    render(
+      <NoveltySoundboardScreen
+        audioEngine={buildAudioEngineStub()}
+        midiInputService={new MockMidiInputService() as unknown as MidiInputService}
+        keyboardInputService={new MockKeyboardInputService() as unknown as ComputerKeyboardInputService}
+        inputMode="both"
+        keyboardOverlaySize="medium"
+        onBackToMainMenu={vi.fn()}
+        onOpenKeyboardSetup={vi.fn()}
+      />,
+    );
+
+    const modeToggle = screen.getByRole('button', { name: /Show soundboard mode controls/i });
+    const modePopout = screen.getByTestId('soundboard-mode-popout');
+    const hud = screen.getByTestId('immersive-hud-shell');
+
+    fireEvent.mouseEnter(modeToggle);
+    fireEvent.mouseLeave(modeToggle);
+    fireEvent.mouseEnter(modePopout);
+
+    expect(modePopout).toHaveAttribute('aria-hidden', 'false');
+    expect(hud).toHaveClass('open');
+
+    const mapToggle = screen.getByRole('button', { name: /Show sound key map/i });
+    const mapPopout = screen.getByTestId('animal-key-map-popout');
+    fireEvent.mouseEnter(mapToggle);
+    fireEvent.mouseLeave(mapToggle);
+    fireEvent.mouseEnter(mapPopout);
+
+    expect(mapPopout).toHaveAttribute('aria-hidden', 'false');
+    expect(hud).toHaveClass('open');
+  });
+
+  it('closes pinned soundboard popouts when clicking elsewhere on the stage', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(buildCanvasContextStub());
+    render(
+      <NoveltySoundboardScreen
+        audioEngine={buildAudioEngineStub()}
+        midiInputService={new MockMidiInputService() as unknown as MidiInputService}
+        keyboardInputService={new MockKeyboardInputService() as unknown as ComputerKeyboardInputService}
+        inputMode="both"
+        keyboardOverlaySize="medium"
+        onBackToMainMenu={vi.fn()}
+        onOpenKeyboardSetup={vi.fn()}
+      />,
+    );
+
+    const modePopout = screen.getByTestId('soundboard-mode-popout');
+    fireEvent.click(screen.getByRole('button', { name: /Show soundboard mode controls/i }));
+    fireEvent.pointerDown(modePopout.closest('.animal-soundboard-stage')!);
+    expect(modePopout).toHaveAttribute('aria-hidden', 'true');
+
+    const mapPopout = screen.getByTestId('animal-key-map-popout');
+    fireEvent.click(screen.getByRole('button', { name: /Show sound key map/i }));
+    fireEvent.pointerDown(mapPopout.closest('.animal-soundboard-stage')!);
+    expect(mapPopout).toHaveAttribute('aria-hidden', 'true');
+  });
+
   it('switches between classic and animals from the HUD mode selector', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(buildCanvasContextStub());
     render(

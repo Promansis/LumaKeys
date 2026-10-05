@@ -23,6 +23,7 @@ interface ImmersiveHudProps {
   currentDestination?: ImmersiveHudDestination;
   label?: string;
   navigationItems?: ImmersiveHudNavigationItem[];
+  externalHover?: boolean;
   stats: ReactNode;
   actions: ReactNode;
 }
@@ -32,13 +33,14 @@ export function ImmersiveHud({
   currentDestination,
   label = 'Session HUD',
   navigationItems = [],
+  externalHover = false,
   stats,
   actions,
 }: ImmersiveHudProps) {
   const [isPinned, setIsPinned] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [hasFocus, setHasFocus] = useState(false);
-  const isOpen = isPinned || isHovered || hasFocus;
+  const isOpen = isPinned || isHovered || hasFocus || externalHover;
   const classNames = ['immersive-hud-shell', isOpen ? 'open' : '', className].filter(Boolean).join(' ');
 
   return (
