@@ -1,8 +1,7 @@
 import { serve } from '@hono/node-server';
 import { mkdirSync } from 'node:fs';
 import { existsSync } from 'node:fs';
-import { readFile, stat } from 'node:fs/promises';
-import { extname, join, normalize, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { Hono } from 'hono';
 import { AppDatabase } from '../persistence/database';
 import { migrateLegacyBrand } from '../persistence/legacyBrandMigration';
@@ -10,6 +9,7 @@ import { FileSystemMidiStorageAdapter } from '../storage/midiStorage';
 import { createBridgeRouter } from './bridgeRouter';
 import { createLibraryRouter } from './libraryRouter';
 import { createMidiRouter } from './midiRouter';
+import { createStaticFileHandler } from './staticFiles';
 import { createApiAccessGate } from './webSecurity';
 
 /** New env first, legacy env as a one-release fallback. */
@@ -68,87 +68,7 @@ async function startServer(): Promise<void> {
   app.route('/api/library', createLibraryRouter({ db, midiFilesDir, midiStorage }));
   app.route('/api/midi', createMidiRouter({ db, midiFilesDir, midiStorage }));
 
-  const CONTENT_TYPES: Record<string, string> = {
-  '.css': 'text/css; charset=utf-8',
-  '.html': 'text/html; charset=utf-8',
-  '.ico': 'image/x-icon',
-  '.js': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.mp3': 'audio/mpeg',
-  '.ogg': 'audio/ogg',
-  '.wav': 'audio/wav',
-  '.png': 'image/png',
-  '.svg': 'image/svg+xml',
-  '.webp': 'image/webp',
-  '.txt': 'text/plain; charset=utf-8',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2',
-  };
-
-  const IMMUTABLE_ASSET_PATH_PATTERN = /^\/assets\/.+-[A-Za-z0-9_-]+\.(?:css|js)$/;
-
-  function setStaticCacheHeaders(pathname: string, absolutePath: string, setHeader: (name: string, value: string) => void): void {
-  const extension = extname(absolutePath);
-
-  if (extension === '.html' || pathname === '/') {
-    setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    setHeader('Pragma', 'no-cache');
-    setHeader('Expires', '0');
-    return;
-  }
-
-  if (IMMUTABLE_ASSET_PATH_PATTERN.test(pathname)) {
-    setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    return;
-  }
-
-  if (extension === '.json') {
-    setHeader('Cache-Control', 'no-cache, must-revalidate');
-    return;
-  }
-
-  setHeader('Cache-Control', 'public, max-age=3600');
-  }
-
-  function resolveStaticPath(pathname: string): string {
-  const trimmedPath = pathname === '/' ? '/index.html' : pathname;
-  const normalizedPath = normalize(trimmedPath).replace(/^([.][.][/\\])+/, '');
-  return resolve(webRoot, `.${normalizedPath}`);
-  }
-
-  app.get('*', async (c) => {
-  const requestedPath = c.req.path;
-  const absolutePath = resolveStaticPath(requestedPath);
-
-  if (!absolutePath.startsWith(webRoot)) {
-    return c.notFound();
-  }
-
-  try {
-    const fileStats = await stat(absolutePath);
-    if (fileStats.isFile()) {
-      const body = await readFile(absolutePath);
-      c.header('Content-Type', CONTENT_TYPES[extname(absolutePath)] ?? 'application/octet-stream');
-      setStaticCacheHeaders(requestedPath, absolutePath, (name, value) => c.header(name, value));
-      return c.body(body);
-    }
-  } catch {
-    if (extname(requestedPath)) {
-      return c.notFound();
-    }
-  }
-
-  try {
-    const indexPath = join(webRoot, 'index.html');
-    const body = await readFile(indexPath);
-    c.header('Content-Type', 'text/html; charset=utf-8');
-    setStaticCacheHeaders('/', indexPath, (name, value) => c.header(name, value));
-    return c.body(body);
-  } catch {
-    return c.text('Web build not found. Run npm run build:web first.', 404);
-  }
-  });
+  app.get('*', createStaticFileHandler(webRoot));
 
   const server = serve({
     fetch: app.fetch,
