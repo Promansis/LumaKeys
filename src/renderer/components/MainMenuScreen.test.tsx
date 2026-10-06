@@ -56,6 +56,42 @@ describe('MainMenuScreen', () => {
     window.appBridge = undefined;
   });
 
+  it('plays the looping neon background video behind the menu', () => {
+    render(<MainMenuScreen {...createHandlers()} />);
+
+    const video = screen.getByTestId('main-menu-background-video') as HTMLVideoElement;
+    expect(video).toHaveAttribute('src', expect.stringContaining('/assets/main-menu/mainmenu-neonbackground.webm'));
+    expect(video).toHaveAttribute('autoplay');
+    expect(video).toHaveAttribute('loop');
+    expect(video).toHaveAttribute('playsinline');
+    expect(video.muted).toBe(true);
+    expect(video).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it.each([
+    ['reduced motion is preferred', '(prefers-reduced-motion: reduce)'],
+    ['the viewport is compact', '(max-width: 780px)'],
+  ])('keeps the static background image when %s', (_label, matchingQuery) => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn((query: string) => ({
+      matches: query === matchingQuery,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia;
+
+    try {
+      render(<MainMenuScreen {...createHandlers()} />);
+      expect(screen.queryByTestId('main-menu-background-video')).not.toBeInTheDocument();
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
+  });
+
   it('keeps all destination buttons accessible and wired to the same handlers', async () => {
     const user = userEvent.setup();
     const handlers = createHandlers();

@@ -7,6 +7,7 @@ import type {
   SongRow,
   UserStatsRow,
 } from '../../shared/dbTypes';
+import { resolvePublicAssetUrl } from '../../lib/audio/publicAssetUrl';
 
 interface MainMenuScreenProps {
   onOpenLibrary: () => void;
@@ -291,6 +292,7 @@ const SECONDARY_CARD_ENTRANCE_START_MS = 500;
 const SECONDARY_CARD_ENTRANCE_STEP_MS = 60;
 const REDUCE_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 const COMPACT_VIEWPORT_QUERY = '(max-width: 780px)';
+const BACKGROUND_VIDEO_PATH = '/assets/main-menu/mainmenu-neonbackground.webm';
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -493,6 +495,9 @@ export function MainMenuScreen(props: MainMenuScreenProps) {
     tiltY: number;
   } | null>(null);
   const [insights, setInsights] = useState<MainMenuInsights>(EMPTY_INSIGHTS);
+  const [showBackgroundVideo, setShowBackgroundVideo] = useState(
+    () => !reduceMotionRef.current && !compactViewportRef.current,
+  );
 
   const primaryCards = useMemo(() => MENU_CARDS.filter((card) => card.priority === 'primary'), []);
   const secondaryCards = useMemo(() => MENU_CARDS.filter((card) => card.priority === 'secondary'), []);
@@ -540,11 +545,16 @@ export function MainMenuScreen(props: MainMenuScreenProps) {
   }, []);
 
   useEffect(() => {
+    const syncBackgroundVideo = () => {
+      setShowBackgroundVideo(!reduceMotionRef.current && !compactViewportRef.current);
+    };
     const unsubscribeReduceMotion = subscribeMediaQuery(REDUCE_MOTION_QUERY, (matches) => {
       reduceMotionRef.current = matches;
+      syncBackgroundVideo();
     });
     const unsubscribeCompactViewport = subscribeMediaQuery(COMPACT_VIEWPORT_QUERY, (matches) => {
       compactViewportRef.current = matches;
+      syncBackgroundVideo();
     });
 
     return () => {
@@ -728,6 +738,22 @@ export function MainMenuScreen(props: MainMenuScreenProps) {
         } as MenuStyle
       }
     >
+      {showBackgroundVideo ? (
+        <video
+          aria-hidden="true"
+          autoPlay
+          className="main-menu-background-video"
+          data-testid="main-menu-background-video"
+          disablePictureInPicture
+          loop
+          muted
+          playsInline
+          preload="auto"
+          src={resolvePublicAssetUrl(BACKGROUND_VIDEO_PATH)}
+          tabIndex={-1}
+        />
+      ) : null}
+
       <div className="main-menu-backdrop" aria-hidden="true">
         <span className="main-menu-gradient-river main-menu-gradient-river-a" />
         <span className="main-menu-gradient-river main-menu-gradient-river-b" />
