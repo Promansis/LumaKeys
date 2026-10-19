@@ -1,0 +1,26 @@
+{
+  "_note": "Hand-written oracle for the MuseScore-converted MIDI of meter-tempo.mscz and pickup.mscz (Phase 11 lane C, 2026-10-19). Keys are the MIDI basenames. Loop ranges are 0-based measure indexes, as GameSession receives them. Loop note ticks list both parts sorted by start time, then pitch. Boundaries are not asserted because the last bar ends at the last note-off tick, which depends on MuseScore's exported note lengths; the probe's SMF reference check covers every boundary. expectedBoundariesIfFullLength records [startTick, endTick, startSec, endSec] for reading only.",
+  "meter-tempo": {
+    "expectedBoundariesIfFullLength": [[0, 1920, 0, 2], [1920, 3840, 2, 4], [3840, 5280, 4, 5.5], [5280, 6720, 5.5, 8.5]],
+    "measureCount": 4,
+    "startBpm": 120,
+    "noteMeasure": { "0": 0, "1440": 0, "1920": 1, "3360": 1, "3840": 2, "4800": 2, "5280": 3, "6240": 3 },
+    "noteSec": { "1920": 2, "3840": 4, "4800": 5, "5280": 5.5, "5760": 6.5, "6240": 7.5 },
+    "loops": [
+      { "range": [0, 0], "sec": [0, 2], "noteTicks": [0, 0, 480, 960, 1440] },
+      { "range": [1, 1], "sec": [2, 4], "noteTicks": [1920, 1920, 2400, 2880, 3360] },
+      { "range": [2, 2], "sec": [4, 5.5], "noteTicks": [3840, 3840, 4320, 4320, 4800, 4800] }
+    ]
+  },
+  "pickup": {
+    "expectedBoundariesIfFullLength": [[0, 480, 0, 0.5], [480, 2400, 0.5, 2.5], [2400, 4320, 2.5, 4.5]],
+    "measureCount": 3,
+    "startBpm": 120,
+    "noteMeasure": { "0": 0, "480": 1, "1920": 1, "2400": 2, "3360": 2 },
+    "noteSec": { "0": 0, "480": 0.5, "2400": 2.5, "3360": 3.5 },
+    "loops": [
+      { "range": [0, 0], "sec": [0, 0.5], "noteTicks": [0] },
+      { "range": [1, 1], "sec": [0.5, 2.5], "noteTicks": [480, 480, 960, 1440, 1920] }
+    ]
+  }
+}

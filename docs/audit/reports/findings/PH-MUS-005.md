@@ -7,7 +7,7 @@
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
-- Affected runtime: both (shared renderer code); reproduced in the web build
+- Affected runtime: both (shared renderer code); reproduced in the web build and in Electron
 - Coverage rows: WF-003, WF-009, WF-014, WF-015, RT-008
 - Related/duplicate findings: PH-UI-001 (its focus-return fix makes this reachable in the game loop)
 - First observed against: `main` at source identity `6e549b6`, Phase 11 lane F, 2026-10-19
@@ -73,7 +73,8 @@ undo the PH-UI-001 focus return.
 
 - Alternative explanation tested: the run was paused or not started. Ruled out by clicking the canvas with no other change, after which the same key scored at once.
 - Scope/severity changes: none.
-- Challenger conclusion and date: reproduced, 2026-10-19
+- Electron reproduction, 2026-10-20 (`scripts/audit/electron/workflows.mjs`, `$TMPDIR/p11/EL2/wf.out` sha256 `d5b1a9d2…07911e19`): Learning run, C4 scores (`0 -> 100`); Escape, click Resume; focus is the Menu button; D4 pressed 30 times leaves the score at 100; after clicking the canvas D4 scores (`100 -> 200`). Same sequence and result as the web.
+- Challenger conclusion and date: reproduced, 2026-10-19; Electron 2026-10-20
 
 ## Resolution
 

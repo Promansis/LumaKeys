@@ -52,7 +52,8 @@ all three import catch blocks.
 ## Challenge Record
 
 - Reproduced at the HTTP boundary and in the browser UI.
-- Challenger conclusion and date: reproduced, 2026-10-19
+- Electron reproduction, 2026-10-20 (`scripts/audit/electron/workflows.mjs`, `$TMPDIR/p11/EL2/wf.out`): Upload MIDI with an empty `.mid`, a corrupt `.mid` starting `MThd`, and a `.txt` reports "3 failed (empty: undefined; corrupt: Cannot read properties of undefined (reading 'forEach'); notes.txt: undefined)"; Import Folder reports "bad: Cannot read properties of undefined (reading 'forEach')". So on the desktop the empty-file case is also unreadable, because the desktop handlers have no empty-file or extension check before parsing, and a file with a valid header but broken body reports a raw `TypeError`. The `.txt` case needs the user to bypass the dialog's MIDI filter.
+- Challenger conclusion and date: reproduced, 2026-10-19; Electron scope added 2026-10-20
 
 ## Resolution
 

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Phase 11 lane C audit fixture (hand-written MuseScore 4 score, not product data).
+     One-beat pickup (Measure len="1/4") under a 4/4 signature, 120 BPM, two parts.
+     Melody: G4 (pickup) | C4 D4 E4 F4 | G4 (half) E4 (half)
+     Bass:   rest        | C3 (whole)  | G2 (whole)
+     MuseScore's MIDI export is expected to write the pickup as an actual 1/4 signature at
+     tick 0 and 4/4 at tick 480 (to be confirmed by the conversion). -->
+<museScore version="4.00">
+  <Score>
+    <Division>480</Division>
+    <Part>
+      <Staff id="1"><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff>
+      <trackName>Melody</trackName>
+      <Instrument id="piano">
+        <longName>Melody</longName><trackName>Melody</trackName>
+        <Channel><program value="0"/></Channel>
+      </Instrument>
+    </Part>
+    <Part>
+      <Staff id="2"><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff>
+      <trackName>Bass</trackName>
+      <Instrument id="piano">
+        <longName>Bass</longName><trackName>Bass</trackName>
+        <Channel><program value="0"/></Channel>
+      </Instrument>
+    </Part>
+    <Staff id="1">
+      <Measure len="1/4"><voice>
+        <TimeSig><sigN>4</sigN><sigD>4</sigD></TimeSig>
+        <Tempo><tempo>2</tempo><followText>0</followText><text>Tempo 120</text></Tempo>
+        <Chord><durationType>quarter</durationType><Note><pitch>67</pitch><tpc>15</tpc></Note></Chord>
+      </voice></Measure>
+      <Measure><voice>
+        <Chord><durationType>quarter</durationType><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>
+        <Chord><durationType>quarter</durationType><Note><pitch>62</pitch><tpc>16</tpc></Note></Chord>
+        <Chord><durationType>quarter</durationType><Note><pitch>64</pitch><tpc>18</tpc></Note></Chord>
+        <Chord><durationType>quarter</durationType><Note><pitch>65</pitch><tpc>13</tpc></Note></Chord>
+      </voice></Measure>
+      <Measure><voice>
+        <Chord><durationType>half</durationType><Note><pitch>67</pitch><tpc>15</tpc></Note></Chord>
+        <Chord><durationType>half</durationType><Note><pitch>64</pitch><tpc>18</tpc></Note></Chord>
+      </voice></Measure>
+    </Staff>
+    <Staff id="2">
+      <Measure len="1/4"><voice>
+        <TimeSig><sigN>4</sigN><sigD>4</sigD></TimeSig>
+        <Rest><durationType>quarter</durationType></Rest>
+      </voice></Measure>
+      <Measure><voice>
+        <Chord><durationType>whole</durationType><Note><pitch>48</pitch><tpc>14</tpc></Note></Chord>
+      </voice></Measure>
+      <Measure><voice>
+        <Chord><durationType>whole</durationType><Note><pitch>43</pitch><tpc>15</tpc></Note></Chord>
+      </voice></Measure>
+    </Staff>
+  </Score>
+</museScore>

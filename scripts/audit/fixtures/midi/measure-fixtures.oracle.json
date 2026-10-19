@@ -1,0 +1,46 @@
+{
+  "_note": "Hand-written oracle, written before any probe ran (Lane C, 2026-10-19). Boundaries are [startTick, endTick, startSec, endSec]. Seconds use SMF semantics: 120 BPM until the first Set Tempo event. The last bar ends at the last note-off tick (the PH-MUS-002 fix's documented truncation); musicalLastBarEnd records the barline for comparison.",
+  "lanef-6-8-then-3-4": {
+    "boundaries": [[0, 1440, 0, 1.5], [1440, 2870, 1.5, 2.9895833]],
+    "noteMeasure": { "0": 0, "1200": 0, "1440": 1, "2640": 1 },
+    "remark": "3/4 event at tick 2880 lies after the last note-off (2870): the meter change is never exercised"
+  },
+  "pure-6-8": {
+    "boundaries": [[0, 1440, 0, 1.5], [1440, 2880, 1.5, 3.0], [2880, 4320, 3.0, 4.5]],
+    "noteMeasure": { "1200": 0, "1440": 1, "2880": 2, "4080": 2 },
+    "loops": [{ "range": [1, 1], "sec": [1.5, 3.0], "noteTicks": [1440, 1680, 1920, 2160, 2400, 2640] }]
+  },
+  "6-8-then-3-4-reached": {
+    "boundaries": [[0, 1440, 0, 1.5], [1440, 2880, 1.5, 3.0], [2880, 4320, 3.0, 4.5], [4320, 5760, 4.5, 6.0]],
+    "noteMeasure": { "2640": 1, "2880": 2, "4320": 3, "5280": 3 },
+    "loops": [{ "range": [2, 3], "sec": [3.0, 6.0], "noteTicks": [2880, 3360, 3840, 4320, 4800, 5280] }]
+  },
+  "3-4-to-4-4-tempo": {
+    "boundaries": [[0, 1440, 0, 1.5], [1440, 2880, 1.5, 3.0], [2880, 4800, 3.0, 6.0], [4800, 6240, 6.0, 9.0]],
+    "musicalLastBarEnd": [6720, 10.0],
+    "noteMeasure": { "2400": 1, "2880": 2, "3840": 2, "4320": 2, "4800": 3, "5760": 3 },
+    "noteSec": { "3840": 4.0, "4320": 5.0, "5760": 8.0 },
+    "loops": [{ "range": [2, 2], "sec": [3.0, 6.0], "noteTicks": [2880, 3360, 3840, 4320] }],
+    "durationSec": 9.0
+  },
+  "pickup-ts-1-4": {
+    "boundaries": [[0, 480, 0, 0.5], [480, 2400, 0.5, 2.5], [2400, 4320, 2.5, 4.5]],
+    "noteMeasure": { "0": 0, "480": 1, "2400": 2 }
+  },
+  "pickup-as-rest": {
+    "boundaries": [[0, 1920, 0, 2.0], [1920, 3840, 2.0, 4.0], [3840, 5760, 4.0, 6.0]],
+    "noteMeasure": { "1440": 0, "1920": 1, "3840": 2 },
+    "remark": "SMF has no anacrusis marker; a printed score would number the bar at 1920 as measure 1, LumaKeys as measure 2"
+  },
+  "exact-end-no-ts": {
+    "boundaries": [[0, 1920, 0, 2.0], [1920, 3840, 2.0, 4.0]],
+    "noteMeasure": { "960": 0, "1920": 1, "2880": 1 },
+    "loops": [{ "range": [1, 1], "sec": [2.0, 4.0], "noteTicks": [1920, 2880] }, { "range": [5, 5], "sec": [2.0, 4.0], "noteTicks": [1920, 2880] }]
+  },
+  "late-first-tempo": {
+    "boundaries": [[0, 1920, 0, 2.0], [1920, 3840, 2.0, 6.0]],
+    "noteMeasure": { "1440": 0, "1920": 1, "3360": 1 },
+    "noteSec": { "1440": 1.5, "1920": 2.0, "2400": 3.0, "3360": 5.0 },
+    "startBpm": 120
+  }
+}

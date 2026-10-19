@@ -47,7 +47,8 @@ legacy `"off"` to `0`.
 
 ## Challenge Record
 
-- Challenger conclusion and date: reproduced, 2026-10-19
+- Electron reproduction, 2026-10-20: after **Skip for now** on first launch, `lumakeys.db` holds `practice.postureReminderMinutes = 'off'` (`scripts/audit/electron/workflows.mjs`).
+- Challenger conclusion and date: reproduced, 2026-10-19; Electron 2026-10-20
 
 ## Resolution
 

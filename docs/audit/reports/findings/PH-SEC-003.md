@@ -1,4 +1,4 @@
-# PH-SEC-003: Web HTML responses carry no Content-Security-Policy or related security headers
+# PH-SEC-003: Web HTML responses carry no Content-Security-Policy or related security headers, and the desktop renderer has no CSP either
 
 - Lane: SEC
 - Severity: P3
@@ -7,8 +7,8 @@
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
-- Affected runtime: web
-- Coverage rows: OP-016, MOD-010, MOD-013
+- Affected runtime: both (web: no response headers; Electron: no CSP in the renderer, added to scope 2026-10-20)
+- Coverage rows: OP-016, MOD-010, MOD-013, MOD-014
 - Related/duplicate findings: none
 - First observed against: `main` at source identity `6e549b6`, Phase 11 baseline 2026-10-19
 
@@ -44,6 +44,16 @@ self-hosted single-page app served to the public internet sends
 3. Headers absent: `Content-Security-Policy`, `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`.
 4. Deterministic; the only header middleware in `src/server/index.ts` sets `Permissions-Policy`.
 
+5. Electron, 2026-10-20: `src/renderer/index.html` carries only a `Permissions-Policy`
+   meta tag, and `src/main/index.ts` installs no `onHeadersReceived` hook, so the
+   desktop renderer runs with no CSP. Electron itself says so: every launch of the
+   built app in the headless harness logs "Electron Security Warning (Insecure
+   Content-Security-Policy) … This renderer process has either no Content Security
+   Policy set or a policy with "unsafe-eval" enabled" (`scripts/audit/electron/setup-guide-choices.mjs`,
+   output `$TMPDIR/p11/EL2/setup.out`, sha256 `4b4b4d6a…f135462e`; the other Electron drivers filter
+   this line). Electron prints the warning only for unpackaged runs; the missing policy
+   is the same in the package.
+
 ### Artifacts
 
 - File/line or contract evidence: `src/server/index.ts` middleware at the `app.use('*', ...)` call; `src/server/staticFiles.ts` sets content type, range, and cache headers only.
@@ -57,7 +67,10 @@ MIDI); there is no single place that declares the response security policy for H
 
 ## Recommended Remediation Boundary
 
-Add one middleware in `src/server/index.ts` for HTML responses that sets CSP,
+Put the CSP in `src/renderer/index.html` as a `<meta http-equiv="Content-Security-Policy">`
+tag so both builds get it from the one file, and add one middleware in
+`src/server/index.ts` for HTML responses that sets the header form of the CSP
+(needed for `frame-ancestors`, which a meta tag cannot carry),
 `X-Content-Type-Options`, `Referrer-Policy: no-referrer`, and
 `X-Frame-Options: DENY`; add a `staticFiles.test.ts` case. Verify the main menu
 video, Tone.js sampler loading, and the soundboard still work under the policy in a
@@ -66,7 +79,7 @@ browser before merging.
 ## Required Regression Proof
 
 - Deterministic unit/integration proof: `staticFiles.test.ts` asserts the four headers on `/` and on the SPA fallback.
-- Electron proof: not applicable (Electron loads `file://`; a CSP meta tag is a separate hardening item under MOD-014).
+- Electron proof: the headless harness run no longer logs the insecure-CSP warning, and the main menu video, sampler loading, Free Play export, and soundboard still work (rerun `scripts/audit/electron/workflows.mjs`, `freeplay-export.mjs`, `sample-pack.mjs`).
 - Web proof: probe section "Response headers" shows four PASS lines; manual play-through confirms no CSP violations in the browser console.
 - Broader regression command: `npx vitest run src/server`
 
@@ -74,7 +87,7 @@ browser before merging.
 
 - Independent reproduction attempt: probe and source agree.
 - Alternative explanations tested: "Cloudflare adds these headers" checked against the README, which configures only tunnel ingress and Access; no transform rules are documented.
-- Scope/severity changes: entered at P3 after confirming no injection vector.
+- Scope/severity changes: entered at P3 after confirming no injection vector. On 2026-10-20 the lead widened the scope to Electron. The first pass had parked the desktop CSP as "a separate hardening item under MOD-014", but no finding tracked it, and one meta tag fixes both runtimes. Severity stays P3: the desktop window loads only bundled `file://` content, is sandboxed, and has context isolation.
 - Deduplication decision: none
 - Challenger conclusion and date: reproduced, 2026-10-19
 
