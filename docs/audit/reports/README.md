@@ -31,5 +31,9 @@ and video main menu) is planned in the
 [Phase 11 plan](phase-11-plan-2026-10-19.md) against the
 [2026-10-19 baseline](baseline-2026-10-19.md). Its generated inputs live under
 `../evidence/phase-11-*`. Re-verification records for previously fixed findings go in
-`findings/PH-<LANE>-NNN-reverify-YYYY-MM.md` using
-`../templates/reverification-record.md`.
+one consolidated file per phase (`phase-11-reverification-2026-10-19.md`) following
+`../templates/reverification-record.md`. Phase 11 lane reports so far:
+[lane A web security](phase-11-lane-a-web-security-2026-10-19.md) and
+[lane G supply chain and operations](phase-11-lane-g-supply-chain-ops-2026-10-19.md).
+Proof the owner must run by hand is batched in
+[phase-11-user-tests.md](phase-11-user-tests.md).

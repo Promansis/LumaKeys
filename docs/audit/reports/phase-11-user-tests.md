@@ -7,6 +7,25 @@ are not ready until the agent has staged fixtures and written exact steps.
 
 Status legend: `staging` (agent still preparing), `ready`, `done`.
 
+## Sitting 0: Host terminal on this machine (~15 min) — ready
+
+Four commands the agent cannot run from its sandbox (no display, no D-Bus, no Docker
+socket, no access to the live hostname). Paste each result line back into the Result
+column or into chat; the agent converts them into evidence.
+
+Preconditions already satisfied by the agent:
+
+- `scripts/audit/electron-window-open-probe.cjs` is in the repository and `npm run build` output exists in `out/`.
+- The Docker image definition is unchanged; `docker compose build` will fetch the pinned MuseScore AppImage.
+- Item 3 needs any `.mscz` file; export one from MuseScore or download a sample score. Put it at `$TMPDIR/score.mscz` or adjust the path.
+
+| # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
+|---|---|---|---|---|---|
+| 1 | MOD-014, PH-SEC-005 | `npm run build && xvfb-run -a node_modules/.bin/electron --no-sandbox scripts/audit/electron-window-open-probe.cjs 2>/dev/null \| grep -E 'PARENT_BRIDGE\|PROBE_RESULT'` | `PARENT_BRIDGE object`, then a `PROBE_RESULT` line with `"hasBridge":"undefined"` and `"preloadInherited":false`. A child window loading at all confirms PH-SEC-005; `"hasBridge":"object"` would raise it to P1 | | |
+| 2 | OP-017, WF-025, BASE-11-001 | `docker compose build && docker compose run --rm lumakeys npx vitest run src/server/museScore.integration.test.ts` | 1 test passed (the integration test that is skipped outside Docker) | | |
+| 3 | PH-SEC-004 | With the container running (`docker compose up -d`), run two uploads at once: `for i in 1 2; do curl -s -o $TMPDIR/up$i.json -F "files=@$TMPDIR/score.mscz;filename=score$i.mscz" http://127.0.0.1:3001/api/midi/upload & done; wait; cat $TMPDIR/up1.json $TMPDIR/up2.json` (add `-H "x-lumakeys-access-token: <token>"` if the token is set) | One response imports or reports "already in library"; the other contains "Another MuseScore score is being converted" | | |
+| 4 | OP-014, PH-OPS-002 | In a private browser window open `https://<your hostname>/`; then run `curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'content-type: application/json' -d '{"args":[]}' https://<your hostname>/api/bridge/getAllSongs` | Browser redirects to Cloudflare login before the app loads; curl prints 302 or 403, never 200 | | |
+
 ## Sitting 1: This Linux machine with a display (~20 min) — staging
 
 Covers the runtime proof Phase 10 left owed on the only environment available

@@ -41,6 +41,15 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-ARCH-001 | Practice-session prerequisite failures leave the session loading | ARCH | P2 | high | both | fixed | WF-008, WF-009, BR-015, BR-032, BR-053, MOD-003 | [PH-ARCH-001](reports/findings/PH-ARCH-001.md) | Codex (acting) |
 | PH-ARCH-002 | Keyboard mapping reports success before its durable write settles | ARCH | P2 | high | both | fixed | WF-003, WF-018, BR-054, MOD-002, MOD-005 | [PH-ARCH-002](reports/findings/PH-ARCH-002.md) | Codex (acting) |
 | PH-OPS-001 | Docker build context can embed default user data and environment files | OPS | P1 | high | web | verified | OP-014, MOD-012 | [PH-OPS-001](reports/findings/PH-OPS-001.md) | Codex (acting) |
+| PH-SEC-002 | Access token accepted in the URL query string and documented as the login path | SEC | P2 | high | web | reproduced | OP-014, OP-018, MOD-010 | [PH-SEC-002](reports/findings/PH-SEC-002.md) | Claude Code (acting) |
+| PH-SEC-003 | Web HTML responses carry no Content-Security-Policy or related security headers | SEC | P3 | high | web | reproduced | OP-016, MOD-010, MOD-013 | [PH-SEC-003](reports/findings/PH-SEC-003.md) | Claude Code (acting) |
+| PH-SEC-004 | One MuseScore conversion blocks every other import for up to 45 seconds | SEC | P3 | high | web | reproduced | OP-017, WF-025, MOD-013 | [PH-SEC-004](reports/findings/PH-SEC-004.md) | Claude Code (acting) |
+| PH-SEC-005 | Soundboard source links open remote sites inside an Electron window with no navigation guard | SEC | P3 | medium | Electron | suspected | MOD-014, OP-013, MOD-008 | [PH-SEC-005](reports/findings/PH-SEC-005.md) | Claude Code (acting) |
+| PH-OPS-002 | Default web deployment exposes `/api/*` with no app-level gate | OPS | P2 | high | web | suspected | OP-014 | [PH-OPS-002](reports/findings/PH-OPS-002.md) | Claude Code (acting) |
+| PH-OPS-003 | Shipped desktop runtime Electron 30.5.1 is past end of life | OPS | P2 | high | Electron | reproduced | MOD-012, MOD-008, OP-013 | [PH-OPS-003](reports/findings/PH-OPS-003.md) | Claude Code (acting) |
+| PH-OPS-004 | A user SQLite database remains in git history | OPS | P2 | high | runtime-independent | suspected | MOD-012, DATA-003, DATA-004 | [PH-OPS-004](reports/findings/PH-OPS-004.md) | Claude Code (acting) |
+| PH-OPS-005 | No continuous integration enforces the typecheck, test, or asset baseline | OPS | P3 | high | runtime-independent | reproduced | MOD-012 | [PH-OPS-005](reports/findings/PH-OPS-005.md) | Claude Code (acting) |
+| PH-DATA-004 | Web sample packs installed before the rename are orphaned in the browser | DATA | P3 | high | web | reproduced | DATA-015, DATA-017, OP-006, OP-009, MOD-009 | [PH-DATA-004](reports/findings/PH-DATA-004.md) | Claude Code (acting) |
 
 ## Status Notes
 
