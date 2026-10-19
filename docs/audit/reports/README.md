@@ -25,3 +25,11 @@ findings to vertical implementation slices. The
 [Phase 10 verification report](phase-10-verification-2026-08-07.md) records current
 commit identities, automated/runtime proof, verified disposition, and remaining
 blockers. Raw runtime artifacts remain outside git and are described in their reports.
+
+Phase 11 (delta re-audit after the LumaKeys rename, MSCZ import, static-file server,
+and video main menu) is planned in the
+[Phase 11 plan](phase-11-plan-2026-10-19.md) against the
+[2026-10-19 baseline](baseline-2026-10-19.md). Its generated inputs live under
+`../evidence/phase-11-*`. Re-verification records for previously fixed findings go in
+`findings/PH-<LANE>-NNN-reverify-YYYY-MM.md` using
+`../templates/reverification-record.md`.

@@ -63,3 +63,21 @@ Only accepted findings may enter a remediation slice. Group by shared root cause
 user-visible path, not by file. Order by P0/P1 risk, then confidence and dependency.
 The remediation owner works on a separate implementation branch and the verifier,
 not the implementer alone, changes status to `verified` for P0/P1.
+
+## Re-Audit After The Baseline Moves
+
+When HEAD is past the identity named in the latest verification report, follow
+`docs/audit/README.md` Phase 11 instead of starting a new audit:
+
+1. `scripts/audit/baseline.sh --with-builds` for the new identity.
+2. `scripts/audit/delta-inventory.sh <last-audited> HEAD` into `docs/audit/evidence/`
+   and fill `templates/delta-inventory.md`.
+3. Add a coverage row for every new module, route, env var, asset path, or workflow
+   before collecting evidence; owners start as "Phase N (unassigned)".
+4. File a `templates/reverification-record.md` for every `fixed`/`verified` finding
+   whose owning modules appear in the delta.
+5. `node scripts/audit/dependency-triage.mjs` and, against an isolated server only,
+   `scripts/audit/web-security-probe.sh` for the security lane.
+6. `node scripts/audit/recount-coverage.mjs --check` before every lane exit.
+
+The current plan of this kind is `docs/audit/reports/phase-11-plan-2026-10-19.md`.

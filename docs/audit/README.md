@@ -184,6 +184,22 @@ Run full desktop, web, packaging, recovery, backup/restore, and hardware verific
 Complete the matrix and produce a consolidation report with residual risks and
 accepted exceptions.
 
+### 11. Delta Re-Audit
+
+When the source identity moves past the last verified baseline, do not restart at
+Phase 0. Capture a new baseline (`scripts/audit/baseline.sh`), generate a delta
+inventory (`scripts/audit/delta-inventory.sh`, recorded with
+`templates/delta-inventory.md`), add a coverage row for every new surface, re-verify
+each `fixed`/`verified` finding whose owning modules appear in the delta
+(`templates/reverification-record.md`), and then resume the open workflow and runtime
+gaps. A failed re-verification reopens the canonical ID; it never creates a new one.
+
+Exit gate: every new row has a disposition, every near-delta finding has a
+re-verification record, and `scripts/audit/recount-coverage.mjs --check` passes.
+
+The first delta re-audit is planned in
+[reports/phase-11-plan-2026-10-19.md](reports/phase-11-plan-2026-10-19.md).
+
 ## Objective Completion Condition
 
 The audit is complete only when every in-scope workflow, supported runtime, durable

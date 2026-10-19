@@ -48,6 +48,8 @@ canonical finding IDs.
 | WF-022 | Reset all user data including files/browser-local state | Both | Codex (acting) | [P1-WF](reports/phase-1-inventory-2026-07-11.md#p1-wf); [P10](reports/phase-10-verification-2026-08-07.md) | gap | Full reset fault injection and SIGKILL recovery pass; user-driven Electron/web store inventory remains |
 | WF-023 | App startup, shutdown, restart, and interrupted-operation recovery | Both | Codex (acting) | [P1-WF](reports/phase-1-inventory-2026-07-11.md#p1-wf); [P10](reports/phase-10-verification-2026-08-07.md) | gap | Linux package startup, Docker restart, and SIGKILL delete/reset/restore pass; Windows and full runtime interruption matrices remain |
 | WF-024 | Contextual back/navigation from every screen and active session | Both | Codex (acting) | [P1-WF](reports/phase-1-inventory-2026-07-11.md#p1-wf); [P5-UI](reports/phase-5-ui-accessibility-performance-2026-07-12.md#p5-ui-001-modal-focus) | gap | PH-UI-001 leaks immersive-dialog focus and PH-UI-004 makes modal Escape invoke global back navigation |
+| WF-025 | MuseScore `.mscz` upload, conversion, failure messaging, and busy-converter behavior | Web | Claude Code (acting) | [P11 plan](reports/phase-11-plan-2026-10-19.md#lane-a-web-security-and-deployment) | gap | New since Phase 10 (`99adf7c`); no runtime evidence; leads L-11-005, L-11-006 |
+| WF-026 | Main-menu video background load, loop, reduced motion, and missing-asset fallback | Both | Claude Code (acting) | [P11 plan](reports/phase-11-plan-2026-10-19.md#lane-e-ui-accessibility-and-performance) | gap | New since Phase 10 (`12ef6a7`, `6e549b6`); reduced-motion proof owed under the PH-UI-003 oracle |
 
 For each workflow, evidence must include the default path plus applicable loading,
 empty, disabled, failure, retry/recovery, and destructive-confirmation paths.
@@ -67,6 +69,7 @@ empty, disabled, failure, retry/recovery, and destructive-confirmation paths.
 | RT-009 | Reduced-motion preference | Codex (acting) | [P5-UI](reports/phase-5-ui-accessibility-performance-2026-07-12.md#p5-ui-003-reduced-motion); [P10](reports/phase-10-verification-2026-08-07.md) | gap | Bounded canvas RAF tests pass; runtime pixel/RAF proof remains |
 | RT-010 | Color-independent musical/result states | Codex (acting) | [P5-UI](reports/phase-5-ui-accessibility-performance-2026-07-12.md#evidence-gaps) | gap | Labeled notes and alternate palette source paths exist; calibrated color-vision/result review remains required |
 | RT-011 | MIDI hardware lifecycle on available devices | Codex (acting) | [P3-MUS](reports/phase-3-music-practice-correctness-2026-07-11.md#evidence-gaps) | gap | PH-MUS-004 deterministic disconnect proof; named-device permission/reconnect evidence required |
+| RT-012 | Autoplaying video under reduced motion, throttled bandwidth, and the packaged Electron asset path | Claude Code (acting) | [P11 plan](reports/phase-11-plan-2026-10-19.md#lane-e-ui-accessibility-and-performance) | gap | New surface; pair with RT-009 and PH-PAR-001 asset policy |
 
 Mobile viewports are deliberately absent under ADR 0001.
 
@@ -90,6 +93,7 @@ Mobile viewports are deliberately absent under ADR 0001.
 | DATA-014 | Instrument sample-pack files/metadata | Codex (acting) | [P2-DATA](reports/phase-2-runtime-data-security-2026-07-11.md#durable-entity-disposition) | covered | PH-SEC-001; PH-DATA-002 |
 | DATA-015 | Web IndexedDB sample assets | Codex (acting) | [P2-DATA](reports/phase-2-runtime-data-security-2026-07-11.md#durable-entity-disposition) | covered | PH-DATA-002 |
 | DATA-016 | Browser localStorage/transient persisted preferences | Codex (acting) | [P2-DATA](reports/phase-2-runtime-data-security-2026-07-11.md#durable-entity-disposition) | covered | localStorage clears; IndexedDB reset gap is PH-DATA-002 |
+| DATA-017 | Legacy PianoHero data-directory, environment, and database-name fallback | Claude Code (acting) | [P11 plan](reports/phase-11-plan-2026-10-19.md#lane-b-persistence-and-durability) | gap | One-release fallback (`090658e`); sibling-directory containment and removal date owed |
 
 Each entity requires creation, read-back, update if applicable, deletion/reset,
 backup/restore inclusion or explicit exclusion, corrupted/missing input, transaction or
@@ -195,6 +199,9 @@ runtimes. A web stub needs explicit product/UI behavior and tests.
 | OP-013 | Electron IPC exposure and context isolation | Electron | Codex (acting) | [P2-OP](reports/phase-2-runtime-data-security-2026-07-11.md#working-flows-confirmed) | covered | PH-SEC-001 |
 | OP-014 | Deployment access, cookie/CSRF assumptions, rate limits | Web | Codex (acting) | [P2-OP](reports/phase-2-runtime-data-security-2026-07-11.md#working-flows-confirmed); [P10](reports/phase-10-verification-2026-08-07.md) | covered | Access gate remains explicit; PH-OPS-001 verified with context/image and `/data` restart proof |
 | OP-015 | Database initialization, migration, transaction, and rollback | Both | Codex (acting) | [P2-OP](reports/phase-2-runtime-data-security-2026-07-11.md#working-flows-confirmed) | covered | WAL/foreign keys/migration covered; PH-DATA-001 |
+| OP-016 | Static file serving: MIME, byte-range, cache headers, and containment prefix check | Web | Claude Code (acting) | [P11 plan](reports/phase-11-plan-2026-10-19.md#lane-a-web-security-and-deployment); [P11 probe](../audit/evidence/phase-11-web-probe-2026-10-19.md) | gap | `staticFiles.ts` new (`6e549b6`); traversal and range probes pass; leads L-11-003, L-11-004 |
+| OP-017 | MuseScore conversion subprocess isolation, limits, cleanup, and concurrency | Web | Claude Code (acting) | [P11 plan](reports/phase-11-plan-2026-10-19.md#lane-a-web-security-and-deployment) | gap | `museScore.ts` new (`99adf7c`); prlimit/timeout/tmpdir present; leads L-11-005, L-11-006 |
+| OP-018 | Access-token transport (header, query string, cookie) and comparison | Web | Claude Code (acting) | [P11 plan](reports/phase-11-plan-2026-10-19.md#lane-a-web-security-and-deployment); [P11 probe](../audit/evidence/phase-11-web-probe-2026-10-19.md) | gap | Leads L-11-001 (query-string transport), L-11-002 (comparison); cookie flags pass |
 
 ## High-Risk Modules And Operations Surfaces
 
@@ -212,6 +219,8 @@ runtimes. A web stub needs explicit product/UI behavior and tests.
 | MOD-010 | `src/server/*` | Are routes, dispatch, uploads, static files, and access safe? | Codex (acting) | [P2-MOD](reports/phase-2-runtime-data-security-2026-07-11.md#working-flows-confirmed); [P4-PAR](reports/phase-4-runtime-parity-2026-07-12.md#p4-par-003-supported-legacy-json-migration); [P6-MOD](reports/phase-6-architecture-operations-2026-07-12.md#working-architecture-and-operations) | covered | Adapter injection and route validation hold; PH-DATA-001, BASE-SEC-001, and PH-PAR-003 remain canonical |
 | MOD-011 | `src/lib/game/*`, `midi/*`, `audio/*`, `input/*` | Are musical rules deterministic and runtime lifecycle correct? | Codex (acting) | [P3-MUS](reports/phase-3-music-practice-correctness-2026-07-11.md); [P6-MOD](reports/phase-6-architecture-operations-2026-07-12.md#working-architecture-and-operations) | covered | PH-MUS-001 through PH-MUS-004 remain; audio/hardware evidence gaps remain explicit |
 | MOD-012 | Build, Docker, packaging, native modules | Are builds reproducible and recovery/logging sufficient? | Codex (acting) | [P4-PAR](reports/phase-4-runtime-parity-2026-07-12.md#p4-par-001-fresh-electron-build-asset-check); [P6-MOD](reports/phase-6-architecture-operations-2026-07-12.md#working-architecture-and-operations) | covered | Native guard/builds pass; PH-PAR-001 remains and PH-OPS-001 covers Docker build-context confidentiality |
+| MOD-013 | `src/server/staticFiles.ts` and `src/server/museScore.ts` | Are the new web surfaces contained, bounded, cleaned up, and covered by tests? | Claude Code (acting) | [P11 plan](reports/phase-11-plan-2026-10-19.md#lane-a-web-security-and-deployment) | gap | New modules; unit tests exist; integration test for MuseScore is skipped outside Docker |
+| MOD-014 | Electron shell hardening in `src/main/index.ts` | Is `sandbox` explicit, is a CSP applied, and are navigation and `window.open` guarded? | Claude Code (acting) | [P11 plan](reports/phase-11-plan-2026-10-19.md#lane-d-runtime-parity-electron-vs-web) | gap | Lead L-11-008; file modified since Phase 10 without a touched test |
 
 Module size is not a finding. Record a finding only when evidence identifies a
 behavioral risk, ownership violation, duplicated rule, untestable boundary, or
@@ -223,9 +232,15 @@ Update counts from the tables; do not estimate.
 
 | Lane/dimension | Total | Covered | Gap/blocked | Open findings | Owner sign-off |
 |---|---:|---:|---:|---:|---|
-| User workflows | 24 | 0 | 24 | 13 | Codex (acting; Phase 7 converted every incomplete workflow to an explicit owned gap) |
-| Runtime/UI conditions | 11 | 6 | 5 | 5 | Codex (acting; Phase 5 complete; RT-006/008/009/010/011 remain gaps) |
-| Durable entities/stores | 16 | 16 | 0 | 7 | Codex (acting; Phase 2 complete; Phase 4 PH-PAR-003 added) |
-| AppBridge methods | 69 | 69 | 0 | 10 | Codex (acting; Phase 4 parity and Phase 6 renderer failure evidence recorded) |
-| Privileged/destructive operations | 15 | 15 | 0 | 7 | Codex (acting; Phase 10 resolved BASE-SEC-001 and verified PH-OPS-001) |
-| High-risk modules/operations | 12 | 12 | 0 | 17 | Codex (acting; Phase 6 architecture and operations complete) |
+| User workflows | 26 | 0 | 26 | 9 | Phase 11 pending (WF-025/026 added 2026-10-19; all 24 prior workflows remain explicit gaps) |
+| Runtime/UI conditions | 12 | 6 | 6 | 3 | Phase 11 pending (RT-012 added 2026-10-19; RT-006/008/009/010/011 remain gaps) |
+| Durable entities/stores | 17 | 16 | 1 | 7 | Phase 11 pending (DATA-017 legacy fallback added 2026-10-19) |
+| AppBridge methods | 69 | 69 | 0 | 10 | Phase 11 pending (contract unchanged since Phase 10; parity re-verification owed) |
+| Privileged/destructive operations | 18 | 15 | 3 | 9 | Phase 11 pending (OP-016/017/018 added 2026-10-19 for new web surfaces) |
+| High-risk modules/operations | 14 | 12 | 2 | 16 | Phase 11 pending (MOD-013/014 added 2026-10-19) |
+
+Counts are produced by `node scripts/audit/recount-coverage.mjs` (`--check` fails when
+stale, `--write` rewrites the rows). "Open findings" is the number of distinct
+`PH-`/`BASE-` IDs referenced by the section's rows; the ledger owns each ID's status.
+Earlier hand-counted values used a looser rule, which is why the 2026-10-19 recount
+lowered some numbers without any row changing.
