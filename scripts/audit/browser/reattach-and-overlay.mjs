@@ -1,0 +1,62 @@
+import { withServer, text } from './harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+const shots = process.env.SHOTS; const data = process.env.DATA;
+const step = async (page, name) => { await page.waitForTimeout(500); await page.screenshot({ path: `${shots}/${name}.png` }); };
+const ls = (dir) => { try { return fs.readdirSync(dir); } catch (e) { return `ERR ${e.code}`; } };
+const rpc = (base, m, args = []) => fetch(`${base}/api/bridge/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ args }) }).then((r) => r.json()).then((j) => ('result' in j ? j.result : j));
+const errors = await withServer(data, async ({ page, base, restart, srv }) => {
+  const http = [];
+  page.on('response', (r) => { if (r.status() >= 400) http.push(`${r.status()} ${r.request().method()} ${r.url()}`); });
+  await page.goto(base + '/', { waitUntil: 'networkidle' });
+  if ((await text(page)).includes('FIRST PRACTICE SETUP')) await page.getByRole('button', { name: 'Skip for now' }).click();
+  const songs = await rpc(base, 'getAllSongs');
+  const stored = ls(path.join(data, 'midi-files'));
+  const moved = fs.readdirSync(data).filter((f) => f.endsWith('.moved'));
+  const missingSongs = songs.filter((s) => !stored.some((f) => s.filePath.endsWith(f)));
+  console.log('missing songs', JSON.stringify(missingSongs.map((s) => s.title)), 'moved', JSON.stringify(moved));
+  const victim = missingSongs[0];
+  const vf = path.basename(victim.filePath);
+  await page.getByRole('button', { name: 'Play' }).first().click(); await page.waitForTimeout(600);
+  // Any missing-file indication in library?
+  console.log('WF-006 library marks missing?', JSON.stringify((await text(page)).match(/[^\n]{0,60}(missing|unavailable|not found)[^\n]{0,60}/gi)));
+  await page.locator('article.song-card').filter({ has: page.locator('h2.song-card-title', { hasText: new RegExp('^' + victim.title + '$') }) }).first().getByRole('button', { name: 'More' }).click(); await page.waitForTimeout(300);
+  await page.locator('article.song-card').filter({ has: page.locator('h2.song-card-title', { hasText: new RegExp('^' + victim.title + '$') }) }).first().getByRole('button', { name: 'Edit Metadata' }).click(); await page.waitForTimeout(400);
+  await step(page, '15-detail');
+  const [ch2] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: 'Reattach MIDI' }).click()]);
+  const wrong = path.join(data, moved.find((m) => !m.startsWith(vf)).replace('.mid.moved', '-copy.mid'));
+  await ch2.setFiles(wrong); await page.waitForTimeout(1200);
+  console.log('WF-006 reattach wrong file:', JSON.stringify((await text(page)).match(/Reattach[^\n]{0,200}/g)));
+  const [ch3] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: 'Reattach MIDI' }).click()]);
+  await ch3.setFiles(path.join(data, vf.replace('.mid', '-copy.mid'))); await page.waitForTimeout(1200);
+  console.log('WF-006 reattach right file:', JSON.stringify((await text(page)).match(/Reattach[^\n]{0,200}/g)), 'midi-files', ls(path.join(data, 'midi-files')).length, 'GET', (await fetch(`${base}/api/midi/${victim.id}`)).status);
+  // Reattach cancel (PH-PAR-002): dispatch cancel on the input
+  const [ch4] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: 'Reattach MIDI' }).click()]);
+  await page.evaluate(() => { const i = document.querySelector('input[type=file]'); i?.dispatchEvent(new Event('cancel')); });
+  await page.waitForTimeout(800);
+  console.log('WF-006 reattach cancel:', JSON.stringify((await text(page)).match(/(Reattach|cancel)[^\n]{0,120}/i)), 'file inputs left', await page.$$eval('input[type=file]', (x) => x.length));
+
+  // WF-024 / WF-023: start the reattached song, Escape pauses?, Main Menu, then SIGKILL server
+  await page.getByRole('button', { name: 'Play', exact: true }).last().click(); await page.waitForTimeout(1500);
+  const gameButtons = await page.$$eval('button', (b) => b.map((x) => x.textContent.trim() || x.getAttribute('aria-label')).filter(Boolean));
+  console.log('game buttons', JSON.stringify(gameButtons.filter((t) => !/Piano|Organ|Harpsichord|Pad|Flute|Clarinet|Trumpet|Horn|Sax|Cello|String|Marimba|Bell|Vibra|Bass|8-Bit|Laser|Synth|Rhodes|Honky|Bubbles/.test(t))));
+  await page.keyboard.press('Escape'); await page.waitForTimeout(600);
+  await step(page, '16-game-escape');
+  const overlayButtons = await page.$$eval('.immersive-overlay button', (b) => b.map((x) => x.textContent.trim()));
+  console.log('WF-024 Escape in game -> overlay buttons', JSON.stringify(overlayButtons), 'focus in overlay', await page.evaluate(() => !!document.activeElement?.closest('.immersive-overlay')));
+  await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+  console.log('WF-024 second Escape closes overlay', (await page.$$('.immersive-overlay')).length === 0);
+  srv.kill('SIGKILL'); await new Promise((r) => srv.once('exit', r));
+  await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+  const exitBtn = page.locator('.immersive-overlay button').nth(1);
+  console.log('exit button label', await exitBtn.textContent().catch(() => 'none'));
+  await exitBtn.click().catch((e) => console.log('exit click failed', e.message.slice(0, 80))); await page.waitForTimeout(1200);
+  await step(page, '17-server-dead');
+  console.log('WF-023 UI with server dead:', JSON.stringify((await text(page)).match(/[^\n]{0,60}(fail|error|unavailable|offline|retry|could not)[^\n]{0,80}/gi)), '4xx/net', JSON.stringify(http.slice(-3)));
+  const s2 = await restart();
+  await page.goto(base + '/', { waitUntil: 'networkidle' });
+  console.log('WF-023 after SIGKILL+restart: songs', (await rpc(base, 'getAllSongs')).length, 'results', (await rpc(base, 'getGameResults', [victim.id])).length, 'files', JSON.stringify(ls(data).filter((f) => f.startsWith('lumakeys'))));
+  console.log('server log tail', JSON.stringify(fs.readFileSync(path.join(data, 'server.log'), 'utf8').split('\n').filter(Boolean).slice(-5)));
+  s2.kill('SIGTERM');
+});
+console.log('ERRORS', JSON.stringify(errors.filter((e) => !e.includes('"off"')), null, 1));

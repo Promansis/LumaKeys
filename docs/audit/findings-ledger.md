@@ -50,6 +50,10 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-OPS-004 | A user SQLite database remains in git history | OPS | P2 | high | runtime-independent | suspected | MOD-012, DATA-003, DATA-004 | [PH-OPS-004](reports/findings/PH-OPS-004.md) | Claude Code (acting) |
 | PH-OPS-005 | No continuous integration enforces the typecheck, test, or asset baseline | OPS | P3 | high | runtime-independent | reproduced | MOD-012 | [PH-OPS-005](reports/findings/PH-OPS-005.md) | Claude Code (acting) |
 | PH-DATA-004 | Web sample packs installed before the rename are orphaned in the browser | DATA | P3 | high | web | reproduced | DATA-015, DATA-017, OP-006, OP-009, MOD-009 | [PH-DATA-004](reports/findings/PH-DATA-004.md) | Claude Code (acting) |
+| PH-MUS-005 | Computer-keyboard notes are ignored whenever an on-screen button has focus | MUS | P2 | high | both | reproduced | WF-003, WF-009, WF-014, WF-015, RT-008 | [PH-MUS-005](reports/findings/PH-MUS-005.md) | Claude Code (acting) |
+| PH-PAR-004 | A corrupt MIDI upload reports "undefined" instead of the parser's reason | PAR | P3 | high | both | reproduced | WF-004, WF-005 | [PH-PAR-004](reports/findings/PH-PAR-004.md) | Claude Code (acting) |
+| PH-UI-005 | Progress dashboard shows trouble-spot measures one lower than every other screen | UI | P3 | high | both | reproduced | WF-017 | [PH-UI-005](reports/findings/PH-UI-005.md) | Claude Code (acting) |
+| PH-ARCH-003 | First-run setup stores "off" in an integer setting | ARCH | P3 | high | both | reproduced | WF-001, WF-018 | [PH-ARCH-003](reports/findings/PH-ARCH-003.md) | Claude Code (acting) |
 
 ## Status Notes
 

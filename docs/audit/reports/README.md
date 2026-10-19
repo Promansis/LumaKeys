@@ -34,6 +34,7 @@ and video main menu) is planned in the
 one consolidated file per phase (`phase-11-reverification-2026-10-19.md`) following
 `../templates/reverification-record.md`. Phase 11 lane reports so far:
 [lane A web security](phase-11-lane-a-web-security-2026-10-19.md) and
-[lane G supply chain and operations](phase-11-lane-g-supply-chain-ops-2026-10-19.md).
+[lane G supply chain and operations](phase-11-lane-g-supply-chain-ops-2026-10-19.md), and the
+interim [lane F workflow matrix](phase-11-lane-f-workflows-2026-10-19.md) (web half).
 Proof the owner must run by hand is batched in
 [phase-11-user-tests.md](phase-11-user-tests.md).

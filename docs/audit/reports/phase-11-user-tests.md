@@ -46,6 +46,8 @@ Preconditions the agent will satisfy before marking ready:
 | 3 | RT-009, RT-012, WF-026, PH-UI-003 | Enable OS reduced motion, reload main menu and Free Play | Video background stops or is replaced; canvases do not animate | | |
 | 4 | WF-015, WF-016 | Press keys in Free Play and the soundboard with speakers on | Audible piano and animal sounds; no overlapping animal audio | | |
 | 5 | WF-009 | Play one short song with the computer keyboard to completion | Results screen shows a persisted result; it appears in Progress afterwards | | |
+| 6 | PH-MUS-005 (Electron) | In the desktop app start a song in Learning mode, press Escape, click Resume, then play the next note on the computer keyboard without clicking anything else | Expected today: the note is ignored until you click the note area. Record whether Electron matches the web result | | |
+| 7 | PH-DATA-004 (optional) | Only if this browser installed an instrument pack before the LumaKeys rename: open Settings, Audio, and check the pack status | Expected today: the pack shows "not installed". Skip if you never installed one on the old build | | |
 
 ## Sitting 2: Windows machine (~15 min) — staging
 
