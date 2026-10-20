@@ -1,87 +1,146 @@
 # User Test Batch: Phase 11
 
-Live batch for the repository owner. The agent (Claude Code, acting audit lead)
-appends items as lanes hit proof that only a person can give, following
-`../templates/user-test-batch.md`. Run a sitting when it is marked **ready**; items
-are not ready until the agent has staged fixtures and written exact steps.
+The owner's batch. The agent (Claude Code, acting audit lead) adds an item here only
+when the proof needs a person, other hardware, another operating system, another
+browser, or a real display; everything else the agent runs itself. Items follow
+`../templates/user-test-batch.md`. Run a sitting when it is marked **ready**.
 
 Status legend: `staging` (agent still preparing), `ready`, `done`.
 
-## Sitting 0: Host terminal on this machine (~15 min) — ready
+Revised 2026-10-20. The headless Electron runs
+([report](phase-11-electron-runtime-2026-10-20.md)) proved the window-open probe, the
+Electron half of PH-MUS-005, and the Electron halves of WF-001, WF-004, WF-005, WF-007,
+WF-008, WF-010, WF-011, WF-012, WF-013, WF-014, WF-015 and WF-017 to WF-024, so those
+items are gone. Electron checks that need no person moved to the agent (last section).
 
-Four commands the agent cannot run from its sandbox (no display, no D-Bus, no Docker
-socket, no access to the live hostname). Paste each result line back into the Result
-column or into chat; the agent converts them into evidence.
+**Never point a test at your real data.** Every command below uses a throwaway data
+directory or container. Do not use `docker compose up` or your normal desktop profile
+for these tests. `~/.config/PianoHero` on this machine holds a copy of your old desktop
+data, and a desktop build run without an isolated profile migrates it.
+
+## Sitting 0: Host terminal on this machine (~20 min) — ready
+
+Commands the agent cannot run from its sandbox (no Docker socket, no access to the
+live hostname). Paste each result back into the Result column or into chat.
 
 Preconditions already satisfied by the agent:
 
-- `scripts/audit/electron-window-open-probe.cjs` is in the repository and `npm run build` output exists in `out/`.
-- The Docker image definition is unchanged; `docker compose build` will fetch the pinned MuseScore AppImage.
-- Item 3 needs any `.mscz` file; export one from MuseScore or download a sample score. Put it at `$TMPDIR/score.mscz` or adjust the path.
+- The Dockerfile is unchanged since the baseline; building fetches the pinned
+  MuseScore AppImage. Building an image does not touch the running container.
+- `scripts/audit/fixtures/musescore/meter-tempo.mscz` serves as the `.mscz` for item 3.
+- Items 2 to 4 run the image in throwaway containers with throwaway data. None of them
+  mounts `/media/storage/lumakeys`.
+
+Run once first: `cd /media/storage/LumaKeys && docker compose build && IMG=$(docker compose config --images | head -1) && echo $IMG`
 
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
-| 1 | MOD-014, PH-SEC-005 | `npm run build && xvfb-run -a node_modules/.bin/electron --no-sandbox scripts/audit/electron-window-open-probe.cjs 2>/dev/null \| grep -E 'PARENT_BRIDGE\|PROBE_RESULT'` | `PARENT_BRIDGE object`, then a `PROBE_RESULT` line with `"hasBridge":"undefined"` and `"preloadInherited":false`. A child window loading at all confirms PH-SEC-005; `"hasBridge":"object"` would raise it to P1 | | |
-| 2 | OP-017, WF-025, BASE-11-001 | `docker compose build && docker compose run --rm lumakeys npx vitest run src/server/museScore.integration.test.ts` | 1 test passed (the integration test that is skipped outside Docker) | | |
-| 3 | PH-SEC-004 | With the container running (`docker compose up -d`), run two uploads at once: `for i in 1 2; do curl -s -o $TMPDIR/up$i.json -F "files=@$TMPDIR/score.mscz;filename=score$i.mscz" http://127.0.0.1:3001/api/midi/upload & done; wait; cat $TMPDIR/up1.json $TMPDIR/up2.json` (add `-H "x-lumakeys-access-token: <token>"` if the token is set) | One response imports or reports "already in library"; the other contains "Another MuseScore score is being converted" | | |
-| 4 | OP-014, PH-OPS-002 | In a private browser window open `https://<your hostname>/`; then run `curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'content-type: application/json' -d '{"args":[]}' https://<your hostname>/api/bridge/getAllSongs` | Browser redirects to Cloudflare login before the app loads; curl prints 302 or 403, never 200 | | |
+| 1 | OP-017, WF-025, MOD-012, BASE-11-001 | `docker run --rm "$IMG" npx vitest run src/server/museScore.integration.test.ts` | 1 test passed (the integration test that is skipped outside Docker) | | |
+| 2 | PH-SEC-004, WF-023 | `D=$(mktemp -d); CID=$(docker run -d --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -e PORT=3001 -e LUMAKEYS_DATA_DIR=/data -v "$D:/data" -p 127.0.0.1:3797:3001 "$IMG" node dist/server/index.cjs); sleep 5; for i in 1 2; do curl -s -o $D/up$i.json -F "files=@scripts/audit/fixtures/musescore/meter-tempo.mscz;filename=score$i.mscz" http://127.0.0.1:3797/api/midi/upload & done; wait; cat $D/up1.json $D/up2.json; echo; docker restart $CID; sleep 5; curl -s -X POST -H 'content-type: application/json' -d '{"args":[]}' http://127.0.0.1:3797/api/bridge/getAllSongs \| head -c 300; echo; docker stop $CID` | One upload imports the score; the other says "Another MuseScore score is being converted". After the restart, `getAllSongs` still lists the imported song | | |
+| 3 | WF-004, WF-008, L-11-017, PH-MUS-002 | `bash scripts/audit/musescore-measure-check.sh 2>&1 \| tee "${TMPDIR:-/tmp}/musescore-measure-check.out"`. It uses only throwaway directories and port 3799 on 127.0.0.1 | Two probe sections (direct and served), each ending `2 file(s), 0 failed check(s)`. A "rejected" line for the hand-built `.mscz` is acceptable if the `.mscx` fallback converts | | |
+| 4 | OP-014, PH-OPS-002 | In a private browser window open `https://<your hostname>/`; then `curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'content-type: application/json' -d '{"args":[]}' https://<your hostname>/api/bridge/getAllSongs` | The browser goes to the Cloudflare login before the app loads; curl prints 302 or 403, never 200 | | |
 
-## Sitting 1: This Linux machine with a display (~20 min) — staging
+## Sitting 1: This Linux machine with a display and speakers (~35 min) — ready
 
-Covers the runtime proof Phase 10 left owed on the only environment available
-here: real zoom hit-testing, keyboard-only navigation, reduced motion with the OS
-setting, and audible output. The agent will stage an isolated data directory, a
-built web server, and a built Electron app, and give one command per item.
+Real zoom, the OS reduced-motion setting, a visible window, and listening.
 
-Preconditions the agent will satisfy before marking ready:
+Set up once, in a terminal at the repository root:
 
-- Isolated web server running on a known port with a known token.
-- Packaged Electron build launched with an isolated profile.
-- OS reduced-motion setting location written down for this desktop.
+```bash
+npm run package:local         # fresh Linux package from the current source (also rebuilds out/)
+npm rebuild better-sqlite3    # packaging may leave this module built for Electron; this restores the web server's copy
+P=$(mktemp -d); mkdir -p "$P/.config"; ln -s ~/.config/dconf "$P/.config/dconf"
+XDG_CONFIG_HOME="$P/.config" ./dist/linux-unpacked/lumakeys --no-sandbox &   # desktop app, throwaway profile
+D=$(mktemp -d); LUMAKEYS_DATA_DIR="$D" PORT=3998 node dist/server/index.cjs & # web app, throwaway data
+```
 
-| # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
-|---|---|---|---|---|---|
-| 1 | RT-006, PH-UI-002 | Chrome at 125, 150, 175, 200 percent zoom: open Settings, click every tab | Every tab reachable by pointer at every zoom | | |
-| 2 | RT-008, PH-UI-001 | Keyboard only: open Free Play immersive dialog, Tab through, press Escape | Focus stays inside the dialog; Escape closes it without leaving the screen | | |
-| 3 | RT-009, RT-012, WF-026, PH-UI-003 | Enable OS reduced motion, reload main menu and Free Play | Video background stops or is replaced; canvases do not animate | | |
-| 4 | WF-015, WF-016 | Press keys in Free Play and the soundboard with speakers on | Audible piano and animal sounds; no overlapping animal audio | | |
-| 5 | WF-009 | Play one short song with the computer keyboard to completion | Results screen shows a persisted result; it appears in Progress afterwards | | |
-| 6 | PH-MUS-005 (Electron) | In the desktop app start a song in Learning mode, press Escape, click Resume, then play the next note on the computer keyboard without clicking anything else | Expected today: the note is ignored until you click the note area. Record whether Electron matches the web result | | |
-| 7 | PH-DATA-004 (optional) | Only if this browser installed an instrument pack before the LumaKeys rename: open Settings, Audio, and check the pack status | Expected today: the pack shows "not installed". Skip if you never installed one on the old build | | |
-
-## Sitting 2: Windows machine (~15 min) — staging
-
-Requires the portable `.exe` built by `npm run package:win`. The agent cannot build
-or launch this here; the build must be produced on or copied to the Windows machine.
+The desktop app keeps its data in `$P`. The `dconf` link lets it read your real
+reduced-motion setting. The web app is at `http://127.0.0.1:3998`. In both, choose
+"Skip for now" on the setup guide. If the package's executable is not named
+`lumakeys`, use the one executable in `dist/linux-unpacked/`.
 
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
-| 1 | WF-023, RT-001 | Launch the portable exe from a fresh folder | Main menu renders; app closes cleanly | | |
-| 2 | WF-001 | Complete first-run setup, restart the app | Setup choices persist | | |
-| 3 | WF-004 | Import one `.mid` from Downloads | Song appears in the library and starts | | |
+| 1 | WF-026, RT-012, BR-067, PH-PAR-001 | Desktop app: (a) watch the main-menu background for 5 s. (b) Settings (Audio opens first), set Instrument to Flute, press "Install Better Sounds" | (a) The neon background moves (video), not a still image. (b) "Flute Enhanced Pack ready." appears | | |
+| 2 | RT-006, PH-UI-002, PH-UI-012 | Chrome at the web app, window at its usual size: zoom to 125, 150, 175 and 200 percent (Ctrl and +). At each: open Settings and click every tab. At 150 and 175: open Free Play, press Tab once to expand the top HUD, click SETTINGS, then go back and click PROGRESS. Repeat in the desktop app if Ctrl and + zooms it; if it does not, write "no zoom" | Every Settings tab opens at every zoom. Today (emulated): at 150 and 175 percent the instrument button sits over SETTINGS and the HUD overlaps the status cards; not at 125 or 200 | | |
+| 3 | RT-009, RT-012, WF-026, PH-UI-003 | Turn the OS setting on: `gsettings set org.gnome.desktop.interface enable-animations false` (or Settings, Accessibility, Reduce Animation). Reload the web app's main menu and open Free Play; in the desktop app go to the main menu and open Free Play. Turn it off again with `gsettings set org.gnome.desktop.interface enable-animations true` | Under the setting the main menu does not play the video, and the Free Play background does not animate while no key is pressed; pressed keys still light up. With it off, the video and animation come back | | |
+| 4 | WF-026, RT-012, L-11-015 | Desktop app on the main menu: open the system monitor, note the app's CPU, minimise the window for 30 s and note the CPU again, then restore | CPU drops while minimised and the video resumes on restore. Record the two numbers | | |
+| 5 | WF-015, WF-016, WF-013, WF-009 | Desktop app, speakers on: (a) Free Play, press a few keys (Z, X, C). (b) Soundboard, press several keys quickly. (c) Interval Trainer, answer two questions by ear. (d) Free Play, Menu, Load Track, pick any `.mp3` or `.wav`, press Play | (a) A piano sound per key. (b) Animal sounds, none stacking into a long overlap. (c) Two distinct notes per question. (d) The track plays | | |
+| 6 | WF-019, PH-PAR-006 | Desktop app (Flute installed in item 1): Free Play, play C D E with the pack, then Settings, Audio, "Use Built-in Sounds", then play C D E again. Web app: Settings, Audio, Instrument Flute, "Install Better Sounds", then Free Play C D E | Desktop: the installed pack sounds different from the built-in Flute. Web: expected today to sound like the built-in Flute, because the web never uses the pack (PH-PAR-006) | | |
+| 7 | PH-MUS-006 (optional) | Desktop app: Settings, Gameplay, turn on Start With Metronome. Open any song, press Escape, drag Tempo to 50 percent, Resume, press Space and listen for 10 s while watching the notes reach the line | Today: one click every second beat, because the practice tempo is applied twice | | |
+| 8 | PH-PAR-007 | `google-chrome --user-data-dir=$(mktemp -d) http://127.0.0.1:3998` (a fresh profile). When Chrome asks to allow MIDI devices, do not answer for 30 s, then click Block | Today: "Loading services..." stays for the whole 30 s and the app starts only after Block | | |
+| 9 | PH-DATA-004 (optional) | Only if your normal Chrome profile installed an instrument pack before the LumaKeys rename: open your own deployment in it, Settings, Audio, and read the pack status | Expected today: the pack shows "not installed". Skip if you never installed one on the old build | | |
+| 10 | RT-010, PH-UI-015, PH-UI-016 | Needs a person with a colour-vision deficiency, or a colleague with a calibrated display. Web app: upload `scripts/audit/fixtures/midi/pmus-16.mid`, play it in Play mode missing some notes on purpose, once with Settings, Visual, Colour-blind mode off and once on, then read the results screen. Can they tell a missed note from an upcoming right-hand note, and a good hit from an upcoming left-hand note, without the MISS popup? Is the grade letter legible? | Today: in colour-blind mode a missed note and a pending right-hand note are the same pink-red; a low grade letter is barely visible against its badge. Record their answers | | |
 
-## Sitting 3: Edge and Firefox (~15 min) — staging
+Afterwards: stop both apps (`kill %1 %2`), and turn the OS animation setting back on if
+item 3 left it off.
 
-Can be the Windows machine or any machine with both browsers, pointed at the
-self-hosted web deployment or an isolated server the agent starts.
+## Sitting 2: Windows machine (~25 min) — ready
+
+Needs a portable `.exe` built from the current source: `npm run package:win`. The
+executable in `dist/win-unpacked` dated 2026-08-07 is stale and still uses the old
+names, so it cannot be used. After building on this machine, run
+`npm rebuild better-sqlite3` before starting the web server again.
 
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
-| 1 | RT-002 | Open the app in Edge, then Firefox; reach Library and start a song | Game canvas renders in both | | |
-| 2 | RT-006, PH-UI-002 | Settings tabs at 150 and 200 percent zoom in both browsers | All tabs reachable | | |
-| 3 | WF-002 | Firefox: observe the MIDI permission or fallback path | Clear fallback message; computer keyboard still works | | |
+| 1 | DATA-017, PH-DATA-005 | Before launching anything: `dir "%APPDATA%\piano-hero" "%APPDATA%\luma-keys" "%APPDATA%\PianoHero" "%APPDATA%\lumakeys"`. If `luma-keys` or `piano-hero` exists, back it up: `robocopy "%APPDATA%\luma-keys" "%USERPROFILE%\lumakeys-profile-backup" /E` (same for `piano-hero`). Launch the new exe, open the library, close the app, run the `dir` again | Today: the library is empty; `%APPDATA%\lumakeys\lumakeys.db` is new; `%APPDATA%\luma-keys\pianohero.db` is unchanged. If no old folder exists, write "no pre-rename profile" | | |
+| 2 | WF-023, RT-001, WF-026 | Launch the exe again; watch the main-menu background for 5 s; close the app | The main menu renders, the background moves, the app closes cleanly | | |
+| 3 | WF-001 | Reopen the setup guide from the main-menu card, set a 20-minute reminder and Large hands, Start Practice, restart the app, open Settings | The reminder and hand size are kept | | |
+| 4 | WF-004 | Import one `.mid` from Downloads; start it | The song appears in the library and starts | | |
+| 5 | WF-019 | Settings, Audio, Instrument Flute, "Install Better Sounds"; Free Play, press a few keys | "Flute Enhanced Pack ready." and the Flute plays. This is the first run of the pack's `file:///C:/…` path | | |
+| 6 | OP-015, PH-OPS-006 (optional) | Only if item 1 found `%APPDATA%\luma-keys\pianohero.db`: copy it into `%APPDATA%\lumakeys\`, launch the exe, wait 15 s, check Task Manager, end the LumaKeys process, then delete the copied `%APPDATA%\lumakeys\pianohero.db` | Today: no window and no message, while a LumaKeys process keeps running | | |
 
-## Sitting 4: MIDI controller and speakers (~15 min) — staging
+## Sitting 3: Edge and Firefox (~25 min) — ready
 
-Requires a named USB MIDI keyboard. Record its make and model in the Seen column of
-item 1; the report cites it.
+On any machine that has both browsers. Start a throwaway web server on this machine
+(`D=$(mktemp -d); LUMAKEYS_DATA_DIR="$D" PORT=3998 node dist/server/index.cjs`). Open
+`http://127.0.0.1:3998` if the browsers are on this machine. From another machine use
+`http://<this machine's LAN address>:3998`; Web MIDI is then unavailable, so skip item 4.
 
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
-| 1 | WF-002, RT-011 | Plug in the controller, open Keyboard Setup | Device listed by name | | |
-| 2 | PH-MUS-004 | Hold a key, unplug the controller, replug | Held note stops on unplug; device reconnects without restart | | |
-| 3 | WF-009, PH-MUS-001 | Play a song on the controller, pause and resume mid-song | Judged notes before the pause keep their state | | |
-| 4 | WF-009 latency | Play a steady beat at the default latency setting | No audible lag the player would call wrong; note the setting used | | |
+| 1 | RT-002 | In Edge, then Firefox: Library, upload any `.mid` (for example `scripts/audit/fixtures/midi/pmus-16.mid`), start it | The game canvas renders in both | | |
+| 2 | RT-006, PH-UI-002, PH-UI-012 | In both: zoom to 150 and 200 percent, click every Settings tab; at 150 percent open Free Play, press Tab once, click SETTINGS | Every tab opens. Today: the HUD collision at 150 percent | | |
+| 3 | RT-008, PH-UI-010, PH-UI-011, PH-UI-013, PH-UI-014, PH-UI-017 | Keyboard only, in both: (a) Progress, Tab through the top bar. (b) Settings, Audio, Calibrate, press Escape. (c) Soundboard: press Escape three times. (d) Free Play: Tab through the page, counting stops you cannot see. (e) Settings, Practice, open Clear Learning Progress, press Escape, then Tab | Today (Chrome): (a) no visible focus on the top bar; (b) the dialog closes and Settings is left; (c) the third press leaves to the main menu; (d) most stops invisible; (e) focus restarts from the page top. Record which hold in each browser | | |
+| 4 | WF-002, RT-011 | Firefox: open the app and Settings, Input | A clear message or a permission prompt; the computer keyboard still plays | | |
+| 5 | BR-008, MOD-009, PH-PAR-002 | In both: Library, "Upload MIDI / MSCZ", press Cancel in the file dialog; then press it again and pick a `.mid` | After Cancel the button returns from "Importing..." within 1 s and is enabled; the second try imports the song | | |
+
+## Sitting 4: MIDI keyboard and speakers (~25 min) — ready
+
+A USB MIDI keyboard on this machine. Write its make and model in item 1's Seen column.
+Use the desktop app from sitting 1 (a new throwaway profile is fine), then repeat items 1
+and 3 in Chrome at the throwaway web server.
+
+| # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
+|---|---|---|---|---|---|
+| 1 | WF-002, RT-011 | Plug in the keyboard, open Settings, Input, MIDI Device | The device is listed by name | | |
+| 2 | PH-MUS-004 | In Free Play hold a key, unplug the keyboard, plug it back in, play a note | The held note stops on unplug; the keyboard works again without a restart | | |
+| 3 | PH-MUS-010 | Start any song, play a few notes, unplug the keyboard, plug it back in | Today: the song reloads and starts over each time a device comes or goes | | |
+| 4 | WF-009, PH-MUS-001 | Play a song on the keyboard, pause and resume halfway | Notes judged before the pause keep their state | | |
+| 5 | WF-009 latency | Play a steady beat at the default latency setting | No lag you would call wrong; note the setting | | |
+| 6 | PH-MUS-011 (optional, needs a second MIDI keyboard) | Settings, Input, MIDI Device: select the first keyboard by name. Close the app, unplug it, plug in the second, reopen the app, open Settings, Input, then play the second keyboard in Free Play | Today: the MIDI Device select is blank and the summary reads "Any connected device", while notes from the second keyboard are ignored | | |
+
+## Owner Decisions (not tests)
+
+| # | Decision | State |
+|---|---|---|
+| 1 | PH-MUS-013: what the capstone gate measures | Decided 2026-10-20: capstones run in Play mode at the capstone tempo, and the run's settings are locked |
+| 2 | PH-OPS-004: the user database in git history | Open. Inspect the blob (steps in the finding), then accept the risk or rewrite history. A rewrite is yours to run |
+| 3 | Lane H: end date for the legacy-name fallback (suggested 2027-01-31), and whether `CLAUDE.md` and `AGENTS.md` are tracked | Open; asked at the end-of-discovery review |
+| 4 | Which findings enter remediation | Open; the consolidation report proposes the order |
+
+## Moved To The Agent (headless Electron)
+
+These were owner items. They need the desktop app but no person, so the agent runs
+them with `scripts/audit/electron/` before consolidation.
+
+| # | Coverage row / finding | Check | Came from |
+|---|---|---|---|
+| A1 | WF-008, WF-009, PH-MUS-001, PH-MUS-003 | Tempo change keeps judged notes; a structural change asks first; a fingering set inside a loop binds to the right note through IPC | lane C proposed item 8 |
+| A2 | WF-007, PH-UI-006 | Library UI: move ticked songs into a folder, relaunch, still there; bulk delete removes them with no confirmation | lane F library item 9 |
+| A3 | WF-008 | One-hand session from the overlay, six judged notes, hand assignment kept across relaunch and hand choice reset | lane F library item 10 |
+| A4 | RT-008, PH-UI-010, PH-UI-011, PH-UI-013, PH-UI-014, PH-UI-017 | Sitting 3 item 3's keyboard walk in Electron | lane E proposed item 3 |
 
 ## Returned To The Agent
 
