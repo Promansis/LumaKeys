@@ -3,10 +3,10 @@
 - Lane: architecture
 - Severity: P2
 - Confidence: high
-- Status: accepted
-- Owner: remediation owner TBD
+- Status: fixed
+- Owner: Codex (acting)
 - Challenger: Codex, isolated renderer failure challenge
-- Verifier: independent verifier recommended
+- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes
 - Affected runtime: both
 - Coverage rows: WF-008, WF-009, BR-015, BR-032, BR-053, MOD-003
 - Related/duplicate findings: none
@@ -113,8 +113,7 @@ Add failure tests before changing the existing music-rule owners.
 
 - Accepted/rejected rationale: a controlled bridge rejection leaves a core
   practice flow stuck and reports an unhandled error.
-- Fix branch/commit/issue: not authorized during discovery.
-- Verification evidence: pending remediation.
-- Residual risk: a transient bridge failure can look like an inert practice
-  screen rather than a recoverable load failure.
+- Fix branch/commit/issue: `d5839aa`, Phase 9 slice 17 ([Phase 9 report](../phase-9-remediation-2026-07-30.md)). This file said "accepted" until the Phase 11 consolidation reconciled it with the ledger on 2026-10-20.
+- Verification evidence: Phase 9 moved the GameScreen load into one try block with a Retry and Back panel. Phase 11: an injected failure of each prerequisite (`getUserStats`, `getCustomFingerings`, `getSetting`) shows the panel with Retry and Main Menu, on the web (HTTP 500) and in a real Electron renderer (IPC rejection) ([lane D](../phase-11-lane-d-runtime-parity-2026-10-19.md)).
+- Residual risk: the automated GameScreen test that Phase 9 named is not in the suite (a proof gap named in the [re-verification](../phase-11-reverification-2026-10-19.md)), so a regression would show only in a runtime run.
 - Revisit trigger, if accepted-risk: not applicable.

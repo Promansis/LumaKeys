@@ -114,6 +114,7 @@ each on a fresh profile.
 | A4 | RT-008, PH-UI-010, PH-UI-011, PH-UI-013, PH-UI-014, PH-UI-017 | Every web result holds on the desktop. (a) Progress: all eight top-bar buttons match `:focus-visible` but gain no outline, box shadow or border. A pixel diff of the strip with and without focus changes only the focused label, 282 px from its 1 px shift. The current page is marked only by `aria-current="page"`, with nothing visible (PH-UI-011). (b) Enter on Calibrate opens the dialog but leaves focus on the Calibrate button outside it. Escape closes the dialog and leaves Settings for the main menu (PH-UI-010). (c) Soundboard: the first Escape opens the menu, the second closes it, and the third goes to the main menu (PH-UI-013). (d) Free Play: 83 Tab stops before wrapping, 72 of them invisible and 71 of those inside `aria-hidden` popouts, the same counts as the web (PH-UI-014). (e) Clear Learning Progress opens with focus on Cancel. Escape closes it and drops focus to the page body, although the trigger is still connected. The next Tab lands on the top bar's "Main" (PH-UI-017) | `keyboard-walk.mjs` |
 | extra | PH-UI-001 (RT-008) | Not an owner item; added because the desktop half was owed. The Free Play, Soundboard and Game session overlays open with focus on Resume, and the Settings confirmation opens with focus on Cancel. In each, 50 Tab and 4 Shift+Tab presses never leave the dialog: 0 of 54 stops are outside. PH-UI-001 stays fixed on the desktop | `keyboard-walk.mjs` part (f) |
 | extra | PH-DATA-002 (WF-022) | Not an owner item; added because no desktop run had reset with a pack installed. The Flute pack is installed ("Flute Enhanced Pack ready.", 11 entries under `instrument-sample-packs/`, and it resolves to 10 sample files). Delete User Data then removes the whole `instrument-sample-packs` directory, and the pack no longer resolves. After a relaunch the setup guide shows again and the pack still does not resolve. PH-DATA-002 stays fixed on the desktop | `reset-with-pack.mjs` |
+| extra | PH-SEC-001 (OP-006) | Not an owner item; the P0's runtime proof had been owed since Phase 10. The Flute pack is installed through Settings and the Cello pack through the bridge. Sentinel directories sit outside userData, inside userData, and inside `instrument-sample-packs/`. 14 crafted ids go to `removeInstrumentSamplePack` over IPC: relative traversal, absolute paths, `.`, `..`, the empty string, a trailing slash, backslash traversal, `__proto__` and `constructor`. Twelve are rejected with "No sample pack is configured for instrument: …". `__proto__` and `constructor` return the pack list unchanged. After every call all sentinels and both packs still exist, the stored pack list still reads Flute and Cello, and no `.remove-*` staging directory is left. Removing `flute` then removes only the Flute pack. The web half is in the same run: the server answers 404 "Unknown bridge method" for both pack methods, nine crafted ids leave both IndexedDB records in place, and removing Flute leaves Cello across a reload. PH-SEC-001 moves to verified | `pack-removal-containment.mjs`, `browser/pack-removal-web.mjs` |
 
 Method notes:
 
@@ -132,6 +133,11 @@ Method notes:
     attempt the song card was also not found after the second relaunch. This did not
     happen again, and the cause was not found. That attempt's one-hand run scored 500
     (4 perfect, 2 ok, 0 misses).
+- `pack-removal-containment.mjs`: `__proto__` and `constructor` pass the pack-definition
+  lookup (`getInstrumentSamplePackDefinition` reads a plain object with `??`, so
+  inherited keys count as defined). They resolve inside `instrument-sample-packs/` and
+  changed nothing on disk or in the stored list, so this is a hardening note on
+  PH-SEC-001, not a finding. An own-property check (`Object.hasOwn`) would close it.
 - `reset-with-pack.mjs` shows the installed pack's `baseUrl` with four slashes on Linux
   (`file:////tmp/…`), because `instrumentSamplePackStore.ts` puts `file:///` in front of
   an absolute POSIX path. Linux reads the leading `//` as `/`, and a Windows path gets the
@@ -209,6 +215,8 @@ Raw output stays in `$TMPDIR/p11/EL2/` and is not committed.
 | `library-one-hand.mjs` (A2, A3) | `a23.out` | `29c9c067…293a5570` |
 | `keyboard-walk.mjs` (A4, PH-UI-001) | `a4.out` | `dbf09367…1733c854` |
 | `reset-with-pack.mjs` (PH-DATA-002) | `rwp.out` | `e351a3d5…183a5ca3` |
+| `pack-removal-containment.mjs` (PH-SEC-001) | `prc.out` | `90d4a438…43c1079c` |
+| `browser/pack-removal-web.mjs` (PH-SEC-001, web) | `prw.out` | `f6100dbe…00f02966` |
 
 ## Effect On The User Batch
 

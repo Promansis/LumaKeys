@@ -3,10 +3,10 @@
 - Lane: persistence
 - Severity: P2
 - Confidence: high
-- Status: accepted
-- Owner: remediation owner TBD
+- Status: fixed
+- Owner: Codex (acting)
 - Challenger: Codex, fresh isolated-fixture challenge
-- Verifier: verifier TBD
+- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes
 - Affected runtime: both
 - Coverage rows: DATA-014, DATA-015, OP-006, OP-009
 - Related/duplicate findings: none
@@ -108,7 +108,7 @@ Do not alter normal per-pack removal semantics while fixing the full-reset bound
 
 - Accepted rationale: exact runtime probes show persistent pack data after the
   product reports a successful full reset.
-- Fix branch/commit/issue: not authorized during discovery.
-- Verification evidence: pending remediation.
-- Residual risk: user-data reset leaves durable pack data and storage usage behind.
+- Fix branch/commit/issue: `d5839aa`, Phase 9 slice 11 ([Phase 9 report](../phase-9-remediation-2026-07-30.md)). This file said "accepted" until the Phase 11 consolidation reconciled it with the ledger on 2026-10-20.
+- Verification evidence: Phase 9 added the pack-sentinel clear and IndexedDB object-URL cleanup tests. Phase 11: the `webBridge.test.ts` reset and pack-reset rollback tests pass ([re-verification](../phase-11-reverification-2026-10-19.md)). On the web, Delete User Data deletes the pack's IndexedDB database (WF-019, [lane F](../phase-11-lane-f-setup-settings-2026-10-19.md)). On the Linux desktop it removes `instrument-sample-packs/`, and the pack does not resolve after a relaunch (`reset-with-pack.mjs`, [Electron report](../phase-11-electron-runtime-2026-10-20.md)).
+- Residual risk: a pack stored under the pre-rename IndexedDB name survives a web reset ([PH-DATA-004](PH-DATA-004.md)). The desktop proof ran on Linux only.
 - Revisit trigger: before any privacy/reset guarantee or shared-device release claim.

@@ -46,6 +46,7 @@ Write output to a file, not through `head`: a pipe buffers everything until exit
 | `settings-roundtrip.mjs` | WF-018 | one setting per tab: apply, save, reload, server restart, read-back, reset default, save and load failures |
 | `sample-pack-lifecycle.mjs` | WF-019 | web pack in IndexedDB: install, select, reload, remove, reset, corrupt record |
 | `sample-pack-engine-log.mjs` | WF-019, PH-PAR-006 | which sampler the audio engine loads after "Install Better Sounds" |
+| `pack-removal-web.mjs` | OP-006, PH-SEC-001 | the server refuses the pack methods; crafted ids leave both IndexedDB packs; removing Flute leaves Cello |
 | `library-organize-bulk.mjs` | WF-007, PH-UI-006, PH-UI-008 | search, filter, sort, edit, folders, playlists and bulk actions against the database |
 | `library-date-filter-timezone.mjs` | WF-007, PH-UI-007 | "Date Added" filter against the calendar date of import |
 | `track-assignment-one-hand.mjs` | WF-008 | one-hand, reassigned and ignored-track sessions schedule exactly the expected notes |

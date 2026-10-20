@@ -3,10 +3,10 @@
 - Lane: security
 - Severity: P0
 - Confidence: high
-- Status: fixed
+- Status: verified
 - Owner: Codex (acting)
 - Challenger: Codex, fresh isolated-fixture challenge
-- Verifier: independent fresh-context verification agent; Electron bridge proof pending
+- Verifier: Claude Code (acting), Phase 11 runtime proof on 2026-10-20
 - Affected runtime: Electron
 - Coverage rows: DATA-014, OP-003, OP-006, OP-013, MOD-008
 - Related/duplicate findings: none
@@ -106,6 +106,6 @@ path, but do not broaden the fix into unrelated renderer work.
 - Accepted rationale: direct isolated reproduction deleted a directory outside the
   stated storage root through the production removal function.
 - Fix branch/commit/issue: `d5839aa`, verified implementation in `d4ba395`.
-- Verification evidence: source review and focused traversal/absolute/unknown-ID tests pass; the required disposable Electron bridge sentinel and web IndexedDB runtime checks remain in [Phase 10](../phase-10-verification-2026-08-07.md).
-- Residual risk: the implementation is constrained, but the required packaged bridge invocation has not been run on this host.
-- Revisit trigger: before desktop release sign-off or after Electron/browser runtime access is available.
+- Verification evidence: source review and the focused traversal, absolute and unknown-id tests pass ([Phase 10](../phase-10-verification-2026-08-07.md)), and still pass on the Phase 11 baseline ([re-verification](../phase-11-reverification-2026-10-19.md)). Phase 11 ran the owed runtime proof ([Electron report](../phase-11-electron-runtime-2026-10-20.md), PH-SEC-001 row). Desktop: 14 crafted ids sent to `removeInstrumentSamplePack` over IPC in a disposable profile. Sentinels outside userData, inside userData and inside the pack root survive, the stored pack list and both installed packs are unchanged after every call, and removing Flute removes only Flute. Web: the server refuses both pack methods with 404, crafted ids leave both IndexedDB packs in place, and removing Flute leaves Cello across a reload. Typecheck, tests and both builds pass on the baseline ([baseline](../baseline-2026-10-19.md)).
+- Residual risk: the desktop run used the built `out/` tree on Linux, not an installed package or Windows. The definition lookup rejects every id that is not a known instrument before any path is built, so the operating system's path rules do not change the result. `__proto__` and `constructor` pass that lookup as inherited object keys. They resolve inside the pack root and changed nothing, so this is a hardening note: an own-property check would close it.
+- Revisit trigger: any change to `instrumentSamplePackStore.ts`, the pack definition map or the `samples:remove-pack` handler; rerun `pack-removal-containment.mjs` and `pack-removal-web.mjs`.

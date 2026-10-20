@@ -3,10 +3,10 @@
 - Lane: music correctness
 - Severity: P2
 - Confidence: high
-- Status: accepted
-- Owner: remediation owner TBD
+- Status: fixed
+- Owner: Codex (acting)
 - Challenger: Codex, fresh isolated-fixture challenge
-- Verifier: verifier TBD
+- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes
 - Affected runtime: both
 - Coverage rows: WF-008, WF-009, DATA-007, BR-032, BR-033, BR-034, MOD-003, MOD-011
 - Related/duplicate findings: none
@@ -105,7 +105,7 @@ override without recreating the score state.
 ## Resolution
 
 - Accepted rationale: persisted user-authored technique data points to the wrong musical event after a supported view change.
-- Fix branch/commit/issue: not authorized during discovery.
-- Verification evidence: pending remediation.
-- Residual risk: saved fingerings can actively teach the wrong fingering until reset or manual correction.
+- Fix branch/commit/issue: `d5839aa`, Phase 9 slice 9 ([Phase 9 report](../phase-9-remediation-2026-07-30.md)). This file said "accepted" until the Phase 11 consolidation reconciled it with the ledger on 2026-10-20.
+- Verification evidence: Phase 9 keys fingerings by `ParsedNote.id` through an additive `note_id` column. Phase 11: the `GameSession.test.ts` loop-identity test and the `database.test.ts` legacy-row test pass ([re-verification](../phase-11-reverification-2026-10-19.md)). In a one-bar loop, the override set on the loop's first note (E4, `track-0-note-2`) is stored as `{noteId: "track-0-note-2", noteIndex: -1, finger: 5}`. After Clear Loop it shows on E4, not on the song's first note. This holds on the web ([lane C](../phase-11-lane-c-music-correctness-2026-10-19.md)) and in Electron over IPC (agent item A1, [Electron report](../phase-11-electron-runtime-2026-10-20.md)).
+- Residual risk: custom fingerings saved before the fix have no note id. They stay in the database, but `GameSession.ts` applies only rows with a note id, so they no longer show and the user has to enter them again.
 - Revisit trigger: before fingering persistence or loop-practice changes ship.

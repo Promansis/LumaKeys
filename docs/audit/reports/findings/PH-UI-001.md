@@ -3,10 +3,10 @@
 - Lane: UI/accessibility
 - Severity: P2
 - Confidence: high
-- Status: accepted
-- Owner: remediation owner TBD
+- Status: fixed
+- Owner: Codex (acting)
 - Challenger: Codex, fresh Chrome and Electron keyboard challenge
-- Verifier: independent verifier recommended
+- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes
 - Affected runtime: both
 - Coverage rows: WF-009, WF-015, WF-016, WF-024, RT-008, MOD-003, MOD-006
 - Related/duplicate findings: none
@@ -109,8 +109,7 @@ Adopt it in GameScreen, FreePlayScreen, and NoveltySoundboardScreen.
 
 - Accepted/rejected rationale: actual sequential keyboard navigation exits all
   tested `aria-modal` session overlays.
-- Fix branch/commit/issue: not authorized during discovery.
-- Verification evidence: pending remediation.
-- Residual risk: keyboard-only users can actuate unavailable/obscured controls
-  while a session menu is open.
+- Fix branch/commit/issue: `d5839aa`, Phase 9 slice 14 ([Phase 9 report](../phase-9-remediation-2026-07-30.md)). This file said "accepted" until the Phase 11 consolidation reconciled it with the ledger on 2026-10-20.
+- Verification evidence: Phase 9 added `useModalFocusTrap` for the Game, Free Play and Soundboard overlays. Phase 11: `SettingsScreen.test.tsx` "keeps keyboard focus inside confirmation dialogs" and the Free Play and Soundboard overlay tests pass ([re-verification](../phase-11-reverification-2026-10-19.md)). Over 50 Tab and 4 Shift+Tab presses, 0 stops leave the Free Play, Soundboard or Game overlay or the Settings confirmation, in Chromium ([lane E](../phase-11-lane-e-ui-accessibility-2026-10-19.md)) and in headless Electron (`keyboard-walk.mjs` part (f), [Electron report](../phase-11-electron-runtime-2026-10-20.md)).
+- Residual risk: the latency calibration dialog does not contain focus ([PH-UI-010](PH-UI-010.md)). Edge, Firefox and real zoom are not proven; RT-008 stays blocked on the owner's [sitting 3](../phase-11-user-tests.md).
 - Revisit trigger, if accepted-risk: not applicable.

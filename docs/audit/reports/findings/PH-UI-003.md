@@ -3,10 +3,10 @@
 - Lane: UI/accessibility
 - Severity: P2
 - Confidence: high
-- Status: accepted
-- Owner: remediation owner TBD
+- Status: fixed
+- Owner: Codex (acting)
 - Challenger: Codex, Chrome and Electron reduced-motion pixel challenge
-- Verifier: independent verifier recommended
+- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes
 - Affected runtime: both
 - Coverage rows: WF-015, WF-016, RT-009, MOD-006
 - Related/duplicate findings: none
@@ -106,8 +106,7 @@ frame loops, and retain direct note/status feedback through bounded draws.
 
 - Accepted/rejected rationale: verified reduced-motion preference and changing
   pixels demonstrate that decorative canvas animation continues.
-- Fix branch/commit/issue: not authorized during discovery.
-- Verification evidence: pending remediation.
-- Residual risk: motion-sensitive users receive unnecessary continuous stage
-  animation in two primary immersive workflows.
+- Fix branch/commit/issue: `d5839aa`, Phase 9 slice 15 ([Phase 9 report](../phase-9-remediation-2026-07-30.md)). This file said "accepted" until the Phase 11 consolidation reconciled it with the ledger on 2026-10-20.
+- Verification evidence: Phase 9 added `usePrefersReducedMotion` to the Free Play and Soundboard canvases. Phase 11: with reduced motion emulated, both canvases make 0 animation-frame calls per second when idle (46 and 24 without it), and key feedback still draws (RT-009, [lane E](../phase-11-lane-e-ui-accessibility-2026-10-19.md)).
+- Residual risk: no automated test covers the two canvases under reduced motion (a proof gap named in the [re-verification](../phase-11-reverification-2026-10-19.md)). The real OS setting is owed in the owner's [sitting 1](../phase-11-user-tests.md) item 3.
 - Revisit trigger, if accepted-risk: not applicable.

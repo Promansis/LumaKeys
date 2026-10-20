@@ -3,10 +3,10 @@
 - Lane: persistence
 - Severity: P2
 - Confidence: high
-- Status: accepted
-- Owner: remediation owner TBD
+- Status: fixed
+- Owner: Codex (acting)
 - Challenger: Codex, fresh isolated-fixture challenge
-- Verifier: verifier TBD
+- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes
 - Affected runtime: both
 - Coverage rows: DATA-002, DATA-013, OP-005
 - Related/duplicate findings: none
@@ -96,8 +96,7 @@ relaxing the v2 invariant.
 
 - Accepted rationale: content-addressed backup integrity is directly violated by a
   shape-valid payload.
-- Fix branch/commit/issue: not authorized during discovery.
-- Verification evidence: pending remediation.
-- Residual risk: corrupted or substituted backups can silently restore incorrect
-  MIDI content.
+- Fix branch/commit/issue: `d5839aa`, Phase 9 slice 8 ([Phase 9 report](../phase-9-remediation-2026-07-30.md)). This file said "accepted" until the Phase 11 consolidation reconciled it with the ledger on 2026-10-20.
+- Verification evidence: Phase 9 added six `libraryBackup.test.ts` tests: valid restore, path containment, staging rollback, content identity, v1 compatibility and safe schema. Phase 11: all six pass ([re-verification](../phase-11-reverification-2026-10-19.md)). A backup with one changed MIDI byte is rejected with "MIDI backup content does not match <id>." and changes nothing, on the web (WF-020, [lane F](../phase-11-lane-f-workflows-2026-10-19.md)) and on the Linux desktop ([Electron report](../phase-11-electron-runtime-2026-10-20.md)).
+- Residual risk: none known. A version 1 backup carries no MIDI bytes, so its songs restore as missing files for the user to reattach.
 - Revisit trigger: before backup/restore release sign-off.

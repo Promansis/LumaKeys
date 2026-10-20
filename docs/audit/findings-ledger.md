@@ -23,7 +23,7 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 
 | ID | Title | Lane | Severity | Confidence | Runtime | Status | Coverage rows | Evidence report | Owner |
 |---|---|---|---|---|---|---|---|---|---|
-| PH-SEC-001 | Desktop sample-pack removal allows path traversal deletion | SEC | P0 | high | Electron | fixed | DATA-014, OP-003, OP-006, OP-013, MOD-008 | [PH-SEC-001](reports/findings/PH-SEC-001.md) | Codex (acting) |
+| PH-SEC-001 | Desktop sample-pack removal allows path traversal deletion | SEC | P0 | high | Electron | verified | DATA-014, OP-003, OP-006, OP-013, MOD-008 | [PH-SEC-001](reports/findings/PH-SEC-001.md) | Codex (acting) |
 | PH-DATA-001 | Cross-store destructive operations commit SQLite before filesystem work | DATA | P1 | high | both | fixed | DATA-001, DATA-002, DATA-013, OP-002, OP-005, OP-007, OP-009, OP-015 | [PH-DATA-001](reports/findings/PH-DATA-001.md) | Codex (acting) |
 | PH-DATA-002 | Full user-data reset leaves instrument sample packs behind | DATA | P2 | high | both | fixed | DATA-014, DATA-015, OP-006, OP-009 | [PH-DATA-002](reports/findings/PH-DATA-002.md) | Codex (acting) |
 | PH-DATA-003 | Backup restore does not verify MIDI content IDs | DATA | P2 | high | both | fixed | DATA-002, DATA-013, OP-005 | [PH-DATA-003](reports/findings/PH-DATA-003.md) | Codex (acting) |
@@ -113,6 +113,14 @@ in the detailed report.
   review keeps six P0/P1 findings at `fixed` because required runtime/manual proof
   remains; PH-OPS-001 reached `verified`. See
   [the Phase 10 report](reports/phase-10-verification-2026-08-07.md).
+- Phase 11 re-audited the delta from `0bd40f5` to `6e549b6` on `main`. All 18
+  earlier findings still hold. PH-SEC-001 moved to `verified` after its desktop and
+  web runtime proof on 2026-10-20. 44 new findings were raised: PH-SEC-002 to 005,
+  PH-OPS-002 to 006, PH-DATA-004 to 009, PH-MUS-005 to 013, PH-PAR-004 to 007,
+  PH-UI-005 to 018, and PH-ARCH-003 and 004. The consolidation also found 11 finding
+  files that still read "accepted" although this ledger has said `fixed` since
+  Phase 9, and corrected the files. See
+  [the Phase 11 consolidation](reports/consolidation-2026-10-20.md).
 
 - PH-DATA-001 is the canonical cross-store atomicity finding for backup restore,
   song deletion, and full reset. Do not create separate findings for the same

@@ -3,10 +3,10 @@
 - Lane: music correctness
 - Severity: P2
 - Confidence: high
-- Status: accepted
-- Owner: remediation owner TBD
+- Status: fixed
+- Owner: Codex (acting)
 - Challenger: Codex, fresh isolated-fixture challenge
-- Verifier: verifier TBD
+- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes
 - Affected runtime: both
 - Coverage rows: WF-002, WF-009, RT-011, MOD-003, MOD-011
 - Related/duplicate findings: none
@@ -108,7 +108,7 @@ source holding the same pitch remains active.
 ## Resolution
 
 - Accepted rationale: a normal device-removal event can leave the practice instrument and key state stuck.
-- Fix branch/commit/issue: not authorized during discovery.
-- Verification evidence: pending remediation.
-- Residual risk: users may need to leave the practice screen to recover audio/input state after disconnect.
+- Fix branch/commit/issue: `d5839aa`, Phase 9 slice 10 ([Phase 9 report](../phase-9-remediation-2026-07-30.md)). This file said "accepted" until the Phase 11 consolidation reconciled it with the ledger on 2026-10-20.
+- Verification evidence: Phase 9 tracks held notes per device and releases them before it reports the new device list. Phase 11: `midiInputService.test.ts` "releases held notes before reporting a disconnected device" and the `GameSession.test.ts` source-disconnect test pass with a fake `MIDIAccess` ([re-verification](../phase-11-reverification-2026-10-19.md)). There is no runtime proof: headless Chromium exposes no MIDI devices and the sandbox has no virtual MIDI port ([lane C](../phase-11-lane-c-music-correctness-2026-10-19.md)).
+- Residual risk: not yet proven with a physical device; owed in the owner's [sitting 4](../phase-11-user-tests.md) item 2. The song restarting when a device reconnects is a separate finding, [PH-MUS-010](PH-MUS-010.md).
 - Revisit trigger: before MIDI-device workflow or release readiness sign-off.

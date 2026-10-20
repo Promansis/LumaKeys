@@ -3,10 +3,10 @@
 - Lane: architecture
 - Severity: P2
 - Confidence: high
-- Status: accepted
-- Owner: remediation owner TBD
+- Status: fixed
+- Owner: Codex (acting)
 - Challenger: Codex, isolated renderer failure challenge
-- Verifier: independent verifier recommended
+- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes
 - Affected runtime: both
 - Coverage rows: WF-003, WF-018, BR-054, MOD-002, MOD-005
 - Related/duplicate findings: none
@@ -113,8 +113,7 @@ as part of this slice.
 
 - Accepted/rejected rationale: a rejected write is presented as a successful
   durable configuration change.
-- Fix branch/commit/issue: not authorized during discovery.
-- Verification evidence: pending remediation.
-- Residual risk: users can configure controls that silently revert after a
-  reload or restart.
+- Fix branch/commit/issue: `d5839aa`, Phase 9 slice 18 ([Phase 9 report](../phase-9-remediation-2026-07-30.md)). This file said "accepted" until the Phase 11 consolidation reconciled it with the ledger on 2026-10-20.
+- Verification evidence: Phase 9 added a shared `saveSetting` that returns `{ saved }`, and every renderer setting writer awaits and catches it. Phase 11: `saveSetting.test.ts`, the `KeyboardSetupScreen.test.tsx` rejected-binding read-back and the GameScreen session-only fingering test pass ([re-verification](../phase-11-reverification-2026-10-19.md)). A failed save says "Save failed. The change is active for this session only.", and saved settings read back after a server restart on the web (WF-018, [lane F](../phase-11-lane-f-setup-settings-2026-10-19.md)) and after a relaunch on the desktop (WF-003 and WF-018, [Electron report](../phase-11-electron-runtime-2026-10-20.md)).
+- Residual risk: none known for this fix. The key-unbind defect in the same settings code is a separate finding, [PH-DATA-008](PH-DATA-008.md).
 - Revisit trigger, if accepted-risk: not applicable.
