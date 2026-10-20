@@ -134,7 +134,8 @@ in the detailed report.
   2027-01-31 and only in a release after the carry-over release (decision 3). The owner
   accepted the remediation waves and assignments in
   [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20);
-  no slice has started (decision 4).
+  no slice has started (decision 4). On 2026-10-21 the owner added slice 18
+  (PH-MUS-014) to wave 1, after slice 0 (decision 5).
 - Phase 11 owner sittings, 2026-10-20: the agent ran sittings 0, 1, 3 and 4 itself
   (Docker, the packaged Linux app, real Chrome, Edge and Firefox, null-sink audio, a
   scripted MIDI device); sitting 2 (Windows) and the hardware, speaker and

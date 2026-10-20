@@ -101,8 +101,10 @@ for the same pattern. `src/renderer/App.tsx`.
 
 ## Resolution
 
-- Accepted/rejected rationale: accepted 2026-10-20.
-- Fix branch/commit/issue: none.
+- Accepted/rejected rationale: accepted 2026-10-20. Owner decision 5 (2026-10-21): slice
+  18 runs in wave 1, after slice 0
+  ([Owner Selection](../phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20)).
+- Fix branch/commit/issue: none yet; planned on `remediation/p11-s18-audio-defaults`.
 - Verification evidence: none yet.
 - Residual risk: as stated in User Impact.
-- Revisit trigger: the next remediation wave selection.
+- Revisit trigger: the owner's go-ahead for wave 1.

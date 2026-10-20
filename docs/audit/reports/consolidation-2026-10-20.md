@@ -163,6 +163,8 @@ finding template and its rationale line now records the acceptance.
   - Decision 4: the owner accepted the proposed waves, owners and branches
     ([owner selection](phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20)).
     No slice has started; work waits for the owner's go-ahead.
+  - Decision 5 (2026-10-21): slice 18 ([PH-MUS-014](findings/PH-MUS-014.md)) joins
+    wave 1, after slice 0.
 
 ### Lead dispositions
 
@@ -342,9 +344,9 @@ One finding was accepted as a risk after consolidation: [PH-OPS-004](findings/PH
 
 The [Phase 11 remediation plan](phase-11-remediation-plan-2026-10-20.md) maps all 51
 accepted findings to 21 vertical slices. They are listed here in risk order. Since the
-sittings, wave 1 runs slice 2 first, then 0, then 1 with 15, then 3; slice 18 is
-proposed for wave 1 and awaits the owner. Slices 19 and 20, added on 2026-10-21, are in
-wave 2.
+sittings, wave 1 runs slice 2 first, then 0, then 18, then 1 with 15, then 3; the owner
+added slice 18 to wave 1 on 2026-10-21 (decision 5). Slices 19 and 20, added on
+2026-10-21, are in wave 2.
 
 | Slice | Findings | Outcome |
 |---:|---|---|

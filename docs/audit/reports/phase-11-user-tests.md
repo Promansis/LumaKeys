@@ -182,6 +182,7 @@ device, "Audit Keys 61". The real keyboard continues as C1 to C5.
 | 2 | PH-OPS-004: the database in git history | Decided 2026-10-20: accept the risk; no history rewrite. The agent read all six blobs and none holds personal data |
 | 3 | Lane H: end date for the legacy-name fallback (suggested 2027-01-31), and whether `CLAUDE.md` and `AGENTS.md` are tracked | Decided 2026-10-20: removal no earlier than 2027-01-31, and only in a release after the carry-over release. `CLAUDE.md` and `AGENTS.md` stay gitignored; what the audit relies on moves into tracked docs (task D1) |
 | 4 | Which findings enter remediation | Decided 2026-10-20: waves, owners and branches as in the plan's [Owner Selection](phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20). Nothing starts until you say go |
+| 5 | Slice 18 (PH-MUS-014, fresh-profile volume): which wave | Decided 2026-10-21: wave 1, after slice 0. B1 stays as the speaker check once it is fixed |
 
 ## Moved To The Agent (headless Electron)
 
