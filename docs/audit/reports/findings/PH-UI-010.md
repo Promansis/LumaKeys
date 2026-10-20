@@ -7,7 +7,7 @@
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), mouse control and a second page per symptom (see Challenge Record)
 - Verifier: independent verifier recommended
-- Affected runtime: both (renderer code, no runtime branch; web and headless Electron proven)
+- Affected runtime: both (renderer code, no runtime branch; web, headless Electron, Edge 155 and Firefox 142 proven)
 - Coverage rows: RT-008, WF-018, MOD-005
 - Related/duplicate findings: same defect class as PH-UI-001 (focus containment) and PH-UI-004 (Escape also navigates). Their Phase 9 fixes covered the Settings confirmation dialog and the immersive session menus, not this dialog. Lead may fold this into a reopened PH-UI-001/004 or keep it separate.
 - First observed against: `main` at `6e549b6` (audit-only commits after it)
@@ -90,6 +90,7 @@ Use `useModalFocusTrap` for the dialog (focus first control, contain Tab, restor
 - Deduplication decision: not a duplicate of PH-UI-001 or PH-UI-004 (different component; both fixes verified on their own surfaces in this phase).
 - Challenger conclusion and date: reproduced, Claude Code (acting), 2026-10-19.
 - Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2. Accepted.
+- Owner sitting run by the agent, 2026-10-20: reproduced in Edge 155 and Firefox 142 in [sitting 3](../phase-11-owner-sittings-2026-10-20.md#sitting-3-edge-and-firefox) item 3(b). Enter on Calibrate opens the dialog but leaves focus on Calibrate, outside it; an immediate Escape closes the dialog and leaves Settings for the main menu. Tab leaves the dialog (over 10 Tab and 4 Shift+Tab presses, 14 of 14 stops outside in Edge, 3 of 14 in Firefox). Enter or Space on the close button starts a measurement instead of closing; Enter or Space on Apply and Try Again do nothing. A mouse click on Apply closes the dialog and saves the latency. In the Firefox focus-matrix run Escape stayed on Settings only because focus had landed in a text input, which the app's Escape handler skips.
 
 ## Resolution
 

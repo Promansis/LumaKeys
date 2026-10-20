@@ -1,0 +1,105 @@
+# PH-MUS-016: In a loop, a downbeat played slightly early at the seam is dropped
+
+- Lane: MUS
+- Severity: P3
+- Confidence: high
+- Status: accepted
+- Owner: Claude Code (acting)
+- Challenger: Claude Code (acting), 2026-10-20
+- Verifier: TBD
+- Affected runtime: both
+- Coverage rows: WF-009, WF-002
+- Related/duplicate findings: PH-MUS-002 (loop bars on non-4/4 meters, fixed); none duplicate
+- First observed against: `main` at source identity `6e549b6`, sitting 4 item 7 run 2026-10-20
+
+## User Impact
+
+When a player loops a passage in Learn mode, the first note of each new pass sits exactly
+on the loop seam. A real player anticipates it by a few milliseconds as often as not. If
+the key goes down before the playhead has wrapped, the press is matched against the end
+of the old pass, finds nothing, and is thrown away. The playhead then wraps and Learn
+mode waits on that same note, so the player has to play it again. The loop stalls on
+its own downbeat. Looping a hard bar is a core practice tool, but each stall costs
+one repeated note with no data loss, so P3.
+
+## Expected Behavior Or Oracle
+
+A press within the hit window of the loop's first note counts for that note, whether
+it lands just before or just after the seam. That is the window `matchNote` gives any
+other note.
+
+## Evidence
+
+### Environment
+
+- Commit/patch identity: source `6e549b6`
+- OS/runtime/browser: the web build in Chromium and Electron 30.5.1 (`out/`), Linux; a
+  scripted Web MIDI device ("Audit Keys 61")
+- Data profile/fixture: fresh profile and data directory; a 3/4 fixture with six
+  eighth-to-quarter notes in bars 3–4 (C4 at 3 s to A4 at 5.5 s), Learn mode
+
+### Reproduction
+
+1. Load the fixture, set the loop to measures 3–4 ("Looping measures 3-4"), start.
+2. Play the six notes on the beat. Each scores perfect.
+3. Play the second pass's C4 15 ms before the beat (2985 ms after the first note),
+   and the rest on the beat.
+4. The early C4 is not judged. The HUD resets to `0 | 0` at the wrap, Learn mode
+   shows "Progress pauses until the correct note is played", and it is still at
+   `0 | 0` 1.2 s later. D4 to A4 on the beat are not judged either, because the
+   playhead is held at C4.
+5. Control: the same run with C4 20 ms late (3020 ms) judges all six second-pass
+   notes perfect.
+
+The same result in both runtimes.
+
+### Artifacts
+
+- `src/lib/game/GameSession.ts:159-166` (`getCurrentTimeSec`): the playhead wraps only
+  when `nextTime >= loopEndSec`, by calling `restart` and `play`.
+- `matchNote` compares the press with the unwrapped song time, so a press at 5.985 s
+  is 2.985 s from the C4 at 3 s and outside every window.
+- `$TMPDIR/p11/S4/web.out` lines 52–55, `$TMPDIR/p11/S4/desktop.out` lines 42–45,
+  `web-item7-seam-early-15ms-end.png`, `desktop-item7-seam-early-15ms-end.png`.
+- Driver: `scripts/audit/browser/sitting4-midi-common.mjs` (`item7`, `seamMs`).
+
+## Root Cause
+
+Note matching has no notion of the loop. Near the seam, the notes at the start of the
+loop are a few milliseconds away in practice but more than a loop length away in song
+time.
+
+## Recommended Remediation Boundary
+
+In `GameSession`, when a loop is set and the playhead is within the hit window of
+`loopEndSec`, also match the press against the loop's first notes at the wrapped time
+(or wrap first and then match). `src/lib/game/GameSession.ts`.
+
+## Required Regression Proof
+
+- Deterministic unit/integration proof: a `GameSession` test with a loop where a press
+  `hitWindow - 1` ms before `loopEndSec` scores the loop's first note, and Learn mode
+  does not wait on it after the wrap.
+- Web and Electron proof: `sitting4-midi-web.mjs` and `sitting4-midi-desktop.mjs`
+  item 7 with `seamMs = -15` judge all twelve notes.
+- Broader regression command: `npx vitest run src/lib/game`
+
+## Challenge Record
+
+- Independent reproduction attempt: the lead read `getCurrentTimeSec` and the matching
+  path and confirmed the unwrapped comparison; the late-press control passes.
+- Alternative explanations tested: scripted dispatch timing. The dispatch log shows the
+  early C4 sent 0 to 0.5 ms from its target in both runtimes, and the round 1 notes on
+  the same clock all scored perfect.
+- Scope/severity changes: none. Note: the HUD also resets to `0 | 0` at every wrap
+  because the wrap calls `restart`. That is the current design, not this finding.
+- Deduplication decision: new.
+- Challenger conclusion and date: accepted at P3, 2026-10-20.
+
+## Resolution
+
+- Accepted/rejected rationale: accepted 2026-10-20.
+- Fix branch/commit/issue: none.
+- Verification evidence: none yet.
+- Residual risk: as stated in User Impact.
+- Revisit trigger: the next remediation wave selection.

@@ -7,7 +7,7 @@
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), per-stop probe plus a pin-path check
 - Verifier: independent verifier recommended
-- Affected runtime: both (renderer; web and headless Electron proven)
+- Affected runtime: both (renderer; web, headless Electron, Edge 155 and Firefox 142 proven)
 - Coverage rows: RT-008, WF-015, WF-016, MOD-003, MOD-006
 - Related/duplicate findings: related to PH-UI-001 (focus on controls the user cannot see) but a different surface (collapsed HUD popouts, not modal dialogs).
 - First observed against: `main` at `6e549b6`
@@ -74,6 +74,7 @@ Apply `inert` (or `visibility: hidden` after the close transition) to closed pop
 - Deduplication decision: new surface.
 - Challenger conclusion and date: reproduced, Claude Code (acting), 2026-10-19.
 - Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3. Accepted.
+- Owner sitting run by the agent, 2026-10-20: reproduced in Edge 155 and Firefox 142 in [sitting 3](../phase-11-owner-sittings-2026-10-20.md#sitting-3-edge-and-firefox) item 3(d). Edge: Free Play 83 Tab stops, 71 inside an `aria-hidden` container and 72 invisible; Soundboard 64, 52 and 53. Firefox: Free Play 85, 73 and 74; Soundboard 81, 69 and 70. The game part timed out in both browsers (the driver did not find "Play Songs"), so the game HUD was not measured there.
 
 ## Resolution
 

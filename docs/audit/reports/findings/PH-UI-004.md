@@ -3,10 +3,10 @@
 - Lane: UI/accessibility
 - Severity: P2
 - Confidence: high
-- Status: fixed
+- Status: verified
 - Owner: Codex (acting)
 - Challenger: Codex, Chrome and Electron confirmation challenge
-- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes
+- Verifier: Claude Code (acting), sitting 3 run 2026-10-20
 - Affected runtime: both
 - Coverage rows: WF-018, WF-021, WF-022, WF-024, RT-008, MOD-002, MOD-005
 - Related/duplicate findings: none
@@ -98,7 +98,9 @@ Settings Escape navigation.
 
 - Accepted/rejected rationale: a single Escape has the observable side effect of
   leaving Settings while cancelling the modal in both runtimes.
+- Verified rationale: Escape closes each Settings confirmation and stays on Settings in Chromium, Electron, Edge and Firefox (sitting 3, below).
 - Fix branch/commit/issue: `d5839aa`, Phase 9 slice 16 ([Phase 9 report](../phase-9-remediation-2026-07-30.md)). This file said "accepted" until the Phase 11 consolidation reconciled it with the ledger on 2026-10-20.
 - Verification evidence: Phase 9 moved modal Escape handling to the capture phase, with a `defaultPrevented` guard in `App.tsx`. Phase 11: `SettingsScreen.test.tsx` "cancels confirmation dialogs with Escape" and `App.test.tsx` "lets free play own Escape" pass ([re-verification](../phase-11-reverification-2026-10-19.md)). Escape closes only the Settings confirmation and leaves Settings open in Chromium ([lane E](../phase-11-lane-e-ui-accessibility-2026-10-19.md)), on the web (WF-021, [lane F](../phase-11-lane-f-workflows-2026-10-19.md)) and in headless Electron (WF-021 and agent item A4 (e), [Electron report](../phase-11-electron-runtime-2026-10-20.md)).
-- Residual risk: three adjacent defects stay open. Escape in the latency calibration dialog also leaves Settings ([PH-UI-010](PH-UI-010.md)). The third Escape on the Soundboard exits it ([PH-UI-013](PH-UI-013.md)). After a confirmation closes, focus drops to the page body ([PH-UI-017](PH-UI-017.md)).
+  [Sitting 3](../phase-11-owner-sittings-2026-10-20.md#sitting-3-edge-and-firefox) item 3, 2026-10-20, run by the agent in Edge 155 and Firefox 142: Escape on the Clear Learning Progress and Delete User Data confirmations gives no open dialog, Settings still shown, and focus on the trigger. `sitting3-confirm-dialog-focus-restore.mjs` shows Escape and Cancel each close the dialog and focus the trigger in both browsers.
+- Residual risk: three adjacent defects stay open. Escape in the latency calibration dialog also leaves Settings ([PH-UI-010](PH-UI-010.md)), now seen in Edge and Firefox too. The third Escape on the Soundboard exits it ([PH-UI-013](PH-UI-013.md)). After a confirmation closes, focus drops to the page body in Chrome and Electron, not in Edge or Firefox ([PH-UI-017](PH-UI-017.md)).
 - Revisit trigger, if accepted-risk: not applicable.

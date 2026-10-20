@@ -3,10 +3,10 @@
 - Lane: UI/accessibility
 - Severity: P2
 - Confidence: high
-- Status: fixed
+- Status: verified
 - Owner: Codex (acting)
 - Challenger: Codex, fresh Chrome and Electron keyboard challenge
-- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes
+- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes; sitting 3 run 2026-10-20
 - Affected runtime: both
 - Coverage rows: WF-009, WF-015, WF-016, WF-024, RT-008, MOD-003, MOD-006
 - Related/duplicate findings: none
@@ -109,7 +109,10 @@ Adopt it in GameScreen, FreePlayScreen, and NoveltySoundboardScreen.
 
 - Accepted/rejected rationale: actual sequential keyboard navigation exits all
   tested `aria-modal` session overlays.
+- Verified rationale: Tab and Shift+Tab stay inside the Game, Free Play and Soundboard overlays and the Settings confirmations in Chromium, Electron, Edge and Firefox (sitting 3, below).
 - Fix branch/commit/issue: `d5839aa`, Phase 9 slice 14 ([Phase 9 report](../phase-9-remediation-2026-07-30.md)). This file said "accepted" until the Phase 11 consolidation reconciled it with the ledger on 2026-10-20.
 - Verification evidence: Phase 9 added `useModalFocusTrap` for the Game, Free Play and Soundboard overlays. Phase 11: `SettingsScreen.test.tsx` "keeps keyboard focus inside confirmation dialogs" and the Free Play and Soundboard overlay tests pass ([re-verification](../phase-11-reverification-2026-10-19.md)). Over 50 Tab and 4 Shift+Tab presses, 0 stops leave the Free Play, Soundboard or Game overlay or the Settings confirmation, in Chromium ([lane E](../phase-11-lane-e-ui-accessibility-2026-10-19.md)) and in headless Electron (`keyboard-walk.mjs` part (f), [Electron report](../phase-11-electron-runtime-2026-10-20.md)).
-- Residual risk: the latency calibration dialog does not contain focus ([PH-UI-010](PH-UI-010.md)). Edge, Firefox and real zoom are not proven; RT-008 stays blocked on the owner's [sitting 3](../phase-11-user-tests.md).
+  [Sitting 3](../phase-11-owner-sittings-2026-10-20.md#sitting-3-edge-and-firefox) item 3, 2026-10-20, run by the agent in Edge 155 and Firefox 142: both Settings confirmations (Clear Learning Progress, Delete User Data) keep focus over 10 Tab and 4 Shift+Tab presses, 0 stops outside, and Escape returns focus to the trigger.
+  The `immersive` part of the same matrix (`sitting3-keyboard-focus-matrix.mjs` with `PART=immersive`), run by the lead the same day in Edge 155 and Firefox 142: over 50 Tab and 4 Shift+Tab presses, 0 stops leave the Free Play (24 stops), Soundboard (60) or Game (22) overlay, every stop shows a strong focus indicator, and Escape returns focus to the Menu button. Output: `$TMPDIR/p11/S3/edge-run/kb-immersive.out`, `$TMPDIR/p11/S3/ff/kb-immersive.out`.
+- Residual risk: the latency calibration dialog does not contain focus in any runtime tested, Edge and Firefox included ([PH-UI-010](PH-UI-010.md)). No containment run has used real browser zoom.
 - Revisit trigger, if accepted-risk: not applicable.

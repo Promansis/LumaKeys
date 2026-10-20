@@ -7,7 +7,7 @@
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-20
 - Verifier: TBD
-- Affected runtime: both (shared renderer code); reproduced in the web build with a scripted Web MIDI device
+- Affected runtime: both (shared renderer code); reproduced with a scripted Web MIDI device in the web build and, on 2026-10-20, in Electron
 - Coverage rows: WF-002, WF-009, RT-011
 - Related/duplicate findings: PH-MUS-001 (fixed; a different trigger that also erased judged state), PH-MUS-004 (fixed; held notes on disconnect)
 - First observed against: `main` at source identity `6e549b6`, Phase 11 lane F (FA run 2026-10-19; source trace 2026-10-20)
@@ -77,6 +77,7 @@ does not remount the session.
 - Deduplication decision: new trigger; PH-MUS-001 was fixed for explicit session controls.
 - Challenger conclusion and date: reproduced, 2026-10-20
 - Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2. Accepted.
+- Owner sitting run by the agent, 2026-10-20: reproduced on the web and the desktop in [sitting 4](../phase-11-owner-sittings-2026-10-20.md#sitting-4-midi-keyboard) item 3. Three MIDI C4s bring the HUD to 300 | 3; unplug resets it to 0 | 0, the status reads "Loaded repeat-c4 with 148 notes across 1 tracks.", and Space shows the count-in again. Replug resets it again (200 | 2 from computer keys to 0 | 0). A MIDI C4 after replug scores (100 | 1).
 
 ## Resolution
 

@@ -7,7 +7,7 @@
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), keyboard and mouse sequences on Soundboard, Free Play, and Game
 - Verifier: independent verifier recommended
-- Affected runtime: both (renderer; web and headless Electron proven)
+- Affected runtime: both (renderer; web, headless Electron, Edge 155 and Firefox 142 proven)
 - Coverage rows: RT-008, WF-016, WF-024, MOD-002
 - Related/duplicate findings: related to PH-UI-004 (Escape semantics) but a different mechanism: listener ordering, not a missing `preventDefault`.
 - First observed against: `main` at `6e549b6`
@@ -74,6 +74,7 @@ Register the Soundboard handler once (empty or ref-based dependencies, as Free P
 - Deduplication decision: not a duplicate of PH-UI-004 (that fix is verified; this concerns a screen with no modal open).
 - Challenger conclusion and date: reproduced, Claude Code (acting), 2026-10-19.
 - Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3. Accepted.
+- Owner sitting run by the agent, 2026-10-20: reproduced in Edge 155 and Firefox 142 in [sitting 3](../phase-11-owner-sittings-2026-10-20.md#sitting-3-edge-and-firefox) item 3(c). On the Soundboard the third Escape goes to the main menu, and so does Escape after opening the menu with the mouse and clicking Resume. In Free Play and the game every Escape toggles the menu. The first Firefox run stopped on a connection error after the Soundboard row; a second run completed.
 
 ## Resolution
 

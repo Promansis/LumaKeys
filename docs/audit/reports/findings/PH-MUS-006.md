@@ -7,7 +7,7 @@
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), lane C, 2026-10-19
 - Verifier: TBD
-- Affected runtime: both (shared renderer code in `GameScreen.tsx`); reproduced in the web build in headless Chromium and by replaying the code on the real `GameSession` clock
+- Affected runtime: both (shared renderer code in `GameScreen.tsx`); reproduced in the web build in headless Chromium, by replaying the code on the real `GameSession` clock, and in Electron by recording (sitting 1 item 7, 2026-10-20)
 - Coverage rows: WF-009, MOD-011
 - Related/duplicate findings: PH-MUS-002 (measure map; this consumer reads neither `measureBoundaries` nor the tempo map, so its root cause is independent); PH-MUS-001 (tempo changes mid-run)
 - First observed against: `main` at source identity `6e549b6`, Phase 11 lane C. The code dates from `e37c612` (2026-05-27) and is not part of the 0bd40f5..6e549b6 delta
@@ -115,6 +115,7 @@ the only clock input (no second tempo factor). Have the effect call it. The coun
 - Deduplication decision: no existing ledger entry or Phase 3 note mentions the metronome; distinct from PH-MUS-002 (independent root cause, per the ledger rule for distinct measure-map consumers).
 - Challenger conclusion and date: reproduced, 2026-10-19
 - Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2. Accepted.
+- Owner sitting run by the agent, 2026-10-20: reproduced on the desktop by recording in [sitting 1](../phase-11-owner-sittings-2026-10-20.md#sitting-1-linux-display-and-speakers) item 7. At 50 % on `pmus-16` (120 BPM), playback clicks fall at 5.59, 7.58, 9.58, 11.58, 13.58 and 15.58 s, 2.00 s apart, while the notes are 1.00 s apart. At 100 % the clicks are 0.50 s apart, one per note. The recording tells accents (C6) from normal clicks (C5): at 100 % every fourth click is accented, 2.0 s apart, one per bar; at 50 % the accent is the fourth playback click (11.58 s), so it comes every 8 beats, every second bar. This replaces the earlier note that the accent claim rests only on the code.
 
 ## Resolution
 

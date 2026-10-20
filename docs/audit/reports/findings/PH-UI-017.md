@@ -2,19 +2,19 @@
 
 - Lane: UI/accessibility
 - Severity: P3
-- Confidence: high
+- Confidence: high in Chrome and Electron; it did not reproduce in Edge 155 or Firefox 142
 - Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), keyboard and focus() trace
 - Verifier: independent verifier recommended
-- Affected runtime: both (renderer; web and headless Electron proven)
+- Affected runtime: both (renderer); reproduced in headless Chromium 141, real Chrome 151 and headless Electron 30.5.1; not reproduced in Edge 155 or Firefox 142 (sitting 3, 2026-10-20)
 - Coverage rows: RT-008, WF-018, WF-021, WF-022, MOD-005
 - Related/duplicate findings: PH-UI-001 and PH-UI-004 are verified for this dialog (containment and Escape hold); this is the third part of the Phase 5 modal oracle, "restore focus on close".
 - First observed against: `main` at `6e549b6`
 
 ## User Impact
 
-After Cancel or Escape closes "Clear learning progress?" or "Delete all user data?", keyboard focus is on `<body>`, not on the button that opened the dialog. The next Tab starts again from the top of the page, so a keyboard user must Tab back through the header, nav, and tab row to reach where they were. P3: recoverable, no data effect.
+In Chrome and Electron, after Cancel or Escape closes "Clear learning progress?" or "Delete all user data?", keyboard focus is on `<body>`, not on the button that opened the dialog. The next Tab starts again from the top of the page, so a keyboard user must Tab back through the header, nav, and tab row to reach where they were. P3: recoverable, no data effect.
 
 ## Expected Behavior Or Oracle
 
@@ -48,13 +48,15 @@ The same result was seen for "Delete User Data" in the matrix driver (`keyboard-
 
 Probable, not isolated: the effect that records and restores the previously focused element is re-run on parent re-renders because its dependencies include an unstable callback, so the recorded element is not the trigger when the dialog finally unmounts. Next diagnostic: log the recorded `previousActiveElement` on every effect run.
 
+Sitting 3 supports this. In Chrome 151 the open trace shows `focus(Clear Learning Progress)` before `focus(Cancel)`, which fits a cleanup run while the dialog is open. The triggers are disabled while a dialog is open (`disabled={... || resetTarget !== null}`, `SettingsScreen.tsx` lines 1808 and 1825), so that cleanup cannot refocus the trigger, and the re-run then records the body. Edge 155, also Chromium, showed only `focus(Cancel)` and restored the trigger, which points to a timing race rather than an engine difference.
+
 ## Recommended Remediation Boundary
 
 Record the trigger once on mount (empty dependency list, callback through a ref, as `useModalFocusTrap` does) or reuse `useModalFocusTrap`. Owning module: `SettingsScreen.tsx` `ConfirmActionModal`.
 
 ## Required Regression Proof
 
-- Deterministic unit/integration proof: after Cancel and after Escape, `document.activeElement` is the trigger button (extend "keeps keyboard focus inside confirmation dialogs").
+- Deterministic unit/integration proof: after Cancel and after Escape, `document.activeElement` is the trigger button (extend "keeps keyboard focus inside confirmation dialogs"). The test must force a parent re-render while the dialog is open, so the result does not depend on timing.
 - Electron proof: reproduced headless with `scripts/audit/electron/keyboard-walk.mjs` (agent item A4, 2026-10-20); after the fix the same driver must show the corrected behaviour.
 - Web proof: re-run the driver.
 - Data/recovery proof: none.
@@ -69,6 +71,7 @@ Record the trigger once on mount (empty dependency list, callback through a ref,
 - Deduplication decision: part of the same oracle as PH-UI-001 but a separate defect with its own root cause.
 - Challenger conclusion and date: reproduced, Claude Code (acting), 2026-10-19.
 - Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3. Accepted.
+- Owner sitting run by the agent, 2026-10-20 ([sitting 3](../phase-11-owner-sittings-2026-10-20.md#sitting-3-edge-and-firefox) item 3(e)): reproduced in real Chrome 151. The close trace is `focus(BODY)`; the trigger is connected but not active; the next Tab goes to Main, Play, Learn. Not reproduced in Edge 155 or Firefox 142: the open trace has only `focus(Cancel)`, Escape and Cancel both return focus to the trigger, and the next Tab goes to Delete User Data. Severity held at P3.
 
 ## Resolution
 

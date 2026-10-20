@@ -7,7 +7,7 @@
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), pixel comparison and custom-property probe
 - Verifier: independent verifier recommended
-- Affected runtime: both (CSS; web and headless Electron proven)
+- Affected runtime: both (CSS; web, headless Electron, Edge 155 and Firefox 142 proven)
 - Coverage rows: RT-008, WF-024, MOD-007
 - Related/duplicate findings: none. PH-UI-001/004 concern dialogs, not the navigation bar.
 - First observed against: `main` at `6e549b6`
@@ -86,6 +86,7 @@ Give the top bar its own scoped styling (define the variables on `.app-topbar` o
 - Deduplication decision: new; shares the surface but not the cause of PH-UI-001.
 - Challenger conclusion and date: reproduced, Claude Code (acting), 2026-10-19.
 - Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2. Accepted.
+- Owner sitting run by the agent, 2026-10-20: reproduced in Edge 155 and Firefox 142 in [sitting 3](../phase-11-owner-sittings-2026-10-20.md#sitting-3-edge-and-firefox) item 3(a). On Guided Lessons, Theory and Progress, all 9 top-bar stops (Main through Back to Main Menu, including the active page) show no focus indicator; on Keyboard Setup, 8 stops show none.
 
 ## Resolution
 

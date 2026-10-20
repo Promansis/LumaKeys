@@ -32,12 +32,12 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-MUS-003 | Custom fingerings bind to a filtered session index | MUS | P2 | high | both | fixed | WF-008, WF-009, DATA-007, BR-032, BR-033, BR-034, MOD-003, MOD-011 | [PH-MUS-003](reports/findings/PH-MUS-003.md) | Codex (acting) |
 | PH-MUS-004 | MIDI device disconnect leaves held notes active | MUS | P2 | high | both | fixed | WF-002, WF-009, RT-011, MOD-003, MOD-011 | [PH-MUS-004](reports/findings/PH-MUS-004.md) | Codex (acting) |
 | PH-PAR-001 | Electron production output omits required public runtime assets | PAR | P1 | high | Electron | fixed | WF-011, WF-016, WF-019, BR-060, BR-067, OP-006, MOD-012 | [PH-PAR-001](reports/findings/PH-PAR-001.md) | Codex (acting) |
-| PH-PAR-002 | Browser file-picker cancellation leaves import promises pending | PAR | P2 | high | web | fixed | WF-004, WF-006, WF-020, BR-008, BR-010, BR-058, OP-001, OP-005, MOD-004, MOD-009 | [PH-PAR-002](reports/findings/PH-PAR-002.md) | Codex (acting) |
+| PH-PAR-002 | Browser file-picker cancellation leaves import promises pending | PAR | P2 | high | web | verified | WF-004, WF-006, WF-020, BR-008, BR-010, BR-058, OP-001, OP-005, MOD-004, MOD-009 | [PH-PAR-002](reports/findings/PH-PAR-002.md) | Codex (acting) |
 | PH-PAR-003 | Supported legacy MIDI migration loads only in Electron | PAR | P2 | high | both | fixed | DATA-002, WF-004, WF-006, WF-008, WF-009, BR-011, BR-059, OP-002, MOD-008, MOD-009 | [PH-PAR-003](reports/findings/PH-PAR-003.md) | Codex (acting) |
-| PH-UI-001 | Immersive session dialogs do not contain keyboard focus | UI | P2 | high | both | fixed | WF-009, WF-015, WF-016, WF-024, RT-008, MOD-003, MOD-006 | [PH-UI-001](reports/findings/PH-UI-001.md) | Codex (acting) |
-| PH-UI-002 | Settings tabs are clipped at required desktop zoom | UI | P1 | high | both | fixed | WF-003, WF-018, WF-019, WF-021, WF-022, RT-006, RT-008, MOD-005, MOD-007 | [PH-UI-002](reports/findings/PH-UI-002.md) | Codex (acting) |
+| PH-UI-001 | Immersive session dialogs do not contain keyboard focus | UI | P2 | high | both | verified | WF-009, WF-015, WF-016, WF-024, RT-008, MOD-003, MOD-006 | [PH-UI-001](reports/findings/PH-UI-001.md) | Codex (acting) |
+| PH-UI-002 | Settings tabs are clipped at required desktop zoom | UI | P1 | high | both | verified | WF-003, WF-018, WF-019, WF-021, WF-022, RT-006, RT-008, MOD-005, MOD-007 | [PH-UI-002](reports/findings/PH-UI-002.md) | Codex (acting) |
 | PH-UI-003 | Immersive canvases ignore reduced-motion preference | UI | P2 | high | both | fixed | WF-015, WF-016, RT-009, MOD-006 | [PH-UI-003](reports/findings/PH-UI-003.md) | Codex (acting) |
-| PH-UI-004 | Escape exits Settings while cancelling a destructive confirmation | UI | P2 | high | both | fixed | WF-018, WF-021, WF-022, WF-024, RT-008, MOD-002, MOD-005 | [PH-UI-004](reports/findings/PH-UI-004.md) | Codex (acting) |
+| PH-UI-004 | Escape exits Settings while cancelling a destructive confirmation | UI | P2 | high | both | verified | WF-018, WF-021, WF-022, WF-024, RT-008, MOD-002, MOD-005 | [PH-UI-004](reports/findings/PH-UI-004.md) | Codex (acting) |
 | PH-ARCH-001 | Practice-session prerequisite failures leave the session loading | ARCH | P2 | high | both | fixed | WF-008, WF-009, BR-015, BR-032, BR-053, MOD-003 | [PH-ARCH-001](reports/findings/PH-ARCH-001.md) | Codex (acting) |
 | PH-ARCH-002 | Keyboard mapping reports success before its durable write settles | ARCH | P2 | high | both | fixed | WF-003, WF-018, BR-054, MOD-002, MOD-005 | [PH-ARCH-002](reports/findings/PH-ARCH-002.md) | Codex (acting) |
 | PH-OPS-001 | Docker build context can embed default user data and environment files | OPS | P1 | high | web | verified | OP-014, MOD-012 | [PH-OPS-001](reports/findings/PH-OPS-001.md) | Codex (acting) |
@@ -45,7 +45,7 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-SEC-003 | Web HTML responses carry no Content-Security-Policy or related security headers, and the desktop renderer has no CSP either | SEC | P3 | high | both | accepted | OP-016, MOD-010, MOD-013, MOD-014 | [PH-SEC-003](reports/findings/PH-SEC-003.md) | Claude Code (acting) |
 | PH-SEC-004 | One MuseScore conversion blocks every other import for up to 45 seconds | SEC | P3 | high | web | accepted | OP-017, WF-025, MOD-013 | [PH-SEC-004](reports/findings/PH-SEC-004.md) | Claude Code (acting) |
 | PH-SEC-005 | Soundboard source links open remote sites inside an Electron window with no navigation guard | SEC | P3 | high | Electron | accepted | MOD-014, OP-013, MOD-008 | [PH-SEC-005](reports/findings/PH-SEC-005.md) | Claude Code (acting) |
-| PH-OPS-002 | Default web deployment exposes `/api/*` with no app-level gate | OPS | P2 | high | web | suspected | OP-014 | [PH-OPS-002](reports/findings/PH-OPS-002.md) | Claude Code (acting) |
+| PH-OPS-002 | Default web deployment exposes `/api/*` with no app-level gate | OPS | P0 | high | web | accepted | OP-014 | [PH-OPS-002](reports/findings/PH-OPS-002.md) | Claude Code (acting) |
 | PH-OPS-003 | Shipped desktop runtime Electron 30.5.1 is past end of life | OPS | P2 | high | Electron | accepted | MOD-012, MOD-008, OP-013 | [PH-OPS-003](reports/findings/PH-OPS-003.md) | Claude Code (acting) |
 | PH-OPS-004 | A default-state SQLite database remains in git history | OPS | P3 | high | runtime-independent | accepted-risk | MOD-012, DATA-003, DATA-004 | [PH-OPS-004](reports/findings/PH-OPS-004.md) | Claude Code (acting) |
 | PH-OPS-005 | No continuous integration enforces the typecheck, test, or asset baseline | OPS | P3 | high | runtime-independent | accepted | MOD-012 | [PH-OPS-005](reports/findings/PH-OPS-005.md) | Claude Code (acting) |
@@ -68,7 +68,7 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-UI-009 | A failed upload still tells the user to "Review the metadata before playing" | UI | P3 | high | both | accepted | WF-025, WF-004 | [PH-UI-009](reports/findings/PH-UI-009.md) | Claude Code (acting) |
 | PH-UI-010 | Latency calibration dialog is not keyboard operable and its Escape leaves Settings | UI | P2 | high | both | accepted | RT-008, WF-018, MOD-005 | [PH-UI-010](reports/findings/PH-UI-010.md) | Claude Code (acting) |
 | PH-UI-011 | Top-bar navigation has no visible keyboard focus or current-page indicator | UI | P2 | high | both | accepted | RT-008, WF-024, MOD-007 | [PH-UI-011](reports/findings/PH-UI-011.md) | Claude Code (acting) |
-| PH-UI-012 | Immersive HUD bar collides with its own controls at emulated 150 and 175 percent zoom | UI | P2 | medium | both | accepted | RT-006, RT-003, MOD-007 | [PH-UI-012](reports/findings/PH-UI-012.md) | Claude Code (acting) |
+| PH-UI-012 | Immersive HUD bar collides with its own controls at 150 to 189 percent zoom | UI | P2 | high | both | accepted | RT-006, RT-003, MOD-007 | [PH-UI-012](reports/findings/PH-UI-012.md) | Claude Code (acting) |
 | PH-UI-013 | Soundboard Escape leaves the screen after the session menu has been opened once | UI | P3 | high | both | accepted | RT-008, WF-016, WF-024, MOD-002 | [PH-UI-013](reports/findings/PH-UI-013.md) | Claude Code (acting) |
 | PH-UI-014 | Closed HUD popouts stay in the Tab order as aria-hidden, invisible controls | UI | P3 | high | both | accepted | RT-008, WF-015, WF-016, MOD-003, MOD-006 | [PH-UI-014](reports/findings/PH-UI-014.md) | Claude Code (acting) |
 | PH-UI-015 | Colour-blind palette paints missed notes the same colour as pending right-hand notes | UI | P3 | high | both | accepted | RT-010, WF-009, MOD-003 | [PH-UI-015](reports/findings/PH-UI-015.md) | Claude Code (acting) |
@@ -85,6 +85,10 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-DATA-009 | Lesson progress that fails to save is lost without a message | DATA | P3 | high | both | accepted | WF-011, DATA-016 | [PH-DATA-009](reports/findings/PH-DATA-009.md) | Claude Code (acting) |
 | PH-MUS-012 | Notes pressed while the song is not playing (before Space, during the count-in, or while paused) are judged against the frozen clock and score | MUS | P3 | high | both | accepted | WF-009, WF-011, WF-014, MOD-003, MOD-011 | [PH-MUS-012](reports/findings/PH-MUS-012.md) | Claude Code (acting) |
 | PH-MUS-013 | Capstone accuracy in wait-for-input mode rewards waiting and penalises anticipation, so the tier gate does not measure timing | MUS | P3 | high | both | accepted | WF-011, MOD-011 | [PH-MUS-013](reports/findings/PH-MUS-013.md) | Claude Code (acting) |
+| PH-MUS-014 | On a fresh profile the app plays about 60 dB too quietly while Settings shows the default volumes | MUS | P1 | high | both | accepted | WF-015, WF-016, WF-018, WF-009 | [PH-MUS-014](reports/findings/PH-MUS-014.md) | Claude Code (acting) |
+| PH-MUS-015 | Installed instrument packs cut notes off 0.1 s after release | MUS | P3 | high | Electron | accepted | WF-019 | [PH-MUS-015](reports/findings/PH-MUS-015.md) | Claude Code (acting) |
+| PH-MUS-016 | In a loop, a downbeat played slightly early at the seam is dropped | MUS | P3 | high | both | accepted | WF-009, WF-002 | [PH-MUS-016](reports/findings/PH-MUS-016.md) | Claude Code (acting) |
+| PH-UI-019 | Ctrl+0 cannot reset the zoom because the computer keyboard takes Digit0 as a note | UI | P3 | high | both | accepted | RT-006 | [PH-UI-019](reports/findings/PH-UI-019.md) | Claude Code (acting) |
 
 ## Status Notes
 
@@ -128,6 +132,16 @@ in the detailed report.
   accepted the remediation waves and assignments in
   [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20);
   no slice has started (decision 4).
+- Phase 11 owner sittings, 2026-10-20: the agent ran sittings 0, 1, 3 and 4 itself
+  (Docker, the packaged Linux app, real Chrome, Edge and Firefox, null-sink audio, a
+  scripted MIDI device); sitting 2 (Windows) and the hardware, speaker and
+  colour-vision checks still need the owner. See
+  [the sittings report](reports/phase-11-owner-sittings-2026-10-20.md). PH-OPS-002
+  moved to `accepted` at P0: the live host serves `/api` with no login. PH-PAR-002,
+  PH-UI-001, PH-UI-002 and PH-UI-004 moved to `verified`. Four new findings were
+  raised: PH-MUS-014 (P1), PH-MUS-015, PH-MUS-016 and PH-UI-019 (P3). PH-UI-012 is
+  now confirmed under real zoom. Coverage stands at 154 of 156 rows; RT-010 (colour
+  vision) and RT-011 (real MIDI hardware) stay blocked.
 
 - PH-DATA-001 is the canonical cross-store atomicity finding for backup restore,
   song deletion, and full reset. Do not create separate findings for the same

@@ -1,13 +1,13 @@
-# PH-UI-012: Immersive HUD Bar Collides With Its Own Controls At Emulated 150 And 175 Percent Zoom
+# PH-UI-012: Immersive HUD Bar Collides With Its Own Controls At 150 To 189 Percent Zoom
 
 - Lane: UI/accessibility
 - Severity: P2
-- Confidence: medium (emulated zoom; real zoom owed to sitting 1)
+- Confidence: high (real zoom in Chrome 151 and the packaged desktop app, sitting 1, 2026-10-20)
 - Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), reachability sweeps at five sizes
 - Verifier: user sitting 1 with real zoom
-- Affected runtime: both (layout depends only on CSS pixel width); web emulation proven
+- Affected runtime: both (layout depends only on CSS pixel width); web emulation, real Chrome 151 zoom and packaged desktop zoom proven
 - Coverage rows: RT-006, RT-003, MOD-007
 - Related/duplicate findings: same class as PH-UI-002 (required-zoom layout failure), different component. PH-UI-002 itself holds (see lane report).
 - First observed against: `main` at `6e549b6`
@@ -74,10 +74,11 @@ Add a HUD breakpoint (for example collapse status cards or wrap the nav) for rou
 
 - Independent reproduction attempt: first seen in the generic reachability sweep (`zoom-emulation-hit-test.mjs`), then isolated and measured by a dedicated driver and a screenshot.
 - Alternative explanations tested: hit test artefact from `scrollIntoView` centring (this is how the library "covered by sidebar" result arose and was rejected, see lane report); here the geometry is static and the screenshot shows the overlap directly.
-- Scope/severity changes: held at P2; the confidence is medium only because real zoom was not available.
+- Scope/severity changes: held at P2; the confidence was medium only because real zoom was not available. Real zoom reproduced it on 2026-10-20 (below), and the confidence is now high.
 - Deduplication decision: new component, same oracle as PH-UI-002.
 - Challenger conclusion and date: reproduced under emulation, Claude Code (acting), 2026-10-19.
 - Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2. Accepted.
+- Owner sittings run by the agent, 2026-10-20: reproduced with real zoom in [sitting 1](../phase-11-owner-sittings-2026-10-20.md#sitting-1-linux-display-and-speakers) item 2. In Chrome 151 (real Ctrl+=), Free Play's SETTINGS is covered by the Electric Piano control at 150 % (a real click hit `div.immersive-control-wrap` and stayed in Free Play) and by "Show instrument controls" at 175 %; PROGRESS works at both, and 125 and 200 % are clear. In the packaged desktop app, SETTINGS is covered at 158 and 173 %, SETTINGS and PROGRESS at 189 %, 120 to 144 % are clear, and 207 % was not checked. In [sitting 3](../phase-11-owner-sittings-2026-10-20.md#sitting-3-edge-and-firefox) item 2 at 150 %, the Electric Piano control covers the centre of SETTINGS in Edge (emulated zoom), Firefox (emulated) and Firefox (genuine `layout.css.devPixelsPerPx`). A mouse click did not open Settings in Edge or in genuine Firefox, but did in emulated Firefox. 200 % was clear in all three.
 
 ## Resolution
 

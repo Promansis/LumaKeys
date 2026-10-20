@@ -88,6 +88,7 @@ set), in both `loadInstrument` and `renderRecordingToWav`.
 - Deduplication decision: separate from PH-MUS-007 (WAV export scheduling), though both touch the custom-sampler construction.
 - Challenger conclusion and date: reproduced, 2026-10-20
 - Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2. Accepted.
+- Owner sitting run by the agent, 2026-10-20: reproduced on the web by recording in [sitting 1](../phase-11-owner-sittings-2026-10-20.md#sitting-1-linux-display-and-speakers) item 6. With the Flute pack installed, all 6 notes sound the same as the built-in Flute (waveform match 0.993 to 0.999); the console shows "Failed to load custom sampler" and 10 `undefinedblob:` fetch errors. On the desktop the pack does load: 3 of 6 notes (E3, D4, E4) differ from the built-in, and every pack note rings about 0.6 s ([PH-MUS-015](PH-MUS-015.md)).
 
 ## Resolution
 

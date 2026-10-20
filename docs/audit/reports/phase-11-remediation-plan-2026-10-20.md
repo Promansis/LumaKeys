@@ -4,23 +4,28 @@
 - Planning date: 2026-10-20
 - Audit lead: Claude Code (acting)
 - Input: the 42 accepted Phase 11 findings in [the findings ledger](../findings-ledger.md)
-  and [the Phase 11 consolidation](consolidation-2026-10-20.md)
+  and [the Phase 11 consolidation](consolidation-2026-10-20.md); 47 after the
+  [sittings run by the agent](phase-11-owner-sittings-2026-10-20.md) on 2026-10-20
 - Scope: planning only. No product code, finding status, severity or coverage
   disposition changed. Owner decisions 2 to 4 were recorded on 2026-10-20 (see
   [Owner Selection](#owner-selection-2026-10-20)).
+- Updated 2026-10-20 after the sittings: PH-OPS-002 is accepted at P0 and joins slice 2,
+  which moves to the front of wave 1 under decision 4's gate. Four new findings are
+  placed: PH-MUS-016 and PH-UI-019 in slice 4, PH-MUS-015 in slice 6, and PH-MUS-014 (P1)
+  in a new slice 18 proposed for wave 1. The new placements and slice 18's wave wait for
+  the owner.
 
 ## Stage Decision
 
-All 42 accepted findings are assigned to one of 18 vertical slices. A slice holds more
+All 47 accepted findings are assigned to one of 19 vertical slices. A slice holds more
 than one finding only when the findings share an owning module and the same proof
 session. Findings with different root causes keep their own regression tests inside the
 slice and are verified one by one. Slice 17 is the exception: five unrelated one-file
 fixes, kept together only to save review overhead. Each can ship on its own.
 
-Two findings are not planned:
+[PH-OPS-002](findings/PH-OPS-002.md) joined slice 2 on 2026-10-20, when sitting 0 item 4
+found the deployed `/api/*` answering with no login. One finding is not planned:
 
-- [PH-OPS-002](findings/PH-OPS-002.md) is still suspected. It joins slice 2 if sitting 0
-  item 4 confirms the deployed `/api/*` is open.
 - [PH-OPS-004](findings/PH-OPS-004.md) is `accepted-risk` under owner decision 2
   (2026-10-20): the database blobs in history hold no personal data, and history is not
   rewritten.
@@ -35,11 +40,11 @@ other than the implementer where one is available.
 |---:|---|---|---|---|
 | 0 | CI and proof debt | PH-OPS-005 | P3 | none; first, so every later slice runs under it |
 | 1 | Desktop startup migration | PH-DATA-005, PH-DATA-006, PH-OPS-006 | P1, P3, P2 | none; release blocker for a desktop update |
-| 2 | Web access | PH-SEC-002, PH-SEC-003 (+PH-OPS-002 if confirmed) | P2, P3 | sitting 0 item 4 for PH-OPS-002 only |
+| 2 | Web access | PH-OPS-002, PH-SEC-002, PH-SEC-003 | P0, P2, P3 | none; first in wave 1 since the gate tripped |
 | 3 | Electron upgrade and window-open guard | PH-OPS-003, PH-SEC-005 | P2, P3 | merge after slice 1 (both edit `src/main/index.ts`) |
-| 4 | Practice input integrity | PH-MUS-005, PH-MUS-012 | P2, P3 | none |
+| 4 | Practice input integrity | PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019 | P2, P3, P3, P3 | none |
 | 5 | MIDI device lifecycle | PH-MUS-010, PH-MUS-011 | P2, P2 | none |
-| 6 | Audio output | PH-PAR-006, PH-MUS-007 | P2, P2 | none |
+| 6 | Audio output | PH-PAR-006, PH-MUS-007, PH-MUS-015 | P2, P2, P3 | none |
 | 7 | Web startup without MIDI permission | PH-PAR-007 | P2 | after slice 5 if both edit the MIDI startup in `App.tsx` |
 | 8 | Delete confirmation | PH-UI-006 | P2 | none |
 | 9 | Timing | PH-MUS-006, PH-MUS-008 | P2, P3 | none |
@@ -51,6 +56,7 @@ other than the implementer where one is available.
 | 15 | Browser rename carry-over | PH-DATA-004, PH-DATA-007 | P3 | ships in the same release as slice 1 (owner decision 3) |
 | 16 | Colour | PH-UI-015, PH-UI-016 | P3 | none |
 | 17 | Small independent fixes | PH-UI-005, PH-UI-007, PH-UI-008, PH-MUS-009, PH-PAR-005 | P3 | none |
+| 18 | Fresh-profile audio defaults | PH-MUS-014 | P1 | none; proposed for wave 1 |
 
 Order is by user risk: data loss on update first, then the open web surface, then the
 shipped runtime, then practice correctness, then access and polish. P2 slices without a
@@ -64,9 +70,9 @@ starts only when the owner says so.
 
 | Wave | Slices | Goal | Starts |
 |---|---|---|---|
-| Gate | sitting 0 item 4 | Settle PH-OPS-002. If the deployed `/api/*` is open, slice 2 moves to the front of wave 1 | before slice 2 |
-| 1: carry-over release (proposed `0.2.0`) | 0, then 1 with 15, then 3; task D1 alongside | CI first, then the desktop and browser carry-over a safe desktop update needs, then a supported Electron | on the owner's go-ahead |
-| 2 | 2, 4, 5, 6, 7, 8, 9, 10, 11, then 12 after 4 | P2 security and practice correctness, and the capstone change from decision 1 | after slice 0 is merged |
+| Gate | sitting 0 item 4 | Settle PH-OPS-002. If the deployed `/api/*` is open, slice 2 moves to the front of wave 1. **Tripped 2026-10-20**: the live host answered `/` and `/api/*` with no login (from this host's own address; user tests A1 checks another network) | done |
+| 1: carry-over release (proposed `0.2.0`) | 2, then 0, then 1 with 15, then 3; task D1 alongside. Proposed: 18 after 0 | Close the open web surface, then CI, then the desktop and browser carry-over a safe desktop update needs, then a supported Electron. Slice 18 is a proposal awaiting the owner | on the owner's go-ahead |
+| 2 | 4, 5, 6, 7, 8, 9, 10, 11, then 12 after 4 | P2 practice correctness, and the capstone change from decision 1 | after slice 0 is merged |
 | Deferred | 13, 14, 16, 17 | P3 polish | a later owner decision |
 
 The dependencies in the execution order still hold: slice 3 merges after slice 1, and
@@ -80,6 +86,10 @@ slice 7 after slice 5 when both edit the MIDI startup in `App.tsx`.
   Linux and Windows profile checks in sittings 1 and 2.
 - Release gate for wave 1: slices 1 and 15 verified in both runtimes, as lane H's draft
   ADR requires of the carry-over release.
+- Slice 2 runs before slice 0 because the deployed host is open now. Its tests run under
+  the existing `npm run verify`; slice 0's CI then covers every later slice. The
+  immediate mitigation (Cloudflare Access or `LUMAKEYS_WEB_ACCESS_TOKEN` on the running
+  container) is the owner's and does not wait for the slice.
 
 Task D1 (documentation from owner decision 3; not a finding):
 
@@ -258,8 +268,8 @@ Excluded:
 
 ## Slice 2: Web Access
 
-- Accepted finding IDs: PH-SEC-002, PH-SEC-003 (PH-OPS-002 if sitting 0 confirms it)
-- Priority/order: 2, P2
+- Accepted finding IDs: PH-OPS-002, PH-SEC-002, PH-SEC-003 (PH-OPS-002 joined on 2026-10-20)
+- Priority/order: 2, P0; first in wave 1
 - Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: security reviewer
 - Proposed branch: `remediation/p11-s02-web-access`
@@ -282,9 +292,11 @@ scripts. The desktop renderer runs under the same Content-Security-Policy.
 - Renderer/UI: `src/renderer/index.html` gets a CSP `<meta>` for both builds, and a
   minimal login form if the POST route needs one.
 - Documentation: `README.md` section 5a.
-- If PH-OPS-002 is confirmed: the default in `docker-compose.yml` and the README
-  changes so a deployment without Cloudflare Access is not left open. That design
-  choice is recorded in the slice when it starts.
+- PH-OPS-002 (confirmed by sitting 0 item 4): the default in `docker-compose.yml` and
+  the README changes so a deployment without Cloudflare Access is not left open. The
+  finding's recommended boundary is to refuse to start, or serve only the SPA, unless
+  `LUMAKEYS_WEB_ACCESS_TOKEN` or an explicit `LUMAKEYS_TRUST_UPSTREAM_AUTH=1` is set. That
+  design choice is recorded in the slice when it starts.
 
 ### Scope
 
@@ -392,7 +404,8 @@ refactors.
 
 ## Slice 4: Practice Input Integrity
 
-- Accepted finding IDs: PH-MUS-005, PH-MUS-012
+- Accepted finding IDs: PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019 (the last two added
+  2026-10-20, awaiting the owner)
 - Priority/order: 4, P2
 - Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: music-correctness reviewer
@@ -403,14 +416,19 @@ refactors.
 Computer-keyboard notes play and score while an on-screen button has focus, including
 straight after Resume. Space and Enter still press the button. Notes pressed before the
 song starts, during the count-in or while paused still sound, but they are not judged.
+In a loop, a press just before the seam counts for the loop's first note. Ctrl, Meta
+and Alt shortcuts such as Ctrl+0 reach the browser instead of playing a note.
 
 ### Boundaries Touched
 
 - Domain/practice engine:
   - `src/lib/input/computerKeyboardInputService.ts` `isEditableTarget`: a focused
-    `BUTTON` blocks only Space and Enter.
+    `BUTTON` blocks only Space and Enter. PH-UI-019: `handleKeyDown` and `handleKeyUp`
+    return before `preventDefault` when Ctrl, Meta or Alt is held.
   - `src/lib/game/GameSession.ts` `ingestInputEvent`: held-note and sustain
-    bookkeeping as now, but no `matchNote` while `isPlaying` is false.
+    bookkeeping as now, but no `matchNote` while `isPlaying` is false. PH-MUS-016: with
+    a loop set and the playhead within the hit window of `loopEndSec`, also match
+    against the loop's first notes at the wrapped time.
 - Renderer/UI: none. `GameScreen` keeps forwarding events so presses still sound.
 
 ### Scope
@@ -429,6 +447,8 @@ while stopped. Results stored before the fix are left as they are.
 |---|---|---|---|
 | Targeted regression | `computerKeyboardInputService.test.ts`: a note key with a focused button emits nothing | `noteon` emitted; Space and Enter are not | unit |
 | Engine regression | `GameSession.test.ts`: a press before `play` and a press after `pause` near a note both score (cases from `scripts/audit/paused-input-probe.ts`) | neither scores; a press while playing still does | unit |
+| Targeted regression (PH-MUS-016) | `GameSession.test.ts`: in a loop, a press `hitWindow - 1` ms before `loopEndSec` does not score the loop's first note, and Learn mode then waits on it | it scores, and Learn mode moves on | unit; web and Electron `sitting4-midi-*` item 7 with `seamMs = -15` |
+| Targeted regression (PH-UI-019) | `computerKeyboardInputService.test.ts`: Ctrl+Digit0 emits a note and is default-prevented | no note, not prevented; Shift still plays louder | unit; `sitting1-visual-chrome.mjs` and `sitting1-visual-desktop.mjs` Ctrl+0 resets the zoom |
 | Boundary/parity proof | GameScreen test: open the overlay, Resume, a note key is not ingested | it is ingested | component |
 | Runtime | Electron `workflows.mjs`: D4 scores nothing after Resume; `paused-input.mjs` scores the pre-Space and count-in presses | D4 scores at once; Score 0 after the count-in | headless Electron; web `pause-resume-focus.mjs` |
 | Manual UI/hardware proof | n/a | sitting 4 item 4 (pause and resume on a MIDI keyboard) | owner |
@@ -491,7 +511,8 @@ other durable state changes.
 
 ## Slice 6: Audio Output
 
-- Accepted finding IDs: PH-PAR-006, PH-MUS-007
+- Accepted finding IDs: PH-PAR-006, PH-MUS-007, PH-MUS-015 (added 2026-10-20, awaiting
+  the owner)
 - Priority/order: 6, P2
 - Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: audio reviewer
@@ -501,6 +522,8 @@ other durable state changes.
 
 A web user who installs Flute, Marimba or Trumpet hears the installed samples. Honky-tonk
 and warm pad become playable on the web. A desktop WAV export contains the recording.
+An installed pack keeps the instrument's own release, so notes fade as the built-in
+ones do.
 
 ### Boundaries Touched
 
@@ -509,10 +532,12 @@ and warm pad become playable on the web. A desktop WAV export contains the recor
     `baseUrl` key when there is none, instead of passing `null` or `undefined`.
   - PH-MUS-007: inside `renderRecordingToWav`, schedule and start on the `Tone.Offline`
     callback's own `context.transport`.
+  - PH-MUS-015: pass the instrument's `release` into both custom-sampler constructions
+    (live and offline).
 
 ### Scope
 
-Two root causes in one file, with one listening session. Each gets its own test.
+Three root causes in one file, with one listening session. Each gets its own test.
 Excluded: new instruments, pack format changes, and web WAV export (PH-PAR-005 is
 slice 17).
 
@@ -529,6 +554,7 @@ stay silent; the user records again.
 | Targeted regression (PH-MUS-007) | an offline render of two notes is all zeros | energy after each onset | Chromium (`scripts/audit/browser/wav-render-probe.mjs` pattern) or an `OfflineAudioContext` shim |
 | Web runtime | `sample-pack-engine-log.mjs` logs `Failed to load custom sampler` and a fallback | neither | headless Chromium |
 | Electron runtime | `freeplay-export.mjs`: every sample is zero | non-zero peak; `sample-pack.mjs` unchanged | headless Electron |
+| Targeted regression (PH-MUS-015) | fake Tone records the Flute custom sampler with no `release` | `release: 1.1` | unit; `sitting1-audio-desktop.mjs` item 6: the pack's decay matches the built-in's |
 | Manual UI/hardware proof | n/a | sitting 1 items 5 and 6: listen to an exported take and compare the built-in and installed Flute | owner |
 
 ### Validation
@@ -1091,28 +1117,69 @@ after a reload.
 - Narrow: each finding's test file
 - Required: `npm run verify`
 
+## Slice 18: Fresh-Profile Audio Defaults
+
+- Accepted finding IDs: PH-MUS-014 (added 2026-10-20)
+- Priority/order: 18, P1; proposed for wave 1, awaiting the owner
+- Implementation owner: Claude Code (acting), if the owner accepts the slice
+- Verifier: audio reviewer
+- Proposed branch: `remediation/p11-s18-audio-defaults`
+
+### User-Visible Outcome
+
+A new user, or a user after "Delete User Data", hears the instrument and the metronome at
+the volumes the Settings screen shows (master 80, reverb 20, metronome 65).
+
+### Boundaries Touched
+
+- Renderer/UI: `src/renderer/App.tsx` `parseStoredAudioNumber` returns the fallback for a
+  missing (`null`) or empty value. The other `Number(raw…)` reads in the same effect are
+  checked for the same pattern.
+
+### Scope
+
+Included: the parser and its callers in that effect. Excluded: seeding settings rows on
+first run, and any change to the slider defaults.
+
+### Failure And Data Safety Plan
+
+No stored data changes. Users who already moved a slider keep their saved value.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression | parser test: `null` and `''` give `0` | the fallback; a stored number is kept | unit |
+| Boundary proof | App test with no stored audio settings: `setMasterVolume(0)` | `setMasterVolume(80)`, `setMetronomeVolume(65)`, `setReverbLevel(20)` | component |
+| Runtime | `sitting1-audio-desktop.mjs` with `VOLUMES=fresh`, and the first-launch pass of `sitting1-audio-web.mjs`, peak about 58 dB below the saved-slider run | within 1 dB of it | Electron and web, null sink |
+| Manual UI/hardware proof | n/a | user tests B1: a fresh install is audible on speakers | owner |
+
+### Validation
+
+- Narrow: `npx vitest run src/renderer`
+- Required: `npm run verify`
+
 ## Proof Owed By Fixed Findings
 
-These 16 findings are `fixed`, not `verified`. None needs new product code unless noted.
-The proof each still owes:
+These 12 findings are `fixed`, not `verified`. None needs new product code unless noted.
+The owner sittings run by the agent on 2026-10-20
+([report](phase-11-owner-sittings-2026-10-20.md)) moved PH-PAR-002, PH-UI-001, PH-UI-002
+and PH-UI-004 to `verified` and closed part of the proof for the rows marked below. The
+proof each still owes:
 
 | Finding | Severity | Owed proof | Where |
 |---|---|---|---|
 | PH-DATA-001 | P1 | Forced filesystem failure during restore, delete and reset through the UI, on both runtimes, with the error naming a safe retry | agent: headless Electron and web drivers with an injected failure |
-| PH-MUS-001 | P1 | Pause and resume on a MIDI keyboard keeps judged state | sitting 4 item 4 |
-| PH-MUS-002 | P1 | Meter fixtures under `src/`; an Electron non-4/4 loop; MuseScore-converted meter map; a musician's check of labels and loop bounds | slice 0; agent Electron run; sitting 0 item 3; sitting 4 item 7 |
-| PH-PAR-001 | P1 | The capstone, the main-menu video and a pack install in a packaged profile; the asset assertion wired into `package:*` | sitting 1 item 1; slice 0 |
-| PH-UI-002 | P1 | Every Settings tab reachable at real 150 to 200 % zoom | sitting 1 item 2; sitting 3 item 2 |
+| PH-MUS-001 | P1 | Pause and resume on a real MIDI keyboard keeps judged state. A scripted Web MIDI device passed on both runtimes (sitting 4 item 4) | owner C3 |
+| PH-MUS-002 | P1 | Meter fixtures under `src/`; a musician's check of labels and loop bounds. The MuseScore meter map (sitting 0 item 3) and an Electron non-4/4 loop (sitting 4 item 7) passed | slice 0; owner C5 |
+| PH-PAR-001 | P1 | The asset assertion wired into `package:*`; a Windows package. The capstone, the main-menu video and a pack install passed in a packaged Linux profile (sitting 1 item 1) | slice 0; sitting 2 |
 | PH-DATA-002 | P2 | The reset confirmation copy checked against what reset actually removes (now including packs), on both runtimes | agent: capture the dialog text in the Electron and web reset drivers |
 | PH-DATA-003 | P2 | The required proof says the restore error names the affected song and the retry path. The observed message names the song id only. Either accept the id or add the title in slice 13 | owner decision at slice 13 |
 | PH-MUS-003 | P2 | Fingering save and re-open while hand and track controls vary, plus a backup round trip | agent Electron run |
-| PH-MUS-004 | P2 | A held note stops when a real keyboard is unplugged | sitting 4 item 2 |
-| PH-PAR-002 | P2 | Upload picker cancel in Edge and Firefox | sitting 3 item 5 |
+| PH-MUS-004 | P2 | A held note stops when a real keyboard is unplugged. A scripted device released within 1 ms on both runtimes (sitting 4 item 2) | owner C2 |
 | PH-PAR-003 | P2 | Hash-mismatched and unreadable legacy sources leave no playable row | agent: lane B probe extension |
-| PH-UI-001 | P2 | Overlay focus containment in Edge and Firefox (Chromium and Electron done) | sitting 3 item 3 |
-| PH-UI-003 | P2 | The OS reduced-motion setting; a canvas test | sitting 1 item 3; slice 0 |
-| PH-UI-004 | P2 | Modal Escape in Edge and Firefox | sitting 3 item 3 |
-| PH-ARCH-001 | P2 | A GameScreen recovery test; Edge and Firefox | slice 0; sitting 3 item 1 |
+| PH-UI-003 | P2 | A canvas test; GNOME's own reduced-motion switch. The OS setting through GTK and XSETTINGS passed in Chrome and the packaged app on X11 (sitting 1 item 3) | slice 0; owner B3 |
+| PH-ARCH-001 | P2 | A GameScreen recovery test, and a forced-failure recovery run in Edge and Firefox. Sitting 3 item 1 showed only a normal load in both | slice 0; agent |
 | PH-ARCH-002 | P2 | A forced setting-write failure in Electron shows "Save failed" and reads back the stored value | agent: headless Electron |
 
 ## Phase 11 Remediation Start Gate
@@ -1127,13 +1194,13 @@ Before a slice starts:
 
 ## Phase 11 Planning Completion
 
-- Accepted findings planned: 42 of 42.
-- P1 planned: 1 of 1 (PH-DATA-005, slice 1).
+- Accepted findings planned: 47 of 47 (updated 2026-10-20 after the owner sittings).
+- P0 planned: 1 of 1 (PH-OPS-002, slice 2).
+- P1 planned: 2 of 2 (PH-DATA-005, slice 1; PH-MUS-014, slice 18).
 - P2 planned: 14 of 14.
-- P3 planned: 27 of 27.
+- P3 planned: 30 of 30.
 - Findings merged or dropped: 0.
-- Findings held back: 2. PH-OPS-002 is suspected; PH-OPS-004 is `accepted-risk` (owner
-  decision 2).
+- Findings held back: 1. PH-OPS-004 is `accepted-risk` (owner decision 2).
 - Product changes made: 0.
 - Remaining gate: the owner's go-ahead for wave 1. Selection and assignment are done
   (owner decision 4).

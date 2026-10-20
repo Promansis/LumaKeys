@@ -76,6 +76,7 @@ undo the PH-UI-001 focus return.
 - Electron reproduction, 2026-10-20 (`scripts/audit/electron/workflows.mjs`, `$TMPDIR/p11/EL2/wf.out` sha256 `d5b1a9d2…07911e19`): Learning run, C4 scores (`0 -> 100`); Escape, click Resume; focus is the Menu button; D4 pressed 30 times leaves the score at 100; after clicking the canvas D4 scores (`100 -> 200`). Same sequence and result as the web.
 - Challenger conclusion and date: reproduced, 2026-10-19; Electron 2026-10-20
 - Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2; deduplication: canonical for keys dropped while a control has focus. PH-MUS-012 (input while stopped) and PH-DATA-008 (unbind persistence) have different roots. Accepted.
+- Owner sitting run by the agent, 2026-10-20: reproduced on the desktop in [sitting 1](../phase-11-owner-sittings-2026-10-20.md#sitting-1-linux-display-and-speakers) item 5b. On the Soundboard (Animals kit), after clicking Resume, focus is on `button.immersive-menu-btn`; Z, X and C pressed 700 ms apart give a recording with no sound at all. After focus moves to the page body, the same keys sound.
 
 ## Resolution
 

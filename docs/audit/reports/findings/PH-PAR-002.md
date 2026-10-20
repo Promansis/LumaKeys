@@ -3,10 +3,10 @@
 - Lane: runtime parity
 - Severity: P2
 - Confidence: high
-- Status: fixed
+- Status: verified
 - Owner: Codex (acting)
 - Challenger: Codex, controlled live-Chrome cancellation challenge
-- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes
+- Verifier: Claude Code (acting), sitting 3 run 2026-10-20
 - Affected runtime: web
 - Coverage rows: WF-004, WF-006, WF-020, BR-008, BR-010, BR-058, OP-001, OP-005, MOD-004, MOD-009
 - Related/duplicate findings: none
@@ -80,7 +80,9 @@ Introduce one browser file-picker helper that always settles and removes its inp
 ## Resolution
 
 - Accepted/rejected rationale: the live browser bridge promise remains pending after the cancellation event that the implementation does not observe.
+- Verified rationale: a real file-dialog cancel in Edge and Firefox settles the import and clears the loading state within 2 ms (sitting 3 item 5, below).
 - Fix branch/commit/issue: `d5839aa`, Phase 9 slice 12 ([Phase 9 report](../phase-9-remediation-2026-07-30.md)). This file said "accepted" until the Phase 11 consolidation reconciled it with the ledger on 2026-10-20.
 - Verification evidence: Phase 9 added the shared `pickFiles` helper and ten cancellation tests. Commit `99adf7c` later removed the focus-based fallback, so cancellation now relies only on the input's `cancel` event. Phase 11: the MIDI and JSON picker cancellation tests and "waits for native cancellation instead of treating window focus as cancellation" pass ([re-verification](../phase-11-reverification-2026-10-19.md)). [lane D](../phase-11-lane-d-runtime-parity-2026-10-19.md) traced the source and tests.
-- Residual risk: browsers without the `cancel` event (before Chrome 113, Firefox 91 and Safari 16.4) get the original pending import back. A real cancel in Edge and Firefox is owed in the owner's [sitting 3](../phase-11-user-tests.md) item 5.
+  [Sitting 3](../phase-11-owner-sittings-2026-10-20.md#sitting-3-edge-and-firefox) item 5, 2026-10-20, run by the agent in headed Edge 155 and Firefox 142 on Xvfb with a window manager: the real GTK file dialog ("Open files" in Edge, "File Upload" in Firefox) was cancelled by an X Escape key. The page saw `cancel` (trusted, 0 files) about 2.9 s after the click, and the button went from "Importing..." back to an enabled "Upload MIDI / MSCZ" 2 ms later, with the status "No files imported." A second pick with a typed path fired `change` (trusted, 1 file), sent 1 POST and showed "Imported 1 song. Review the metadata before playing."
+- Residual risk: browsers without the `cancel` event (before Chrome 113, Firefox 91 and Safari 16.4) get the original pending import back. The reattach and backup pickers share `pickFiles` but were not cancelled by hand.
 - Revisit trigger, if accepted-risk: not applicable.

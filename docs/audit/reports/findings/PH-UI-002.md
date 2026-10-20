@@ -3,10 +3,10 @@
 - Lane: UI/accessibility
 - Severity: P1
 - Confidence: high
-- Status: fixed
+- Status: verified
 - Owner: Codex (acting)
 - Challenger: Codex, fresh Chrome and Electron zoom challenge
-- Verifier: independent fresh-context verification agent; zoom matrix proof pending
+- Verifier: Claude Code (acting), sitting 3 run 2026-10-20
 - Affected runtime: both
 - Coverage rows: WF-003, WF-018, WF-019, WF-021, WF-022, RT-006, RT-008, MOD-005, MOD-007
 - Related/duplicate findings: none
@@ -117,7 +117,9 @@ has a hit-testable center at 125-200% zoom in both runtimes.
 
 - Accepted/rejected rationale: live hit testing demonstrates that required zoom
   hides the actual Settings navigation controls in both runtimes.
+- Verified rationale: all five Settings tabs open by click at every zoom step tried in real Chrome, the packaged desktop app, Edge and Firefox (sittings 1 and 3, below).
 - Fix branch/commit/issue: `d5839aa`, verified implementation in `d4ba395`.
 - Verification evidence: Settings tests, independent CSS/source review, and Linux package launch pass; actual 125-200% Electron/Chrome/Edge/Firefox hit-testing remains in [Phase 10](../phase-10-verification-2026-08-07.md).
-- Residual risk: cross-browser zoom and pointer hit-testing are not yet release-verified.
+  Owner sittings run by the agent, 2026-10-20. [Sitting 1](../phase-11-owner-sittings-2026-10-20.md#sitting-1-linux-display-and-speakers) item 2: in real Chrome 151, real Ctrl+= reached exactly 125, 150, 175 and 200 % (devicePixelRatio confirmed), and all 5 tabs opened by real clicks at each step. In the packaged desktop app (zoom in is Ctrl+Shift+=), all 5 tabs opened at 110, 120, 131, 144, 158, 173, 189 and 207 %. [Sitting 3](../phase-11-owner-sittings-2026-10-20.md#sitting-3-edge-and-firefox) item 2: all 5 tabs opened at 150 and 200 % in Edge 155 (emulated zoom), Firefox 142 (emulated) and Firefox 142 (genuine `layout.css.devPixelsPerPx`).
+- Residual risk: Edge's own browser zoom was not used ([user test D1](../phase-11-user-tests.md)); it is the same Chromium zoom proven in Chrome 151. The HUD buttons covered at 150 to 189 % are a separate finding, [PH-UI-012](PH-UI-012.md).
 - Revisit trigger: before accessibility sign-off or release readiness.

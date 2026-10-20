@@ -69,10 +69,11 @@ exists). Alternatively race `init()` against a short timeout and treat it as pen
 
 - Independent reproduction attempt: source trace confirms the gate; the driver shows the gate lifting the moment the promise settles.
 - Alternative explanations tested: settings load being slow (no: the absent and rejected cases load at once with the same data).
-- Scope/severity changes: Firefox's site-permission flow and Chrome's quiet permission UI make a pending prompt plausible; not checked in those browsers.
+- Scope/severity changes: Firefox's site-permission flow and Chrome's quiet permission UI make a pending prompt plausible; checked in both on 2026-10-20 (below). Severity unchanged.
 - Deduplication decision: new.
 - Challenger conclusion and date: reproduced, 2026-10-20
 - Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2. Accepted.
+- Owner sittings run by the agent, 2026-10-20: reproduced in real Chrome 151 with a fresh profile and no Playwright ([sitting 1](../phase-11-owner-sittings-2026-10-20.md#sitting-1-linux-display-and-speakers) item 8): "Loading services..." at 0, 5, 10, 15, 20, 25 and 30 s; a real click on Block left the loading screen 44 ms later. In Firefox 142 ([sitting 3](../phase-11-owner-sittings-2026-10-20.md#sitting-3-edge-and-firefox) item 4), `requestMIDIAccess` rejected after 11.6 s with "SecurityError: WebMIDI requires a site permission add-on to activate" and the app UI appeared at 12.4 s; Try MIDI Again rejected after 5.9 s. Settings, Input then shows the "cannot access your MIDI keyboard" card with Try MIDI Again, and the computer keys play.
 
 ## Resolution
 

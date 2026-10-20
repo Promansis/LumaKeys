@@ -36,13 +36,13 @@ the intended fix ("use a job queue if multi-user imports are needed").
 ### Environment
 
 - Commit/patch identity: source `6e549b6`
-- OS/runtime/browser: static analysis; MuseScore binary not present outside Docker
+- OS/runtime/browser: static analysis; MuseScore binary not present outside Docker. Runtime check in the Docker image `lumakeys-audit:p11` on 2026-10-20 (Reproduction step 3).
 
 ### Reproduction
 
 1. Read `src/server/museScore.ts`: `let converting = false;` at module scope; `if (converting) throw new Error('Another MuseScore score is being converted...')` before any work; reset in the inner `finally`.
 2. Read `src/server/midiRouter.ts`: the upload loop awaits `convertMuseScoreToMidi` per file, so within one request the second `.mscz` only starts after the first finishes and would pass. The cross-request case (two browser tabs, or a retry while a long conversion runs) hits the rejection.
-3. Runtime reproduction with two parallel uploads is staged for the owner in [user batch sitting 0](../phase-11-user-tests.md) item 3, because the converter runs only in the Docker image.
+3. Runtime reproduction with two parallel uploads, [sitting 0](../phase-11-owner-sittings-2026-10-20.md#sitting-0-docker-image-and-live-host) item 2, run by the agent in the Docker image on 2026-10-20, because the converter runs only there. `score2` imported (22 notes, 8.5 s, 120 BPM); `score1` came back at once as a per-file entry in `errors`: "Another MuseScore score is being converted. Please try again in a moment." After `docker restart`, `getAllSongs` lists the imported song and `GET /api/midi/<id>` returns 446 bytes. In the crafted-archive run, a second upload during a 4.0 s conversion got the same message in 2 ms (HTTP 200), and `getAllSongs` answered in 2 ms. Several `.mscz` files in one request were not tried.
 
 ### Artifacts
 
@@ -52,7 +52,8 @@ the intended fix ("use a job queue if multi-user imports are needed").
 ## Root Cause
 
 Concurrency control is a global reject-if-busy flag instead of a queue, and the
-rejection is surfaced as a per-file import error indistinguishable from a bad file.
+rejection is surfaced as a per-file import error in the same `errors` list as a bad file,
+though its message names the cause and asks the user to retry.
 
 ## Recommended Remediation Boundary
 
@@ -64,16 +65,17 @@ reporting already propagates messages.
 ## Required Regression Proof
 
 - Deterministic unit/integration proof: two concurrent `convertMuseScoreToMidi` calls with a stubbed converter both resolve; a third beyond any cap fails with a queue-specific message.
-- Web proof: two parallel `.mscz` uploads in Docker both import (sitting 0 item 3 after the fix).
+- Web proof: two parallel `.mscz` uploads in Docker both import (sitting 0 item 2 after the fix).
 - Broader regression command: `npx vitest run src/server`
 
 ## Challenge Record
 
-- Independent reproduction attempt: source is deterministic; runtime confirmation pending owner.
+- Independent reproduction attempt: source is deterministic; runtime confirmed on 2026-10-20 (below).
 - Alternative explanations tested: "sequential loop makes it a non-issue" rejected because the flag is process-wide across requests.
 - Scope/severity changes: P3 per single-user README; revisit if multi-user.
 - Challenger conclusion and date: reproduced (static), 2026-10-19
 - Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3; deduplication: none; this is the only import-concurrency finding. Accepted.
+- Owner sitting run by the agent, 2026-10-20: reproduced in Docker in [sitting 0](../phase-11-owner-sittings-2026-10-20.md#sitting-0-docker-image-and-live-host) item 2 (Reproduction step 3). Of two parallel uploads of `meter-tempo.mscz`, one imported and the other got the busy message at once. This confirms the cross-request case only.
 
 ## Resolution
 
