@@ -127,9 +127,9 @@ and 3 in Chrome at the throwaway web server.
 | # | Decision | State |
 |---|---|---|
 | 1 | PH-MUS-013: what the capstone gate measures | Decided 2026-10-20: capstones run in Play mode at the capstone tempo, and the run's settings are locked |
-| 2 | PH-OPS-004: the user database in git history | Open. Inspect the blob (steps in the finding), then accept the risk or rewrite history. A rewrite is yours to run |
-| 3 | Lane H: end date for the legacy-name fallback (suggested 2027-01-31), and whether `CLAUDE.md` and `AGENTS.md` are tracked | Open; asked at the end-of-discovery review |
-| 4 | Which findings enter remediation | Open; the [consolidation](consolidation-2026-10-20.md) and the [remediation plan](phase-11-remediation-plan-2026-10-20.md) propose 18 slices in order. Choose the slices, their owners and branches |
+| 2 | PH-OPS-004: the database in git history | Decided 2026-10-20: accept the risk; no history rewrite. The agent read all six blobs and none holds personal data |
+| 3 | Lane H: end date for the legacy-name fallback (suggested 2027-01-31), and whether `CLAUDE.md` and `AGENTS.md` are tracked | Decided 2026-10-20: removal no earlier than 2027-01-31, and only in a release after the carry-over release. `CLAUDE.md` and `AGENTS.md` stay gitignored; what the audit relies on moves into tracked docs (task D1) |
+| 4 | Which findings enter remediation | Decided 2026-10-20: waves, owners and branches as in the plan's [Owner Selection](phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20). Nothing starts until you say go |
 
 ## Moved To The Agent (headless Electron)
 

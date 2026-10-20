@@ -39,7 +39,7 @@
 - Residual P0/P1 count: 7 not yet `verified`. One is accepted and open (PH-DATA-005).
   Five are fixed and waiting for runtime or manual proof (PH-DATA-001, PH-MUS-001,
   PH-MUS-002, PH-PAR-001, PH-UI-002). PH-SEC-001 (P0) and PH-OPS-001 (P1) are verified.
-- Accepted-risk count: 0.
+- Accepted-risk count: 1 ([PH-OPS-004](findings/PH-OPS-004.md), owner decision 2 on 2026-10-20).
 - Evidence confidence limits:
   - Electron proof is Linux, headless and offscreen, against the unpackaged `out/`
     bundle with a pinned `userData` ([harness limits](phase-11-electron-runtime-2026-10-20.md#what-the-harness-changes-and-therefore-cannot-prove)).
@@ -77,18 +77,20 @@ MOD-013. There are no bare gaps and no waivers.
 |---|---:|---:|---:|---:|---:|
 | P0 | 0 | 0 | 0 | 1 | 0 |
 | P1 | 0 | 1 | 5 | 1 | 0 |
-| P2 | 2 | 14 | 11 | 0 | 0 |
-| P3 | 0 | 27 | 0 | 0 | 0 |
-| **Total** | **2** | **42** | **16** | **2** | **0** |
+| P2 | 1 | 14 | 11 | 0 | 0 |
+| P3 | 0 | 27 | 0 | 0 | 1 |
+| **Total** | **1** | **42** | **16** | **2** | **1** |
 
 The 18 earlier findings all still hold on the new baseline (re-verification record).
-Phase 11 added 44: 42 accepted and 2 still suspected. Every new finding has a detailed
+Phase 11 added 44: 42 accepted, 1 accepted as a risk after owner decision 2
+(PH-OPS-004), and 1 still suspected (PH-OPS-002). Every new finding has a detailed
 report and a challenge record. At this consolidation each file was checked against the
 finding template and its rationale line now records the acceptance.
 
 ### Consolidation challenge decisions
 
-- Severity: unchanged for all 44.
+- Severity: unchanged for all 44 at consolidation. PH-OPS-004 was lowered to P3
+  afterwards (owner decision 2, below).
   - PH-DATA-005 stays P1. P0 was considered, but no bytes are lost; the old profile is
     intact and a fixed build can still migrate it.
   - PH-MUS-006 stays P2. Lane C offered P1. The metronome is optional, and the song,
@@ -114,6 +116,18 @@ finding template and its rationale line now records the acceptance.
     keeps the emulation limit.
 - Owner decision taken during the audit: PH-MUS-013. Capstones run in Play mode at the
   capstone tempo, and the run's settings are locked while it runs (2026-10-20).
+- Owner decisions after consolidation, 2026-10-20:
+  - Decision 2: [PH-OPS-004](findings/PH-OPS-004.md) is `accepted-risk` and history is
+    not rewritten. The agent read all six database blobs in history (the finding had
+    listed four). They hold a fresh install's database with no personal data. Severity
+    moved from P2 to P3 because the personal-data impact that set P2 is disproved.
+  - Decision 3: the legacy-name fallback may be removed no earlier than 2027-01-31, and
+    only in a release after the carry-over release, as in lane H's draft ADR. `CLAUDE.md`
+    and `AGENTS.md` stay gitignored; the architecture and runtime content the audit
+    relies on moves into tracked documents (task D1 in the remediation plan).
+  - Decision 4: the owner accepted the proposed waves, owners and branches
+    ([owner selection](phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20)).
+    No slice has started; work waits for the owner's go-ahead.
 
 ### Lead dispositions
 
@@ -130,7 +144,7 @@ finding template and its rationale line now records the acceptance.
 | L-11-009 | [PH-OPS-003](findings/PH-OPS-003.md) |
 | L-11-010 | Narrowed: the four `hono` advisories are not reachable from the app's routes |
 | L-11-011 | [PH-OPS-005](findings/PH-OPS-005.md) |
-| L-11-012 | [PH-OPS-004](findings/PH-OPS-004.md), suspected pending owner decision 2, plus repository hygiene notes |
+| L-11-012 | [PH-OPS-004](findings/PH-OPS-004.md), accepted risk under owner decision 2, plus repository hygiene notes |
 | L-11-013 | Not a finding: the tests show no behaviour difference between local Node 24 and the image's Node 22. Lane G suggests recording the supported range in the README |
 | L-11-014 | Not a finding: the `Dockerfile` pins MuseScore 4.7.5 by URL and SHA-256 and fails closed on a mismatch. Sitting 0 runs the build that exercises the pin |
 | L-11-015 | Narrowed: the reduced-motion half is rejected (the video and menu animations stop under reduce). The hidden-window half stays open. Next diagnostic: sitting 1 item 4 |
@@ -235,19 +249,20 @@ on every push.
 
 ## Accepted Risks And Evidence Gaps
 
-No finding was accepted as a risk.
+One finding was accepted as a risk after consolidation: [PH-OPS-004](findings/PH-OPS-004.md)
+(owner decision 2). Its rationale and revisit trigger are in the finding.
 
 | Item | Rationale | Owner | Revisit trigger |
 |---|---|---|---|
 | WF-025, OP-017, MOD-013, L-11-006, L-11-017 | Docker is not reachable from the agent sandbox. MuseScore conversion, crafted-archive containment and the converted measure map need the image | Owner, sitting 0 | Before the next Docker image is deployed |
 | OP-014, PH-OPS-002 | Whether the deployed host gates `/api/*` can only be checked from the owner's network | Owner, sitting 0 item 4 | Before relying on the current deployment |
-| PH-OPS-004 | A user SQLite database is in git history. Accepting it or rewriting history is the owner's call | Owner, decision 2 | Before the repository is shared with anyone new or made public |
+| PH-OPS-004 | Accepted risk: the database blobs in history hold no personal data, and a rewrite would break every clone for no privacy gain | Owner, decision 2 (taken 2026-10-20) | A database blob in history is found to hold personal data, or history is rewritten for another reason |
 | WF-016, WF-026, RT-010, RT-012, L-11-015 | Audio output, the OS reduced-motion setting, real zoom, the packaged video path, a colour-vision review and the minimised-window CPU check need a display, speakers or a person | Owner, sitting 1 | After slices 6, 11 and 16, and before release |
 | PH-DATA-005 Windows half | A real `%APPDATA%\luma-keys` profile update | Owner, sitting 2 | After slice 1 |
 | RT-006, RT-008 | Edge and Firefox keyboard walks and zoom (the Electron and Chromium walks are done) | Owner, sitting 3 | After slices 10 and 11 |
 | WF-002, WF-009, WF-013, RT-011 | A physical MIDI keyboard and speakers | Owner, sitting 4 | After slices 4 and 5 |
 | 16 fixed findings not yet `verified` | Each one's owed proof is listed in the [remediation plan](phase-11-remediation-plan-2026-10-20.md#proof-owed-by-fixed-findings) | Claude Code (acting) and owner sittings | When the named sitting or slice 0 runs |
-| Lane H decision 3 | End date for the legacy-name fallback (suggested 2027-01-31) and whether `CLAUDE.md` and `AGENTS.md` are tracked | Owner | Before slice 15 is implemented |
+| `CLAUDE.md` and `AGENTS.md` | Decision 3 keeps them gitignored. Until task D1 moves the architecture and runtime content into tracked documents, a fresh clone lacks what the audit cites | Claude Code (acting), task D1 | When wave 1 starts |
 
 ## Remediation Roadmap
 
@@ -285,6 +300,8 @@ findings are not included; PH-OPS-002 joins slice 2 only if sitting 0 confirms i
   and P1 remediation still needs a verifier other than the implementer where one exists.
 - Audit lead: Claude Code (acting). The Phase 11 step 6 gate was signed on 2026-10-20 for
   agent evidence. The blocked rows stay open until sittings 0 to 4.
-- Repository owner: pending. Decisions 2, 3 and 4 in the
-  [user test batch](phase-11-user-tests.md#owner-decisions-not-tests) are open. No
-  release, accepted risk or remediation start is inferred from this report.
+- Repository owner: decisions 1 to 4 in the
+  [user test batch](phase-11-user-tests.md#owner-decisions-not-tests) are taken, the
+  last three on 2026-10-20. Remediation has not started and waits for the owner's
+  go-ahead. Final sign-off waits for sittings 0 to 4. No release is inferred from this
+  report.

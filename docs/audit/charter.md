@@ -65,7 +65,7 @@ it does not authorize product changes.
 | Challenge/consolidation | Codex (acting) | Lane owners | phase 7 complete; all 18 findings challenged and dispositioned; no accepted risks |
 | Remediation planning | Codex (acting) | Finding owners and verifiers TBD | phase 8 complete; all 18 accepted findings mapped to vertical slices in the Phase 8 plan |
 | Final verification | Codex (acting) | independent fresh-context verifier | phase 10 active; PH-OPS-001 verified; six P0/P1 runtime/manual proof gaps remain |
-| Delta re-audit (Phase 11) | Claude Code (acting) | the owner, through the [user test batch](reports/phase-11-user-tests.md) | consolidated 2026-10-20: 44 new findings (42 accepted, 2 suspected), PH-SEC-001 verified, 15 rows blocked on owner sittings 0 to 4; see the [consolidation](reports/consolidation-2026-10-20.md) and the [remediation plan](reports/phase-11-remediation-plan-2026-10-20.md) |
+| Delta re-audit (Phase 11) | Claude Code (acting) | the owner, through the [user test batch](reports/phase-11-user-tests.md) | consolidated 2026-10-20: 44 new findings (42 accepted, 1 accepted risk, 1 suspected), PH-SEC-001 verified, 15 rows blocked on owner sittings 0 to 4; owner decisions 2 to 4 taken 2026-10-20, remediation not started; see the [consolidation](reports/consolidation-2026-10-20.md) and the [remediation plan](reports/phase-11-remediation-plan-2026-10-20.md) |
 
 ## Preconditions
 

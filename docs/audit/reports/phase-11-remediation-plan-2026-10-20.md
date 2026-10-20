@@ -6,7 +6,8 @@
 - Input: the 42 accepted Phase 11 findings in [the findings ledger](../findings-ledger.md)
   and [the Phase 11 consolidation](consolidation-2026-10-20.md)
 - Scope: planning only. No product code, finding status, severity or coverage
-  disposition changed.
+  disposition changed. Owner decisions 2 to 4 were recorded on 2026-10-20 (see
+  [Owner Selection](#owner-selection-2026-10-20)).
 
 ## Stage Decision
 
@@ -16,15 +17,16 @@ session. Findings with different root causes keep their own regression tests ins
 slice and are verified one by one. Slice 17 is the exception: five unrelated one-file
 fixes, kept together only to save review overhead. Each can ship on its own.
 
-The two suspected findings are not planned:
+Two findings are not planned:
 
-- [PH-OPS-002](findings/PH-OPS-002.md) joins slice 2 if sitting 0 item 4 confirms the
-  deployed `/api/*` is open.
-- [PH-OPS-004](findings/PH-OPS-004.md) waits for owner decision 2. A history rewrite is
-  the owner's to run and is not a code slice.
+- [PH-OPS-002](findings/PH-OPS-002.md) is still suspected. It joins slice 2 if sitting 0
+  item 4 confirms the deployed `/api/*` is open.
+- [PH-OPS-004](findings/PH-OPS-004.md) is `accepted-risk` under owner decision 2
+  (2026-10-20): the database blobs in history hold no personal data, and history is not
+  rewritten.
 
-The owner assigns the implementation owner and branch before a slice starts (owner
-decision 4). Below, "proposed branch" is a suggestion only. P1 slices need a verifier
+Owner decision 4 (2026-10-20) accepted each slice's proposed branch and assigned every
+slice; see [Owner Selection](#owner-selection-2026-10-20). P1 slices need a verifier
 other than the implementer where one is available.
 
 ## Execution Order
@@ -46,7 +48,7 @@ other than the implementer where one is available.
 | 12 | Learning flow | PH-MUS-013, PH-UI-018, PH-DATA-009 | P3, P3, P3 | after slice 4 (capstone accuracy depends on its judging rule) |
 | 13 | Import outcomes | PH-PAR-004, PH-UI-009, PH-ARCH-004, PH-SEC-004 | P3 | none |
 | 14 | Settings values | PH-DATA-008, PH-ARCH-003 | P3 | none |
-| 15 | Browser rename carry-over | PH-DATA-004, PH-DATA-007 | P3 | owner decision 3 (legacy end date) |
+| 15 | Browser rename carry-over | PH-DATA-004, PH-DATA-007 | P3 | ships in the same release as slice 1 (owner decision 3) |
 | 16 | Colour | PH-UI-015, PH-UI-016 | P3 | none |
 | 17 | Small independent fixes | PH-UI-005, PH-UI-007, PH-UI-008, PH-MUS-009, PH-PAR-005 | P3 | none |
 
@@ -54,6 +56,39 @@ Order is by user risk: data loss on update first, then the open web surface, the
 shipped runtime, then practice correctness, then access and polish. P2 slices without a
 dependency can run in parallel once slice 0 is merged. The table sets merge and
 verification order. It does not require one long-lived branch.
+
+## Owner Selection, 2026-10-20
+
+Owner decision 4 accepted the agent's recommendation. Nothing has started: each wave
+starts only when the owner says so.
+
+| Wave | Slices | Goal | Starts |
+|---|---|---|---|
+| Gate | sitting 0 item 4 | Settle PH-OPS-002. If the deployed `/api/*` is open, slice 2 moves to the front of wave 1 | before slice 2 |
+| 1: carry-over release (proposed `0.2.0`) | 0, then 1 with 15, then 3; task D1 alongside | CI first, then the desktop and browser carry-over a safe desktop update needs, then a supported Electron | on the owner's go-ahead |
+| 2 | 2, 4, 5, 6, 7, 8, 9, 10, 11, then 12 after 4 | P2 security and practice correctness, and the capstone change from decision 1 | after slice 0 is merged |
+| Deferred | 13, 14, 16, 17 | P3 polish | a later owner decision |
+
+The dependencies in the execution order still hold: slice 3 merges after slice 1, and
+slice 7 after slice 5 when both edit the MIDI startup in `App.tsx`.
+
+- Implementation owner: Claude Code (acting) for every slice and for task D1.
+- Branches: the proposed branch in each slice, each in its own worktree. Slices 1 and 15
+  keep separate branches and ship in the same release.
+- Verifier: a separate review agent session in the slice's named reviewer role, never
+  the implementing session. For slice 1 the owner is the second verifier, through the
+  Linux and Windows profile checks in sittings 1 and 2.
+- Release gate for wave 1: slices 1 and 15 verified in both runtimes, as lane H's draft
+  ADR requires of the carry-over release.
+
+Task D1 (documentation from owner decision 3; not a finding):
+
+- Turn lane H's [draft ADR](phase-11-lane-h-documentation-2026-10-19.md) for the rename
+  into a new ADR in `docs/adr/`, with the removal floor set to 2027-01-31.
+- `CLAUDE.md` and `AGENTS.md` stay gitignored. Move the architecture and runtime content
+  the audit cites into tracked documents (`CONTEXT.md` or ADR 0001), correct lane H's
+  stale statements on the way, and point the audit's citations there.
+- Proposed branch: `remediation/p11-docs-governance`. Verifier: documentation reviewer.
 
 ## Shared Rules For Every Slice
 
@@ -76,7 +111,7 @@ verification order. It does not require one long-lived branch.
 
 - Accepted finding IDs: PH-OPS-005
 - Priority/order: 0, P3
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: any reviewer
 - Proposed branch: `remediation/p11-s00-ci`
 
@@ -138,7 +173,7 @@ rather than weakening the job.
 
 - Accepted finding IDs: PH-DATA-005, PH-DATA-006, PH-OPS-006
 - Priority/order: 1, P1
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: independent persistence verifier required (P1)
 - Proposed branch: `remediation/p11-s01-desktop-migration`
 
@@ -178,7 +213,8 @@ Included:
 Excluded:
 
 - Browser-side stores (slice 15).
-- Removing the legacy fallback (owner decision 3).
+- Removing the legacy fallback (owner decision 3: a later release, no earlier than
+  2027-01-31).
 - Installer changes.
 - The Electron upgrade (slice 3).
 
@@ -224,7 +260,7 @@ Excluded:
 
 - Accepted finding IDs: PH-SEC-002, PH-SEC-003 (PH-OPS-002 if sitting 0 confirms it)
 - Priority/order: 2, P2
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: security reviewer
 - Proposed branch: `remediation/p11-s02-web-access`
 
@@ -294,7 +330,7 @@ Excluded:
 
 - Accepted finding IDs: PH-OPS-003, PH-SEC-005
 - Priority/order: 3, P2
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: runtime reviewer
 - Proposed branch: `remediation/p11-s03-electron`
 
@@ -358,7 +394,7 @@ refactors.
 
 - Accepted finding IDs: PH-MUS-005, PH-MUS-012
 - Priority/order: 4, P2
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: music-correctness reviewer
 - Proposed branch: `remediation/p11-s04-input`
 
@@ -406,7 +442,7 @@ while stopped. Results stored before the fix are left as they are.
 
 - Accepted finding IDs: PH-MUS-010, PH-MUS-011
 - Priority/order: 5, P2
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: music-correctness reviewer
 - Proposed branch: `remediation/p11-s05-midi-devices`
 
@@ -457,7 +493,7 @@ other durable state changes.
 
 - Accepted finding IDs: PH-PAR-006, PH-MUS-007
 - Priority/order: 6, P2
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: audio reviewer
 - Proposed branch: `remediation/p11-s06-audio`
 
@@ -504,7 +540,7 @@ stay silent; the user records again.
 
 - Accepted finding IDs: PH-PAR-007
 - Priority/order: 7, P2
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: runtime reviewer
 - Proposed branch: `remediation/p11-s07-midi-startup`
 
@@ -546,7 +582,7 @@ values. The MIDI device setting is not written while permission is pending.
 
 - Accepted finding IDs: PH-UI-006
 - Priority/order: 8, P2
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: UI reviewer
 - Proposed branch: `remediation/p11-s08-delete-confirm`
 
@@ -588,7 +624,7 @@ Cancel makes no bridge call. Confirm calls the existing `bulkDeleteSongs` unchan
 
 - Accepted finding IDs: PH-MUS-006, PH-MUS-008
 - Priority/order: 9, P2
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: music-correctness reviewer
 - Proposed branch: `remediation/p11-s09-timing`
 
@@ -641,7 +677,7 @@ separate, reviewed data change. This slice does not rewrite the database.
 
 - Accepted finding IDs: PH-UI-010, PH-UI-013, PH-UI-017
 - Priority/order: 10, P2
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: accessibility reviewer
 - Proposed branch: `remediation/p11-s10-dialogs`
 
@@ -691,7 +727,7 @@ nothing.
 
 - Accepted finding IDs: PH-UI-011, PH-UI-012, PH-UI-014
 - Priority/order: 11, P2
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: accessibility reviewer
 - Proposed branch: `remediation/p11-s11-hud`
 
@@ -741,7 +777,7 @@ does not depend on slice 3.
 
 - Accepted finding IDs: PH-MUS-013, PH-UI-018, PH-DATA-009
 - Priority/order: 12, P3
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: music-correctness reviewer
 - Proposed branch: `remediation/p11-s12-learning`
 
@@ -802,7 +838,7 @@ Excluded: curriculum content, gate thresholds and drill generation.
 
 - Accepted finding IDs: PH-PAR-004, PH-UI-009, PH-ARCH-004, PH-SEC-004
 - Priority/order: 13, P3
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: any reviewer
 - Proposed branch: `remediation/p11-s13-import`
 
@@ -862,7 +898,7 @@ message is distinct from a bad file.
 
 - Accepted finding IDs: PH-DATA-008, PH-ARCH-003
 - Priority/order: 14, P3
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: any reviewer
 - Proposed branch: `remediation/p11-s14-settings`
 
@@ -907,7 +943,7 @@ automatically. A legacy `"off"` reads as 0 and is written as `'0'` on the next s
 
 - Accepted finding IDs: PH-DATA-004, PH-DATA-007
 - Priority/order: 15, P3
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: persistence reviewer
 - Proposed branch: `remediation/p11-s15-browser-legacy`
 
@@ -929,8 +965,9 @@ names.
 
 ### Scope
 
-Both carry-overs are removed in the same release as the Node-side legacy fallback. That
-release date is owner decision 3, suggested 2027-01-31. Excluded: the desktop profile
+Both carry-overs are removed in the same release as the Node-side legacy fallback. Owner
+decision 3 sets that release no earlier than 2027-01-31 and after the carry-over
+release. Slice 15 itself ships in the carry-over release, with slice 1. Excluded: the desktop profile
 (slice 1).
 
 ### Failure And Data Safety Plan
@@ -959,7 +996,7 @@ release date is owner decision 3, suggested 2027-01-31. Excluded: the desktop pr
 
 - Accepted finding IDs: PH-UI-015, PH-UI-016
 - Priority/order: 16, P3
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: accessibility reviewer
 - Proposed branch: `remediation/p11-s16-colour`
 
@@ -1002,7 +1039,7 @@ No durable state.
 
 - Accepted finding IDs: PH-UI-005, PH-UI-007, PH-UI-008, PH-MUS-009, PH-PAR-005
 - Priority/order: 17, P3
-- Implementation owner: TBD by the owner
+- Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: any reviewer
 - Proposed branch: `remediation/p11-s17-small`, or one branch per finding
 
@@ -1082,8 +1119,8 @@ The proof each still owes:
 
 Before a slice starts:
 
-- The owner names the slice, its implementation owner, its verifier and its branch
-  (owner decision 4).
+- The owner gives the go-ahead for the slice's wave. Owners, verifiers and branches are
+  set under [Owner Selection](#owner-selection-2026-10-20).
 - The implementer reproduces the "Fails before fix" check on the current `main` and
   records the source identity if `main` has moved past `6e549b6`.
 - Data stays isolated as described under the shared rules.
@@ -1095,6 +1132,8 @@ Before a slice starts:
 - P2 planned: 14 of 14.
 - P3 planned: 27 of 27.
 - Findings merged or dropped: 0.
-- Suspected findings held back: 2 (PH-OPS-002, PH-OPS-004).
+- Findings held back: 2. PH-OPS-002 is suspected; PH-OPS-004 is `accepted-risk` (owner
+  decision 2).
 - Product changes made: 0.
-- Remaining gate: the owner chooses which slices enter remediation and assigns them.
+- Remaining gate: the owner's go-ahead for wave 1. Selection and assignment are done
+  (owner decision 4).

@@ -47,7 +47,7 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-SEC-005 | Soundboard source links open remote sites inside an Electron window with no navigation guard | SEC | P3 | high | Electron | accepted | MOD-014, OP-013, MOD-008 | [PH-SEC-005](reports/findings/PH-SEC-005.md) | Claude Code (acting) |
 | PH-OPS-002 | Default web deployment exposes `/api/*` with no app-level gate | OPS | P2 | high | web | suspected | OP-014 | [PH-OPS-002](reports/findings/PH-OPS-002.md) | Claude Code (acting) |
 | PH-OPS-003 | Shipped desktop runtime Electron 30.5.1 is past end of life | OPS | P2 | high | Electron | accepted | MOD-012, MOD-008, OP-013 | [PH-OPS-003](reports/findings/PH-OPS-003.md) | Claude Code (acting) |
-| PH-OPS-004 | A user SQLite database remains in git history | OPS | P2 | high | runtime-independent | suspected | MOD-012, DATA-003, DATA-004 | [PH-OPS-004](reports/findings/PH-OPS-004.md) | Claude Code (acting) |
+| PH-OPS-004 | A default-state SQLite database remains in git history | OPS | P3 | high | runtime-independent | accepted-risk | MOD-012, DATA-003, DATA-004 | [PH-OPS-004](reports/findings/PH-OPS-004.md) | Claude Code (acting) |
 | PH-OPS-005 | No continuous integration enforces the typecheck, test, or asset baseline | OPS | P3 | high | runtime-independent | accepted | MOD-012 | [PH-OPS-005](reports/findings/PH-OPS-005.md) | Claude Code (acting) |
 | PH-DATA-004 | Web sample packs installed before the rename are orphaned in the browser | DATA | P3 | high | web | accepted | DATA-015, DATA-017, OP-006, OP-009, MOD-009 | [PH-DATA-004](reports/findings/PH-DATA-004.md) | Claude Code (acting) |
 | PH-MUS-005 | Computer-keyboard notes are ignored whenever an on-screen button has focus | MUS | P2 | high | both | accepted | WF-003, WF-009, WF-014, WF-015, RT-008 | [PH-MUS-005](reports/findings/PH-MUS-005.md) | Claude Code (acting) |
@@ -121,6 +121,13 @@ in the detailed report.
   files that still read "accepted" although this ledger has said `fixed` since
   Phase 9, and corrected the files. See
   [the Phase 11 consolidation](reports/consolidation-2026-10-20.md).
+- Phase 11 owner decisions, 2026-10-20: PH-OPS-004 moved to `accepted-risk` at P3 after
+  the agent read every database blob in history and found no personal data; history is
+  not rewritten (decision 2). The legacy-name fallback may be removed no earlier than
+  2027-01-31 and only in a release after the carry-over release (decision 3). The owner
+  accepted the remediation waves and assignments in
+  [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20);
+  no slice has started (decision 4).
 
 - PH-DATA-001 is the canonical cross-store atomicity finding for backup restore,
   song deletion, and full reset. Do not create separate findings for the same
