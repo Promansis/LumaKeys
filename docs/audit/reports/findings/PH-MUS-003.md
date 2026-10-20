@@ -3,13 +3,13 @@
 - Lane: music correctness
 - Severity: P2
 - Confidence: high
-- Status: fixed
+- Status: verified
 - Owner: Codex (acting)
 - Challenger: Codex, fresh isolated-fixture challenge
-- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes
+- Verifier: Claude Code (acting), agent proof run 2026-10-21
 - Affected runtime: both
 - Coverage rows: WF-008, WF-009, DATA-007, BR-032, BR-033, BR-034, MOD-003, MOD-011
-- Related/duplicate findings: none
+- Related/duplicate findings: [PH-MUS-017](PH-MUS-017.md) (changing a track assignment deletes saved fingerings)
 - First observed against: `808e6739e55b5186e8a9565f2c4e9267c4894a6c` plus the chartered audit patch identity
 
 ## User Impact
@@ -105,7 +105,9 @@ override without recreating the score state.
 ## Resolution
 
 - Accepted rationale: persisted user-authored technique data points to the wrong musical event after a supported view change.
+- Verified rationale: on 2026-10-21 the agent proof run saved a finger in each of five views, re-opened the song, and found each finger on its own note, then restored the backup into a fresh profile with the same fingers on the same notes (24 of 24 checks). The owed Electron proof is complete.
 - Fix branch/commit/issue: `d5839aa`, Phase 9 slice 9 ([Phase 9 report](../phase-9-remediation-2026-07-30.md)). This file said "accepted" until the Phase 11 consolidation reconciled it with the ledger on 2026-10-20.
 - Verification evidence: Phase 9 keys fingerings by `ParsedNote.id` through an additive `note_id` column. Phase 11: the `GameSession.test.ts` loop-identity test and the `database.test.ts` legacy-row test pass ([re-verification](../phase-11-reverification-2026-10-19.md)). In a one-bar loop, the override set on the loop's first note (E4, `track-0-note-2`) is stored as `{noteId: "track-0-note-2", noteIndex: -1, finger: 5}`. After Clear Loop it shows on E4, not on the song's first note. This holds on the web ([lane C](../phase-11-lane-c-music-correctness-2026-10-19.md)) and in Electron over IPC (agent item A1, [Electron report](../phase-11-electron-runtime-2026-10-20.md)).
+  - Agent proof run 2026-10-20: headless Electron 30.5.1 (Chromium 124) on the existing `out/` build, throwaway profiles under `$TMPDIR`, no injection. Song: "Two Hand Study" (Melody F4 G4 A4 B4 C5 C5 on Right Hand, Accompaniment C3 E3 G3 C3 E3 G3 on Left Hand). Through the UI, one finger was saved in each of five views: Right Hand only (B4, view index 3, full index 6), Left Hand only (E3, view 4, full 9), a loop of measure 2 with both hands (second C5, view 2, full 10), the same loop with Left Hand only (second G3, view 1, full 11) and the full song (C3). Each row was stored as `{noteId, noteIndex: -1, finger, hand}` with the note id of the clicked note, not the view index. After the song was re-opened from the library, every note's finger was read from the editor popup in the full, right-only, left-only, loop and loop-left views: each saved finger sat on its own note and every other note kept its first value. The export then held five fingerings with note ids. In a fresh profile, Import Library brought back the same song id and the same five rows, and the full view and the loop view showed the same fingers on the same notes. 24 of 24 checks pass. Also run with the Accompaniment track set to Ignore: a finger saved on a melody note in that view was stored by note id. Observation, not a failure of this finding, now raised as [PH-MUS-017](PH-MUS-017.md): changing any track assignment (here Accompaniment from Ignore back to Left Hand) deletes every saved fingering for the song with no prompt, because `handleAssignmentChange` in `GameScreen.tsx` calls `clearCustomFingerings`; the row count went from 1 to 0. Evidence: `$TMPDIR/p11/PF/electron/mus1/` (source profile, `backup.json`, `positions.json`, `shots/`), `mus1b/` (restored profile), output in `$TMPDIR/p11/PF/electron/mus1.out`. Driver: `scripts/audit/electron/proof-mus-003.mjs`. The owed Electron proof is complete.
 - Residual risk: custom fingerings saved before the fix have no note id. They stay in the database, but `GameSession.ts` applies only rows with a note id, so they no longer show and the user has to enter them again.
 - Revisit trigger: before fingering persistence or loop-practice changes ship.

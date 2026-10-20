@@ -5,7 +5,8 @@
 - Audit lead: Claude Code (acting)
 - Input: the 42 accepted Phase 11 findings in [the findings ledger](../findings-ledger.md)
   and [the Phase 11 consolidation](consolidation-2026-10-20.md); 47 after the
-  [sittings run by the agent](phase-11-owner-sittings-2026-10-20.md) on 2026-10-20
+  [sittings run by the agent](phase-11-owner-sittings-2026-10-20.md) on 2026-10-20; 51
+  after the [agent proofs](phase-11-agent-proofs-2026-10-21.md) on 2026-10-21
 - Scope: planning only. No product code, finding status, severity or coverage
   disposition changed. Owner decisions 2 to 4 were recorded on 2026-10-20 (see
   [Owner Selection](#owner-selection-2026-10-20)).
@@ -14,10 +15,16 @@
   placed: PH-MUS-016 and PH-UI-019 in slice 4, PH-MUS-015 in slice 6, and PH-MUS-014 (P1)
   in a new slice 18 proposed for wave 1. The new placements and slice 18's wave wait for
   the owner.
+- Updated 2026-10-21 after the agent proofs: PH-DATA-001 was reopened at P2 and is
+  accepted again in new slice 19 "Destructive-operation failures", wave 2. Three new
+  findings are placed: PH-MUS-017 (P2) in new slice 20 "Fingering preservation", wave 2,
+  PH-DATA-010 (P3) in slice 8, and PH-UI-020 (P3) in slice 10. Four fixed findings
+  (PH-PAR-003, PH-ARCH-002, PH-MUS-003, PH-DATA-002) are now `verified` and leave the
+  proof-owed table.
 
 ## Stage Decision
 
-All 47 accepted findings are assigned to one of 19 vertical slices. A slice holds more
+All 51 accepted findings are assigned to one of 21 vertical slices. A slice holds more
 than one finding only when the findings share an owning module and the same proof
 session. Findings with different root causes keep their own regression tests inside the
 slice and are verified one by one. Slice 17 is the exception: five unrelated one-file
@@ -46,9 +53,9 @@ other than the implementer where one is available.
 | 5 | MIDI device lifecycle | PH-MUS-010, PH-MUS-011 | P2, P2 | none |
 | 6 | Audio output | PH-PAR-006, PH-MUS-007, PH-MUS-015 | P2, P2, P3 | none |
 | 7 | Web startup without MIDI permission | PH-PAR-007 | P2 | after slice 5 if both edit the MIDI startup in `App.tsx` |
-| 8 | Delete confirmation | PH-UI-006 | P2 | none |
+| 8 | Delete confirmation | PH-UI-006, PH-DATA-010 | P2, P3 | none |
 | 9 | Timing | PH-MUS-006, PH-MUS-008 | P2, P3 | none |
-| 10 | Dialogs and Escape | PH-UI-010, PH-UI-013, PH-UI-017 | P2, P3, P3 | none |
+| 10 | Dialogs and Escape | PH-UI-010, PH-UI-013, PH-UI-017, PH-UI-020 | P2, P3, P3, P3 | none |
 | 11 | Navigation focus and HUD zoom | PH-UI-011, PH-UI-012, PH-UI-014 | P2, P2, P3 | none |
 | 12 | Learning flow | PH-MUS-013, PH-UI-018, PH-DATA-009 | P3, P3, P3 | after slice 4 (capstone accuracy depends on its judging rule) |
 | 13 | Import outcomes | PH-PAR-004, PH-UI-009, PH-ARCH-004, PH-SEC-004 | P3 | none |
@@ -57,6 +64,8 @@ other than the implementer where one is available.
 | 16 | Colour | PH-UI-015, PH-UI-016 | P3 | none |
 | 17 | Small independent fixes | PH-UI-005, PH-UI-007, PH-UI-008, PH-MUS-009, PH-PAR-005 | P3 | none |
 | 18 | Fresh-profile audio defaults | PH-MUS-014 | P1 | none; proposed for wave 1 |
+| 19 | Destructive-operation failures | PH-DATA-001 | P2 | after slice 1 if both edit the desktop startup recovery in `src/main/index.ts` |
+| 20 | Fingering preservation | PH-MUS-017 | P2 | none |
 
 Order is by user risk: data loss on update first, then the open web surface, then the
 shipped runtime, then practice correctness, then access and polish. P2 slices without a
@@ -72,7 +81,7 @@ starts only when the owner says so.
 |---|---|---|---|
 | Gate | sitting 0 item 4 | Settle PH-OPS-002. If the deployed `/api/*` is open, slice 2 moves to the front of wave 1. **Tripped 2026-10-20**: the live host answered `/` and `/api/*` with no login (from this host's own address; the owner's phone on mobile data confirmed it the same day, user tests A1) | done |
 | 1: carry-over release (proposed `0.2.0`) | 2, then 0, then 1 with 15, then 3; task D1 alongside. Proposed: 18 after 0 | Close the open web surface, then CI, then the desktop and browser carry-over a safe desktop update needs, then a supported Electron. Slice 18 is a proposal awaiting the owner | on the owner's go-ahead |
-| 2 | 4, 5, 6, 7, 8, 9, 10, 11, then 12 after 4 | P2 practice correctness, and the capstone change from decision 1 | after slice 0 is merged |
+| 2 | 4, 5, 6, 7, 8, 9, 10, 11, 19, 20, then 12 after 4 | P2 practice correctness, the capstone change from decision 1, and the reopened destructive-operation failures and the fingering loss found by the agent proofs | after slice 0 is merged |
 | Deferred | 13, 14, 16, 17 | P3 polish | a later owner decision |
 
 The dependencies in the execution order still hold: slice 3 merges after slice 1, and
@@ -606,7 +615,7 @@ values. The MIDI device setting is not written while permission is pending.
 
 ## Slice 8: Delete Confirmation
 
-- Accepted finding IDs: PH-UI-006
+- Accepted finding IDs: PH-UI-006, PH-DATA-010 (added 2026-10-21)
 - Priority/order: 8, P2
 - Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: UI reviewer
@@ -616,12 +625,18 @@ values. The MIDI device setting is not written while permission is pending.
 
 `Delete` in the bulk bar and `Delete Song` in the metadata editor ask first. The prompt
 names how many songs will go and says their results and practice history go too.
-Cancel, which takes focus, leaves everything as it was.
+Cancel, which takes focus, leaves everything as it was. The Delete User Data card and
+dialog in Settings name everything the reset removes (songs, playlists, folders, results,
+practice history and streak, achievements, fingerings, trouble spots, saved settings and
+installed instrument packs), and on the web say the data is on the server and affects
+every browser that uses it.
 
 ### Boundaries Touched
 
 - Renderer/UI: `src/renderer/components/LibraryScreen.tsx` and its test. Use a
   Settings-style confirmation modal with `useModalFocusTrap`.
+- Renderer/UI (PH-DATA-010): the Delete User Data card and `ConfirmActionModal` copy in
+  `src/renderer/components/SettingsScreen.tsx`, with the web wording under `IS_WEB`.
 
 ### Scope
 
@@ -640,10 +655,12 @@ Cancel makes no bridge call. Confirm calls the existing `bulkDeleteSongs` unchan
 | Web runtime | `library-organize-bulk.mjs` deletes at once | modified driver: cancel, then confirm | headless Chromium |
 | Electron runtime | `scripts/audit/electron/library-one-hand.mjs` (A2) deletes with no prompt | the same driver shows the prompt | headless Electron |
 | Recovery/integrity proof | n/a | after Cancel, rows, MIDI files and results are intact | both runtimes |
+| Targeted regression (PH-DATA-010) | `SettingsScreen.test.tsx`: the dialog names six stores | it names packs, history, fingerings and trouble spots; the web text says the data is on the server | component |
+| Runtime (PH-DATA-010) | `proof-data002-web.mjs` and `proof-data002-electron.mjs` `dialog.json` copy omits packs | the captured copy matches the removed inventory | headless Chromium and Electron |
 
 ### Validation
 
-- Narrow: `npx vitest run src/renderer/components/LibraryScreen.test.tsx`
+- Narrow: `npx vitest run src/renderer/components/LibraryScreen.test.tsx src/renderer/components/SettingsScreen.test.tsx`
 - Required: `npm run verify`
 
 ## Slice 9: Timing
@@ -701,7 +718,7 @@ separate, reviewed data change. This slice does not rewrite the database.
 
 ## Slice 10: Dialogs And Escape
 
-- Accepted finding IDs: PH-UI-010, PH-UI-013, PH-UI-017
+- Accepted finding IDs: PH-UI-010, PH-UI-013, PH-UI-017, PH-UI-020 (added 2026-10-21)
 - Priority/order: 10, P2
 - Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: accessibility reviewer
@@ -712,7 +729,8 @@ separate, reviewed data change. This slice does not rewrite the database.
 A keyboard user can run latency calibration: focus moves into the dialog, Tab stays
 inside, Enter on a button presses it, and Escape closes only the dialog. On the
 Soundboard, Escape always toggles the session menu. Closing a Settings confirmation
-returns focus to the button that opened it.
+returns focus to the button that opened it. When a practice session fails to load, focus
+moves to Retry, so a keyboard user can act at once.
 
 ### Boundaries Touched
 
@@ -724,6 +742,8 @@ returns focus to the button that opened it.
   - `src/renderer/App.tsx`: add `soundboard` to the Escape exclusion list.
   - `src/renderer/components/SettingsScreen.tsx` `ConfirmActionModal`: record the
     trigger once on mount, or reuse `useModalFocusTrap`.
+  - `src/renderer/components/GameScreen.tsx` (PH-UI-020): focus the Retry button when
+    `loadError` is set.
 
 ### Scope
 
@@ -741,7 +761,8 @@ nothing.
 | Targeted regression (PH-UI-010) | new `LatencyWizard.test.tsx`: focus stays on "Calibrate...", Escape leaves Settings, Enter on close starts measuring | focus inside; Escape closes only the dialog; Enter on close closes; Enter on Apply applies | component |
 | Targeted regression (PH-UI-013) | `App.test.tsx` "lets soundboard own Escape": the third Escape exits | the screen stays | component |
 | Targeted regression (PH-UI-017) | `SettingsScreen.test.tsx`: focus on `body` after Cancel and Escape | focus on the trigger | component |
-| Runtime | web `latency-wizard-keyboard.mjs`, `escape-semantics.mjs`, `confirm-dialog-focus-restore.mjs`; Electron `keyboard-walk.mjs` parts (b), (c), (e) | corrected behaviour in each | headless Chromium and Electron |
+| Targeted regression (PH-UI-020) | `GameScreen` test: a rejected `getSetting` leaves focus on `body` | focus is on Retry | component |
+| Runtime | web `latency-wizard-keyboard.mjs`, `escape-semantics.mjs`, `confirm-dialog-focus-restore.mjs`; Electron `keyboard-walk.mjs` parts (b), (c), (e); web `proof-ph-arch-001-recovery.mjs` reaches Retry with no Tab walk | corrected behaviour in each | headless Chromium and Electron; Edge and Firefox for the recovery driver |
 | Manual UI/hardware proof | n/a | sitting 3 item 3 in Edge and Firefox | owner |
 
 ### Validation
@@ -1159,28 +1180,119 @@ No stored data changes. Users who already moved a slider keep their saved value.
 - Narrow: `npx vitest run src/renderer`
 - Required: `npm run verify`
 
+## Slice 19: Destructive-Operation Failures
+
+- Accepted finding IDs: PH-DATA-001 (reopened 2026-10-21 at P2)
+- Priority/order: 19, P2; wave 2
+- Implementation owner: Claude Code (acting), if the owner accepts the slice
+- Verifier: persistence reviewer
+- Proposed branch: `remediation/p11-s19-destructive-failures`
+
+### User-Visible Outcome
+
+When a delete, bulk delete or restore fails on the filesystem, the message says the library
+is unchanged and names the retry, with no raw OS error and no misleading `EISDIR`. A reset
+retry reports success only when the old files are gone. A restart with a locked leftover
+directory still opens the app.
+
+### Boundaries Touched
+
+- Renderer/UI: the failure messages in `src/renderer/components/LibraryScreen.tsx` and
+  `SettingsScreen.tsx`.
+- Storage/persistence: `src/storage/midiStorage.ts` and `recoverDurableOperations` in
+  `src/persistence/database.ts`: the restore error that hides the rename failure, the
+  reset retry that does not see the hidden `.midi-files-reset-<id>` directory, and the
+  stale `restore-library:prepared` row.
+- Host startup: the recovery call in `src/server/index.ts` and `src/main/index.ts`, so a
+  locked leftover does not stop startup. The visible startup error belongs to slice 1
+  ([PH-OPS-006](findings/PH-OPS-006.md)).
+
+### Scope
+
+Excluded: the rollback of delete, bulk delete and restore, which the proof run showed
+works, and any new journal. Reset after a database commit either rolls back or keeps
+failing until the files are gone; the slice picks one and records why.
+
+### Failure And Data Safety Plan
+
+No stored data is rewritten. The reset leftover stays recoverable. Rollback: code revert.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression | a failing delete or restore shows `EACCES ... mkdir '.delete-<id>'`; restore on the 2nd file shows `EISDIR` | a message that names the retry and says the library is unchanged | unit and component |
+| Targeted regression | a reset retry with the fault present says "User data deleted" | the failure repeats until the hidden directory is gone | unit |
+| Web runtime | `scripts/audit/browser/proof-data001-web.mjs` | criteria (a) to (c) of the finding pass | headless Chromium |
+| Electron runtime | `scripts/audit/electron/proof-data001-electron.mjs` | the same, and a locked leftover leaves the app with a window or a visible error | headless Electron |
+| Recovery/integrity proof | the web server exits 1 with a locked leftover | startup completes; `integrity_check` ok | both runtimes |
+
+### Validation
+
+- Narrow: `npx vitest run src/persistence src/storage src/server`
+- Required: `npm run verify`
+
+## Slice 20: Fingering Preservation
+
+- Accepted finding IDs: PH-MUS-017 (added 2026-10-21)
+- Priority/order: 20, P2; wave 2
+- Implementation owner: Claude Code (acting), if the owner accepts the slice
+- Verifier: music-correctness reviewer
+- Proposed branch: `remediation/p11-s20-fingering-preserve`
+
+### User-Visible Outcome
+
+Changing a track's assignment in the session overlay keeps every saved fingering for the
+song.
+
+### Boundaries Touched
+
+- Renderer/UI: `handleAssignmentChange` in `src/renderer/components/GameScreen.tsx` stops
+  calling `clearCustomFingerings`. The fingerings are keyed by note id (PH-MUS-003), which
+  an assignment change does not shift.
+
+### Scope
+
+Excluded: the explicit reset of fingerings (`handleResetFingerings`), which clears on request, and the restart prompt for
+judged notes.
+
+### Failure And Data Safety Plan
+
+No stored data changes. If a reason to clear remains, the handler asks first and names the
+fingerings.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression | a `GameScreen` test: an assignment change calls `clearCustomFingerings` | it is not called, and the row remains | component |
+| Electron runtime | `scripts/audit/electron/proof-mus-003.mjs` Ignore then Left Hand: row count 1 to 0 | the count stays 1 | headless Electron |
+| Web runtime | the same sequence through the web bridge | the count stays 1 | headless Chromium |
+
+### Validation
+
+- Narrow: `npx vitest run src/renderer/components`
+- Required: `npm run verify`
+
 ## Proof Owed By Fixed Findings
 
-These 12 findings are `fixed`, not `verified`. None needs new product code unless noted.
+These 7 findings are `fixed`, not `verified`. None needs new product code unless noted.
 The owner sittings run by the agent on 2026-10-20
 ([report](phase-11-owner-sittings-2026-10-20.md)) moved PH-PAR-002, PH-UI-001, PH-UI-002
-and PH-UI-004 to `verified` and closed part of the proof for the rows marked below. The
-proof each still owes:
+and PH-UI-004 to `verified`. The [agent proofs](phase-11-agent-proofs-2026-10-21.md) of
+2026-10-21 moved PH-PAR-003, PH-ARCH-002, PH-MUS-003 and PH-DATA-002 to `verified`, and
+removed them from this table. PH-DATA-001 failed its proof run and was reopened at P2; it
+is `accepted` again and moved to slice 19. The proof each of the 7 still owes:
 
 | Finding | Severity | Owed proof | Where |
 |---|---|---|---|
-| PH-DATA-001 | P1 | Forced filesystem failure during restore, delete and reset through the UI, on both runtimes, with the error naming a safe retry | agent: headless Electron and web drivers with an injected failure |
 | PH-MUS-001 | P1 | Pause and resume on a real MIDI keyboard keeps judged state. A scripted Web MIDI device passed on both runtimes (sitting 4 item 4) | owner C3 |
 | PH-MUS-002 | P1 | Meter fixtures under `src/`; a musician's check of labels and loop bounds. The MuseScore meter map (sitting 0 item 3) and an Electron non-4/4 loop (sitting 4 item 7) passed | slice 0; owner C5 |
 | PH-PAR-001 | P1 | The asset assertion wired into `package:*`; a Windows package. The capstone, the main-menu video and a pack install passed in a packaged Linux profile (sitting 1 item 1) | slice 0; sitting 2 |
-| PH-DATA-002 | P2 | The reset confirmation copy checked against what reset actually removes (now including packs), on both runtimes | agent: capture the dialog text in the Electron and web reset drivers |
 | PH-DATA-003 | P2 | The required proof says the restore error names the affected song and the retry path. The observed message names the song id only. Either accept the id or add the title in slice 13 | owner decision at slice 13 |
-| PH-MUS-003 | P2 | Fingering save and re-open while hand and track controls vary, plus a backup round trip | agent Electron run |
 | PH-MUS-004 | P2 | A held note stops when a real keyboard is unplugged. A scripted device released within 1 ms on both runtimes (sitting 4 item 2) | owner C2 |
-| PH-PAR-003 | P2 | Hash-mismatched and unreadable legacy sources leave no playable row | agent: lane B probe extension |
 | PH-UI-003 | P2 | A canvas test; GNOME's own reduced-motion switch. The OS setting through GTK and XSETTINGS passed in Chrome and the packaged app on X11 (sitting 1 item 3) | slice 0; owner B3 |
-| PH-ARCH-001 | P2 | A GameScreen recovery test, and a forced-failure recovery run in Edge and Firefox. Sitting 3 item 1 showed only a normal load in both | slice 0; agent |
-| PH-ARCH-002 | P2 | A forced setting-write failure in Electron shows "Save failed" and reads back the stored value | agent: headless Electron |
+| PH-ARCH-001 | P2 | A GameScreen recovery test. The browser half is done: a forced-failure recovery run passed 78 of 78 checks in Edge, Firefox and Chromium (agent proofs, 2026-10-21) | slice 0 |
 
 ## Phase 11 Remediation Start Gate
 
@@ -1194,11 +1306,11 @@ Before a slice starts:
 
 ## Phase 11 Planning Completion
 
-- Accepted findings planned: 47 of 47 (updated 2026-10-20 after the owner sittings).
+- Accepted findings planned: 51 of 51 (updated 2026-10-21 after the agent proofs).
 - P0 planned: 1 of 1 (PH-OPS-002, slice 2).
 - P1 planned: 2 of 2 (PH-DATA-005, slice 1; PH-MUS-014, slice 18).
-- P2 planned: 14 of 14.
-- P3 planned: 30 of 30.
+- P2 planned: 16 of 16 (PH-DATA-001, slice 19; PH-MUS-017, slice 20).
+- P3 planned: 32 of 32 (PH-DATA-010, slice 8; PH-UI-020, slice 10).
 - Findings merged or dropped: 0.
 - Findings held back: 1. PH-OPS-004 is `accepted-risk` (owner decision 2).
 - Product changes made: 0.

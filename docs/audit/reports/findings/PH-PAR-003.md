@@ -3,10 +3,10 @@
 - Lane: runtime parity
 - Severity: P2
 - Confidence: high
-- Status: fixed
+- Status: verified
 - Owner: Codex (acting)
 - Challenger: Codex, fresh migration fixture and cross-runtime challenge
-- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes
+- Verifier: Claude Code (acting), agent proof run 2026-10-21
 - Affected runtime: both
 - Coverage rows: DATA-002, WF-004, WF-006, WF-008, WF-009, BR-011, BR-059, OP-002, MOD-008, MOD-009
 - Related/duplicate findings: none
@@ -74,7 +74,9 @@ Choose one canonical legacy policy: migrate verified source bytes into app-owned
 ## Resolution
 
 - Accepted/rejected rationale: the same supported migrated row has opposite Electron/web load and recompute outcomes.
+- Verified rationale: on 2026-10-21 the agent proof run showed that hash-mismatched, unreadable, missing and no-source legacy rows keep an empty `filePath` and return 404 on both runtimes, in the first-run and the startup-repair path, and a valid row is served with identical bytes. The owed proof is complete.
 - Fix branch/commit/issue: `d5839aa`, Phase 9 slice 13 ([Phase 9 report](../phase-9-remediation-2026-07-30.md)). This file said "accepted" until the Phase 11 consolidation reconciled it with the ledger on 2026-10-20.
 - Verification evidence: Phase 9 copies verified source MIDI into app-owned storage in `migrateFromJson` and repairs legacy external-path rows at startup. Phase 11: `databaseMigration.test.ts` (4 tests) and `legacyBrandMigration.test.ts` (9 tests) pass ([re-verification](../phase-11-reverification-2026-10-19.md)). A legacy `song-metadata.json` that points at an external MIDI file imports into `midi-files` and its bytes are served back on the web (J1) and in packaged Linux Electron (P3), which also writes `song-metadata.json.migrated` ([lane B](../phase-11-lane-b-persistence-2026-10-19.md)).
-- Residual risk: the legacy brand-name fallback (DATA-017) and the Windows profile carry-over ([PH-DATA-005](PH-DATA-005.md)) are tracked separately. The Windows profile check is owed in the owner's [sitting 2](../phase-11-user-tests.md).
+  - Agent proof run 2026-10-20: `scripts/audit/proof-par003-unplayable-legacy.mjs` builds a throwaway legacy profile with six songs: valid, hash-mismatched, unreadable (chmod 000), missing, no `sourcePath`, and a corrupt file whose hash matches. It runs two variants (first-run `song-metadata.json`; startup repair of rows that still hold an external path plus `song-metadata.json.migrated`) and then restarts each. The desktop path runs the Electron main-process sequence in-process (`migrateFromJson`, `midiStorage.read`, `recomputeAllSongDifficulties`; Electron itself was not launched). The web path runs the built `dist/server/index.cjs` over `/api/bridge` and `/api/midi/:id`. Result: all 4 cases pass for the owed proof. In every case, the hash-mismatched, unreadable, missing and no-source rows keep an empty `filePath`, no `midi-files` entry, a 404 from `/api/midi/:id` (ENOENT on the desktop read), and one recompute error each. The valid row is copied into `midi-files` with identical bytes and the legacy sources are untouched. The JSON is renamed to `.migrated`, and a restart leaves the same state. One gap outside the owed proof: the startup repair path does not parse the bytes, so a source that is corrupt but hash-matching is copied in and served with 200 (recompute then errors); the first-run path rejects it. Evidence: `$TMPDIR/p11/PF/probes/par003/report.json`. Probe: `scripts/audit/proof-par003-unplayable-legacy.mjs`.
+- Residual risk: the startup-repair path does not parse bytes. A legacy source whose hash matches but whose bytes are corrupt is copied into `midi-files` and served with 200; the first-run path rejects it. The row then fails to parse the same way in both runtimes, so parity holds. Kept as a residual, not a finding. The legacy brand-name fallback (DATA-017) and the Windows profile carry-over ([PH-DATA-005](PH-DATA-005.md)) are tracked separately. The Windows profile check is owed in the owner's [sitting 2](../phase-11-user-tests.md).
 - Revisit trigger, if accepted-risk: not applicable.

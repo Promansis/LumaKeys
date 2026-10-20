@@ -3,10 +3,10 @@
 - Lane: architecture
 - Severity: P2
 - Confidence: high
-- Status: fixed
+- Status: verified
 - Owner: Codex (acting)
 - Challenger: Codex, isolated renderer failure challenge
-- Verifier: Claude Code (acting), Phase 11 re-verification and runtime lanes
+- Verifier: Claude Code (acting), agent proof run 2026-10-21
 - Affected runtime: both
 - Coverage rows: WF-003, WF-018, BR-054, MOD-002, MOD-005
 - Related/duplicate findings: none
@@ -113,7 +113,9 @@ as part of this slice.
 
 - Accepted/rejected rationale: a rejected write is presented as a successful
   durable configuration change.
+- Verified rationale: on 2026-10-21 the agent proof run showed 19 of 19 checks for both an IPC-override and a SQLite-trigger write failure in Electron 30.5.1: the failure is reported as session-only and the stored values read back. After a failed Theme write the live page keeps the new theme until the next launch, as the "active for this session only" message says.
 - Fix branch/commit/issue: `d5839aa`, Phase 9 slice 18 ([Phase 9 report](../phase-9-remediation-2026-07-30.md)). This file said "accepted" until the Phase 11 consolidation reconciled it with the ledger on 2026-10-20.
 - Verification evidence: Phase 9 added a shared `saveSetting` that returns `{ saved }`, and every renderer setting writer awaits and catches it. Phase 11: `saveSetting.test.ts`, the `KeyboardSetupScreen.test.tsx` rejected-binding read-back and the GameScreen session-only fingering test pass ([re-verification](../phase-11-reverification-2026-10-19.md)). A failed save says "Save failed. The change is active for this session only.", and saved settings read back after a server restart on the web (WF-018, [lane F](../phase-11-lane-f-setup-settings-2026-10-19.md)) and after a relaunch on the desktop (WF-003 and WF-018, [Electron report](../phase-11-electron-runtime-2026-10-20.md)).
+  - Agent proof run 2026-10-20: headless Electron 30.5.1 (Chromium 124) on the existing `out/` build, throwaway profile under `$TMPDIR`. The write failure was injected two ways, each on its own fresh profile and with no source edit. Method 1 replaced the main-process `settings:set` handler through `electronApp.evaluate` (it throws "injected write failure"). Method 2 added SQLite `BEFORE INSERT` and `BEFORE UPDATE` triggers on the `settings` table while the app was closed (they raise ABORT; the insert trigger skips the `fingering.handSize` start-up seed, because a `BEFORE INSERT` trigger fires even for `INSERT OR IGNORE` and the app then never opened a window). Both runs saved a baseline first (Theme light, Master Volume 55, C4 bound to K), then injected the failure. Result for both: Settings said "Save failed. The change is active for this session only." with a "Setting not saved" toast for the Theme select and for the debounced Master Volume range; Keyboard Setup said "Mapping active for this session only. Save failed; try again." with a "Keyboard mapping not saved" toast for a bind and for Reset Mapping. The stored values did not change (checked in the database and through `getSetting`). Leaving and re-opening Settings read back the stored values (Theme light, Volume 55), and re-opening Keyboard Setup read back C4 = K. After a relaunch the stored values were still there; with the failure removed the same Theme change saved ("Changes saved."). 19 of 19 checks pass for each method. Not a failure, but noted: in the same session, after the failed Theme write, the Settings control reads back the stored value (light) while the live page keeps the session-only theme (`data-theme` stays warm) until the next launch; the status message and toast say so. Evidence: `$TMPDIR/p11/PF/electron/ipc/` and `$TMPDIR/p11/PF/electron/trigger/` (`shots/`, `main.log`), output in `ipc.out` and `trigger.out` beside them. Driver: `scripts/audit/electron/proof-arch-002.mjs` (`METHOD=ipc` or `METHOD=trigger`). The owed Electron proof is complete.
 - Residual risk: none known for this fix. The key-unbind defect in the same settings code is a separate finding, [PH-DATA-008](PH-DATA-008.md).
 - Revisit trigger, if accepted-risk: not applicable.

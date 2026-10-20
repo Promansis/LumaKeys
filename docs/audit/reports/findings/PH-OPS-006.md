@@ -9,7 +9,7 @@
 - Verifier: TBD
 - Affected runtime: Electron
 - Coverage rows: OP-015, DATA-017
-- Related/duplicate findings: PH-DATA-005 (the most likely route into the refusal), PH-DATA-006 (other refusals), PH-ARCH-001 (unhandled rejection in the renderer; different process and flow)
+- Related/duplicate findings: PH-DATA-005 (the most likely route into the refusal), PH-DATA-006 (other refusals), PH-ARCH-001 (unhandled rejection in the renderer; different process and flow), PH-DATA-001 (a locked reset leftover is another route into the same failure)
 - First observed against: `main` at source identity `6e549b6`, Phase 11 lane B, 2026-10-19
 
 ## User Impact
@@ -82,6 +82,7 @@ repaired by hand.
   `process.on('unhandledRejection')` or `dialog.showErrorBox` in `src/main/`.
 - Command: `node scripts/audit/electron-userdata-probe.mjs --packaged`; output
   `$TMPDIR/p11/B/electron-userdata-probe.out` (sha256 `34ddf3b4…af6d712d`, case P2).
+- Second route, 2026-10-21: the [PH-DATA-001](PH-DATA-001.md) agent proof run reproduced a windowless Electron process after a failed reset recovery at startup. With the hidden `.midi-files-reset-<id>` directory still locked, the app stayed running with no window (`UnhandledPromiseRejectionWarning` in the main process); the web server exited with code 1 in the same state. Evidence: `$TMPDIR/p11/PF/data/el001/`; driver `scripts/audit/electron/proof-data001-electron.mjs`.
 
 ## Root Cause
 

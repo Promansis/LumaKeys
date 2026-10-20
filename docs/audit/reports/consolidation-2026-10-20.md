@@ -4,7 +4,7 @@
   `0bd40f5df5e362e4cc67be1f086c4e5e8d0e9072` ([baseline](baseline-2026-10-19.md)). Audit-only
   commits after it touch `docs/audit/` and `scripts/audit/` only. The desktop runs used
   the existing `out/` bundle, which was built after the last source commit.
-- Audit period: 2026-10-19 to 2026-10-20
+- Audit period: 2026-10-19 to 2026-10-21
 - Audit lead: Claude Code (acting)
 - Lane reports: [plan](phase-11-plan-2026-10-19.md),
   [re-verification](phase-11-reverification-2026-10-19.md),
@@ -21,13 +21,16 @@
   [H documentation](phase-11-lane-h-documentation-2026-10-19.md), the owner's
   [user test batch](phase-11-user-tests.md), and the
   [owner sittings run by the agent](phase-11-owner-sittings-2026-10-20.md) (updated into
-  this report the same day)
+  this report the same day), and the
+  [agent proofs](phase-11-agent-proofs-2026-10-21.md) of 2026-10-21 (updated into this
+  report)
 - Remediation plan: [Phase 11 remediation plan](phase-11-remediation-plan-2026-10-20.md)
 
 ## Readiness Decision
 
 - Overall disposition: the agent's share of Phase 11 is complete and consolidated, and
-  the agent has also run owner sittings 0, 1, 3 and 4. The audit as a whole is not
+  the agent has also run owner sittings 0, 1, 3 and 4 and the proofs the fixed findings
+  owed ([agent proofs](phase-11-agent-proofs-2026-10-21.md)). The audit as a whole is not
   complete under the README's objective condition: 2 matrix rows are blocked (RT-010 on
   a colour-vision review, RT-011 on a real MIDI keyboard), sitting 2 (Windows) has not
   run, and nothing blocked is reported as passing. The product is not ready for a
@@ -44,10 +47,11 @@
   - Any release: [PH-MUS-014](findings/PH-MUS-014.md) (P1, accepted). A fresh profile
     plays about 60 dB too quietly on both runtimes while Settings shows the default
     volumes.
-- Residual P0/P1 count: 7 not yet `verified`. Three are accepted and open (PH-OPS-002,
-  PH-DATA-005, PH-MUS-014). Four are fixed and waiting for runtime or manual proof
-  (PH-DATA-001, PH-MUS-001, PH-MUS-002, PH-PAR-001). PH-SEC-001 (P0), PH-OPS-001 and
-  PH-UI-002 (P1) are verified.
+- Residual P0/P1 count: 6 not yet `verified`. Three are accepted and open (PH-OPS-002,
+  PH-DATA-005, PH-MUS-014). Three are fixed and waiting for runtime or manual proof
+  (PH-MUS-001, PH-MUS-002, PH-PAR-001). PH-SEC-001 (P0), PH-OPS-001 and PH-UI-002 (P1)
+  are verified. PH-DATA-001 left this list on 2026-10-21: it failed its proof run, was
+  reopened, and was lowered to P2 because the data-loss path is fixed.
 - Accepted-risk count: 1 ([PH-OPS-004](findings/PH-OPS-004.md), owner decision 2 on 2026-10-20).
 - Evidence confidence limits:
   - Desktop proof is Linux only: the `out/` bundle headless, and a packaged Linux build
@@ -62,8 +66,10 @@
     the OS path, Chrome's permission prompt and latency feel are the owner's.
   - The OS reduced-motion setting was driven through GTK and XSETTINGS on X11, not
     GNOME's own switch or Wayland.
-  - Docker runs used a throwaway audit image on 127.0.0.1. The MuseScore 45 s timeout,
-    30 s CPU limit and 10 MB output limit were not reached by the crafted scores.
+  - Docker runs used a throwaway audit image on 127.0.0.1. The crafted scores did not
+    reach the MuseScore 45 s timeout, 30 s CPU limit or 10 MB output limit; the agent
+    proofs of 2026-10-21 fired all three through real uploads, with fake converters rather
+    than the MuseScore binary.
 
 ## Coverage
 
@@ -73,13 +79,13 @@ rows.
 
 | Dimension | Total | Covered | Gap/blocked/waived | Findings |
 |---|---:|---:|---:|---:|
-| User workflows | 26 | 26 | 0 | 45 |
-| Runtime/UI conditions | 12 | 10 | 2 | 17 |
-| Durable entities/stores | 17 | 17 | 0 | 15 |
-| AppBridge methods | 69 | 69 | 0 | 10 |
-| Privileged/destructive operations | 18 | 18 | 0 | 18 |
-| High-risk modules/operations | 14 | 14 | 0 | 34 |
-| **Total** | **156** | **154** | **2** | **66 unique** |
+| User workflows | 26 | 26 | 0 | 48 |
+| Runtime/UI conditions | 12 | 10 | 2 | 18 |
+| Durable entities/stores | 17 | 17 | 0 | 17 |
+| AppBridge methods | 69 | 69 | 0 | 11 |
+| Privileged/destructive operations | 18 | 18 | 0 | 19 |
+| High-risk modules/operations | 14 | 14 | 0 | 35 |
+| **Total** | **156** | **154** | **2** | **69 unique** |
 
 Blocked rows, each with its owner in the matrix: RT-010 (a colour-vision review) and
 RT-011 (a real MIDI keyboard). The sittings run by the agent covered the other 13 rows
@@ -92,18 +98,21 @@ failure (PH-OPS-002). There are no bare gaps and no waivers.
 | Severity | Suspected | Accepted | Fixed | Verified | Accepted risk |
 |---|---:|---:|---:|---:|---:|
 | P0 | 0 | 1 | 0 | 1 | 0 |
-| P1 | 0 | 2 | 4 | 2 | 0 |
-| P2 | 0 | 14 | 8 | 3 | 0 |
-| P3 | 0 | 30 | 0 | 0 | 1 |
-| **Total** | **0** | **47** | **12** | **6** | **1** |
+| P1 | 0 | 2 | 3 | 2 | 0 |
+| P2 | 0 | 16 | 4 | 7 | 0 |
+| P3 | 0 | 32 | 0 | 0 | 1 |
+| **Total** | **0** | **51** | **7** | **10** | **1** |
 
-The 18 earlier findings all still hold on the new baseline (re-verification record).
-After the sittings, 6 of them are `verified` (PH-SEC-001, PH-OPS-001, PH-PAR-002,
-PH-UI-001, PH-UI-002, PH-UI-004) and 12 stay `fixed`. Phase 11 added 48: 47 accepted and
-1 accepted as a risk after owner decision 2 (PH-OPS-004). Of the accepted, PH-OPS-002
-moved from suspected to P0 after sitting 0 item 4, and the sittings raised PH-MUS-014
-(P1), PH-MUS-015, PH-MUS-016 and PH-UI-019 (P3). Every new finding has a detailed
-report and a challenge record. At this consolidation each file was checked against the
+The 18 earlier findings all still held on the new baseline (re-verification record).
+After the sittings and the agent proofs of 2026-10-21, 10 of them are `verified`
+(PH-SEC-001, PH-OPS-001, PH-PAR-002, PH-UI-001, PH-UI-002, PH-UI-004, PH-PAR-003,
+PH-ARCH-002, PH-MUS-003, PH-DATA-002), 7 stay `fixed` (PH-MUS-001, PH-MUS-002,
+PH-PAR-001, PH-DATA-003, PH-MUS-004, PH-UI-003, PH-ARCH-001) and 1, PH-DATA-001, was
+reopened and is `accepted` at P2. Phase 11 added 51: 50 accepted and 1 accepted as a risk
+after owner decision 2 (PH-OPS-004). Of the accepted, PH-OPS-002 moved from suspected to
+P0 after sitting 0 item 4, the sittings raised PH-MUS-014 (P1), PH-MUS-015, PH-MUS-016
+and PH-UI-019 (P3), and the agent proofs raised PH-MUS-017 (P2), PH-DATA-010 and
+PH-UI-020 (P3). Every new finding has a detailed report and a challenge record. At this consolidation each file was checked against the
 finding template and its rationale line now records the acceptance.
 
 ### Consolidation challenge decisions
@@ -133,6 +142,13 @@ finding template and its rationale line now records the acceptance.
     to match the ledger. No ledger status changed as a result.
   - PH-UI-012 read "reproduced (emulation)" and is now `accepted`. Its confidence line
     keeps the emulation limit.
+- Reopening, 2026-10-21: [PH-DATA-001](findings/PH-DATA-001.md) failed its agent proof run
+  (the error wording names no retry for delete and restore, a reset retry reports success
+  while old files remain hidden, and a startup stops while the leftover is locked). It
+  went `fixed` to `reproduced` and, after the lead's challenge, to `accepted` the same
+  day at P2, lowered from P1: delete, bulk delete and restore roll back byte-identically,
+  so none of the remaining defects loses data the user meant to keep. It moves to new
+  slice 19.
 - Owner decision taken during the audit: PH-MUS-013. Capstones run in Play mode at the
   capstone tempo, and the run's settings are locked while it runs (2026-10-20).
 - Owner decisions after consolidation, 2026-10-20:
@@ -157,7 +173,7 @@ finding template and its rationale line now records the acceptance.
 | L-11-003 | Hardening note: `startsWith` without a separator, no sibling directory exists |
 | L-11-004 | [PH-SEC-003](findings/PH-SEC-003.md) |
 | L-11-005 | [PH-SEC-004](findings/PH-SEC-004.md) |
-| L-11-006 | Closed by sitting 0 (OP-017, MOD-013): traversal and symlink entries stay inside the temp directory, a 300 MB bomb is rejected, and a 180,008-bar score is stopped by the 2 GiB memory limit while the server keeps answering. The timeout, CPU and output limits were not reached |
+| L-11-006 | Closed by sitting 0 (OP-017, MOD-013): traversal and symlink entries stay inside the temp directory, a 300 MB bomb is rejected, and a 180,008-bar score is stopped by the 2 GiB memory limit while the server keeps answering. The timeout, CPU and output limits were not reached there; the agent proofs of 2026-10-21 fired all three |
 | L-11-007 | [PH-OPS-002](findings/PH-OPS-002.md), accepted at P0 by sitting 0 item 4 |
 | L-11-008 | Narrowed to [PH-SEC-005](findings/PH-SEC-005.md) (window-open guard); no CSP is folded into PH-SEC-003 |
 | L-11-009 | [PH-OPS-003](findings/PH-OPS-003.md) |
@@ -259,6 +275,17 @@ on every push.
     restart, pause and resume, and a non-4/4 loop on both runtimes
   - MuseScore in the image: parallel uploads, restart survival, converted meter maps and
     crafted-archive containment
+- The agent proofs of 2026-10-21 passed for the rest of the owed proof
+  ([report](phase-11-agent-proofs-2026-10-21.md)):
+  - unplayable legacy rows stay unplayable and return 404 on both runtimes (PH-PAR-003)
+  - a forced load failure shows Retry and Main Menu in Edge, Firefox and Chromium, 78 of
+    78 checks each (PH-ARCH-001)
+  - a failed setting write is reported as session-only and reads back in Electron, 19 of
+    19 checks for two injection methods (PH-ARCH-002)
+  - a fingering saved in five views stays on its own note and survives a backup round
+    trip, 24 of 24 checks (PH-MUS-003)
+  - delete, bulk delete and restore roll back byte-identically when a file step fails
+    (PH-DATA-001, the part that holds)
 - The AppBridge contract is unchanged since Phase 10 (69 methods). The `hono` advisories
   are unreachable, and the tests behave the same on Node 22 and 24. The `Dockerfile`
   pins the MuseScore download by SHA-256 and fails closed on a mismatch.
@@ -275,9 +302,13 @@ on every push.
   real Chrome 151 (sitting 1), Edge 155 and Firefox 142 (sitting 3). Edge's own browser
   zoom was not driven.
 - Backup/restore: verified on both runtimes, including tampered and garbage inputs and
-  cancel paths. The PH-DATA-001 forced filesystem failure through the UI is still owed.
+  cancel paths, and a backup round trip into a fresh profile keeps fingerings
+  (PH-MUS-003). The PH-DATA-001 forced filesystem failure ran on 2026-10-21 and failed:
+  rollback holds, the error wording and the reset retry do not (reopened at P2).
 - Reset/recovery: reset with and without an installed pack, relaunch to the setup guide,
-  and SIGKILL recovery all passed. The legacy rename's interrupted states were probed
+  and SIGKILL recovery all passed. On 2026-10-21 reset removed packs on both runtimes
+  (PH-DATA-002 verified); a reset that fails after the database commit is not rolled back
+  (PH-DATA-001). The legacy rename's interrupted states were probed
   (PH-DATA-006). A real pre-rename profile update is sitting 2 (PH-DATA-005).
 - Packaging: the audit built a packaged Linux app in a throwaway copy for sitting 1;
   the capstone, the menu video and a pack install pass there. PH-PAR-001 still owes the
@@ -297,22 +328,23 @@ One finding was accepted as a risk after consolidation: [PH-OPS-004](findings/PH
 
 | Item | Rationale | Owner | Revisit trigger |
 |---|---|---|---|
-| OP-017, MOD-013 residual | The crafted scores did not reach the MuseScore 45 s timeout, 30 s CPU limit or 10 MB output limit | Claude Code (acting) | Before relying on those limits, or when the converter changes |
+| OP-017, MOD-013 residual | Closed 2026-10-21. The crafted scores did not reach the MuseScore limits, so the agent fired each one through real `.mscz` uploads against `dist/server` with fake converters: the 45 s timeout at 45.1 s, the 30 s CPU limit at 30.1 s and the 10 MB output limit (SIGXFSZ at 10,485,760 bytes). Each gave the clean "Unable to convert" error, left no child or temp directory and kept the server serving. Open notes, not findings: the timeout kills only the direct child, so a forking converter would leave a worker (the image runs `mscore4portable` from the extracted AppImage, which probably does not fork; unchecked), and a converter that hides SIGXFSZ and exits 0 leaves exactly 10 MiB, which passes the size check and shows a raw error ([agent proofs](phase-11-agent-proofs-2026-10-21.md#op-017-musescore-limits)) | Claude Code (acting) | When the converter or the Docker image's MuseScore changes |
 | PH-OPS-002 on the live host | Sitting 0 item 4 found `/api/*` open. The owner's phone on mobile data also got the app with no login (A1, 2026-10-20), so anyone who knows the hostname can reach the library. P0 stands | Owner (production) | Now: Cloudflare Access or `LUMAKEYS_WEB_ACCESS_TOKEN`, then repeat A1; slice 2 for the default |
 | PH-OPS-004 | Accepted risk: the database blobs in history hold no personal data, and a rewrite would break every clone for no privacy gain | Owner, decision 2 (taken 2026-10-20) | A database blob in history is found to hold personal data, or history is rewritten for another reason |
 | RT-010, PH-MUS-014, PH-MUS-015, GNOME switch, CPU on real hardware | Listening on speakers, a colour-vision review, GNOME's own reduced-motion switch and system-monitor numbers need this machine's desktop and a person | Owner, user tests B | After slices 6, 11, 16 and 18, and before release |
 | PH-DATA-005 Windows half | A real `%APPDATA%\luma-keys` profile update | Owner, sitting 2 | After slice 1 |
 | RT-006 residual | Edge's own browser zoom (Edge was checked with emulated zoom) | Owner, user tests D1 (optional) | After slice 11 |
 | RT-011, PH-MUS-001, PH-MUS-002, PH-MUS-004 | A physical MIDI keyboard: driver, OS path, Chrome's permission prompt, latency feel and a musician's check of loop labels | Owner, user tests C | After slices 4 and 5 |
-| 12 fixed findings not yet `verified` | Each one's owed proof is listed in the [remediation plan](phase-11-remediation-plan-2026-10-20.md#proof-owed-by-fixed-findings) | Claude Code (acting) and owner sittings | When the named sitting or slice 0 runs |
+| 7 fixed findings not yet `verified` | Each one's owed proof is listed in the [remediation plan](phase-11-remediation-plan-2026-10-20.md#proof-owed-by-fixed-findings) | Claude Code (acting) and owner sittings | When the named sitting or slice 0 runs. Four of the earlier 12 were verified on 2026-10-21 and PH-DATA-001 was reopened |
 | `CLAUDE.md` and `AGENTS.md` | Decision 3 keeps them gitignored. Until task D1 moves the architecture and runtime content into tracked documents, a fresh clone lacks what the audit cites | Claude Code (acting), task D1 | When wave 1 starts |
 
 ## Remediation Roadmap
 
-The [Phase 11 remediation plan](phase-11-remediation-plan-2026-10-20.md) maps all 47
-accepted findings to 19 vertical slices. They are listed here in risk order. Since the
+The [Phase 11 remediation plan](phase-11-remediation-plan-2026-10-20.md) maps all 51
+accepted findings to 21 vertical slices. They are listed here in risk order. Since the
 sittings, wave 1 runs slice 2 first, then 0, then 1 with 15, then 3; slice 18 is
-proposed for wave 1 and awaits the owner.
+proposed for wave 1 and awaits the owner. Slices 19 and 20, added on 2026-10-21, are in
+wave 2.
 
 | Slice | Findings | Outcome |
 |---:|---|---|
@@ -324,9 +356,9 @@ proposed for wave 1 and awaits the owner.
 | 5 | PH-MUS-010, PH-MUS-011 | MIDI device changes neither restart the song nor silently filter input |
 | 6 | PH-PAR-006, PH-MUS-007, PH-MUS-015 | Installed web packs play; WAV export has sound; desktop packs release naturally |
 | 7 | PH-PAR-007 | The web app loads without answering the MIDI prompt |
-| 8 | PH-UI-006 | Song deletion asks first |
+| 8 | PH-UI-006, PH-DATA-010 | Song deletion asks first; the reset dialog names everything it removes |
 | 9 | PH-MUS-006, PH-MUS-008 | Metronome and late first-tempo timing are correct |
-| 10 | PH-UI-010, PH-UI-013, PH-UI-017 | Dialogs own focus and Escape |
+| 10 | PH-UI-010, PH-UI-013, PH-UI-017, PH-UI-020 | Dialogs own focus and Escape; the load-error panel takes focus |
 | 11 | PH-UI-011, PH-UI-012, PH-UI-014 | Navigation focus is visible and the HUD fits at 150 to 200 % |
 | 12 | PH-MUS-013, PH-UI-018, PH-DATA-009 | Capstones measure timing; drill results and save failures are shown |
 | 13 | PH-PAR-004, PH-UI-009, PH-ARCH-004, PH-SEC-004 | Import outcomes are accurate and cheap |
@@ -335,6 +367,8 @@ proposed for wave 1 and awaits the owner.
 | 16 | PH-UI-015, PH-UI-016 | Colour-blind palette and grade contrast are legible |
 | 17 | PH-UI-005, PH-UI-007, PH-UI-008, PH-MUS-009, PH-PAR-005 | Small independent fixes |
 | 18 | PH-MUS-014 | A fresh profile plays at the volumes Settings shows |
+| 19 | PH-DATA-001 | Delete and restore failures name the retry; a reset retry does not report success while old files remain; a locked leftover does not stop startup |
+| 20 | PH-MUS-017 | Changing a track assignment keeps saved fingerings |
 
 ## Sign-Off
 

@@ -187,8 +187,26 @@ has the detail.
 | A3 | WF-008 | One-hand session from the overlay, six judged notes, hand assignment kept across relaunch and hand choice reset | lane F library item 10 | done: 6 judged notes and 0 misses; the assignment survives a relaunch and the hand choice resets |
 | A4 | RT-008, PH-UI-010, PH-UI-011, PH-UI-013, PH-UI-014, PH-UI-017 | Sitting 3 item 3's keyboard walk in Electron | lane E proposed item 3 | done: all five web results hold on the desktop; Edge and Firefox stay in sitting 3 |
 
+Proof runs, 2026-10-21. These were owed by `fixed` findings and by the sitting 0 residual.
+They need no person, so the agent ran them with throwaway profiles. The
+[agent proofs report](phase-11-agent-proofs-2026-10-21.md) has the detail.
+
+| # | Coverage row / finding | Check | Came from | Result |
+|---|---|---|---|---|
+| P1 | PH-PAR-003, DATA-002 | Hash-mismatched, unreadable, missing and no-source legacy rows leave no playable row, desktop and web | plan, proof owed | done: pass; PH-PAR-003 verified |
+| P2 | OP-017, MOD-013 | The MuseScore 45 s timeout, 30 s CPU limit and 10 MB output limit, through real uploads | sitting 0 residual | done: all three fired, clean error, no child or temp dir; residual closed |
+| P3 | PH-ARCH-001, WF-009 | A forced load failure in Edge, Firefox and Chromium | plan, proof owed | done: 78 of 78 checks in each; PH-ARCH-001 stays fixed (slice 0 test still owed); raised PH-UI-020 |
+| P4 | PH-ARCH-002, WF-018 | A forced setting-write failure in Electron, by IPC override and by SQLite trigger | plan, proof owed | done: 19 of 19 checks each; PH-ARCH-002 verified |
+| P5 | PH-MUS-003, WF-008 | Fingering save and re-open while hand and track controls vary, and a backup round trip | plan, proof owed | done: 24 of 24 checks; PH-MUS-003 verified; raised PH-MUS-017 |
+| P6 | PH-DATA-002, OP-009 | The reset confirmation copy against what reset removes, on both runtimes | plan, proof owed | done: packs removed on both; PH-DATA-002 verified; raised PH-DATA-010 |
+| P7 | PH-DATA-001, OP-005, OP-007, OP-009 | Forced filesystem failure during restore, delete and reset through the UI, with a safe retry | plan, proof owed | done: failed; rollback holds, the wording and the reset retry do not; PH-DATA-001 reopened at P2 |
+
 ## Returned To The Agent
 
+- 2026-10-21: the agent ran the proof each `fixed` finding still owed on this host and the
+  OP-017 limits residual, as P1 to P7 above
+  ([report](phase-11-agent-proofs-2026-10-21.md)). Nothing in them needs the owner. A
+  Windows `.exe` cross-build ran too and is held pending the owner's decision.
 - Date the batch was run: sittings 0, 1, 3 and 4 by the agent on 2026-10-20; A to E not yet.
 - Items the agent re-staged: sitting 1 item 1 (the capstone is locked on a fresh profile;
   the pause overlay's way out is "Back to Learn Hub"), item 3 (a reload does not pick up

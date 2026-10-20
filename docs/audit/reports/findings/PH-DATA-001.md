@@ -1,15 +1,15 @@
 # PH-DATA-001: Cross-Store Destructive Operations Commit SQLite Before Filesystem Work
 
 - Lane: persistence
-- Severity: P1
+- Severity: P2 (lowered from P1 on 2026-10-21; see the Challenge Record)
 - Confidence: high
-- Status: fixed
+- Status: accepted (reopened 2026-10-21: `fixed` to `reproduced` to `accepted`)
 - Owner: Codex (acting)
-- Challenger: Codex, fresh isolated-fixture challenge
-- Verifier: independent fresh-context verification agent; full runtime workflow proof pending
+- Challenger: Codex, fresh isolated-fixture challenge; Claude Code (acting), reopening challenge 2026-10-21
+- Verifier: TBD. The independent source review and SIGKILL proof stand. The agent proof run of 2026-10-20 to 21 failed re-verification (see Resolution).
 - Affected runtime: both
 - Coverage rows: DATA-001, DATA-002, DATA-013, OP-002, OP-005, OP-007, OP-009, OP-015
-- Related/duplicate findings: none
+- Related/duplicate findings: [PH-DATA-002](PH-DATA-002.md) (reset confirmation and its failure state); [PH-OPS-006](PH-OPS-006.md) (windowless Electron after a failed startup); [PH-DATA-010](PH-DATA-010.md) (reset confirmation copy)
 - First observed against: 808e6739e55b5186e8a9565f2c4e9267c4894a6c plus the chartered audit patch identity
 
 ## User Impact
@@ -21,6 +21,13 @@ remove the library record while leaving its file orphaned. Reset can erase datab
 state while returning an error because files were not reset. These are core library
 and recovery workflows with no durable rollback or repair record, making the issue
 P1.
+
+Reopened 2026-10-21, now P2. The data-loss path above is fixed: delete, bulk delete and
+restore roll back with byte-identical files and rows. What is left is the error wording
+without retry guidance on delete and restore, a reset retry that reports success while
+the old files sit in a hidden directory, and a startup that stops while that directory is
+locked. None of these loses data the user meant to keep, and the user can recover by
+restoring permissions and retrying, so P2.
 
 ## Expected Behavior Or Oracle
 
@@ -85,6 +92,11 @@ backup import has the same problem across multiple staged commits.
 
 ## Recommended Remediation Boundary
 
+Reopened 2026-10-21, slice 19: keep the existing rollback. Change only what the proof run
+found. Delete and restore errors name the retry and say the library is unchanged. A reset
+retry reports success only when the hidden `.midi-files-reset-<id>` directory is gone.
+Startup does not stop while that directory is locked. Original boundary:
+
 Introduce a narrowly scoped cross-store mutation protocol for library restore,
 song/bulk deletion, and full reset. It must preserve old records/files until all
 required filesystem work succeeds, or persist an explicit operation journal that
@@ -93,6 +105,15 @@ single-song staging semantics as the reference; do not replace SQLite transactio
 with broad best-effort error handling.
 
 ## Required Regression Proof
+
+Reopened 2026-10-21: before this finding returns to `fixed`, rerun
+`scripts/audit/browser/proof-data001-web.mjs` and
+`scripts/audit/electron/proof-data001-electron.mjs`. Both must show (a) delete and restore
+errors that name a retry and say the library is unchanged, with no raw OS error and no
+misleading `EISDIR`; (b) a reset that fails after the database commit is rolled back or
+reports the failure on every retry until the old files are gone; (c) a restart with the
+leftover directory locked comes up (see [PH-OPS-006](PH-OPS-006.md) for the window).
+The original proof below stays required.
 
 - Deterministic unit/integration proof: injected failure on every staged restore
   commit, delete, bulk delete, and reset leaves either the old complete state or an
@@ -116,12 +137,24 @@ with broad best-effort error handling.
 - Scope/severity changes: the finding was widened from backup restore to the shared
   database-before-filesystem operation pattern after delete/reset injection.
 - Deduplication decision: canonical persistence finding for these cross-store flows.
+- Reopening, 2026-10-21 (re-verification, `templates/reverification-record.md`): the agent proof run found criterion (a) of the required proof not met, and reset not rolled back after a database commit. The status went `fixed` to `reproduced` on the failed proof.
+- Lead challenge, 2026-10-21: the run showed the data-loss path is fixed (single delete, bulk delete and restore roll back byte-identically, and every retry succeeded once permissions were back, with `integrity_check` ok). The remaining defects are wording, a misleading success on a reset retry, and a startup stop while the leftover is locked. Severity lowered from P1 to P2.
+- Scope/severity change: P1 to P2. No new finding is created; the reopened ID keeps the remaining work (slice 19).
+- Conclusion and date: accepted at P2, 2026-10-21 (`reproduced` to `accepted` the same day).
 
 ## Resolution
 
 - Accepted rationale: direct fault injection shows an error response with committed,
   inconsistent durable state.
+- Reopened 2026-10-21: the agent proof run failed re-verification and the finding returned to `accepted` at P2, assigned to new remediation slice 19 "Destructive-operation failures" in wave 2 ([plan](../phase-11-remediation-plan-2026-10-20.md)). It had been `fixed` since Phase 9. Report: [agent proofs](../phase-11-agent-proofs-2026-10-21.md#ph-data-001-forced-filesystem-failures).
 - Fix branch/commit/issue: `d5839aa`, verified implementation in `d4ba395`.
 - Verification evidence: fault-injection tests, independent source review, and real SIGKILL delete/reset/restore recovery pass; complete Electron/web UI retry and full library integrity matrices remain in [Phase 10](../phase-10-verification-2026-08-07.md).
-- Residual risk: host-level filesystem failure messaging and full user-driven backup/reset recovery are not yet verified.
+  - Agent proof run 2026-10-20: forced filesystem failures through the UI on both runtimes, with `chmod` only, in throwaway dirs under `$TMPDIR`. Web: `dist/server/index.cjs` with Chromium 141.0.7390.37 (Playwright 1.56.1), Node v24.15.0. Electron: the existing `out/` build, Electron 30.5.1 (Chromium 124.0.6367.243). Faults: `midi-files` read-only; a locked directory standing where the 2nd song file goes (single delete, bulk delete of 3, restore of 4, so the first file moves and the second fails); an unreadable backup file (Electron); the data dir or userData read-only (reset); `midi-files` read-only at reset time; a locked sample-pack directory (Electron reset). After each failure the driver compared DB rows, the durable-operations table and the files on disk, then restored permissions and retried. Result: (b) and (c) pass, (a) fails.
+    - (b) Single delete, bulk delete and restore leave the old library intact: DB rows and files are identical before and after, and the 1st file is rolled back when the 2nd fails. One residue: when restore fails at staging (`midi-files` read-only), a `restore-library:prepared` row stays in `durable_operations` until the next restart, on both runtimes. It is harmless, because recovery rolls back nothing. Reset is not rolled back when the failure comes after the database commit (`midi-files` read-only, or a locked pack directory): songs, settings and results are wiped, the old MIDI files sit in a hidden `.midi-files-reset-<id>` dir (or `.instrument-sample-packs-reset-<id>` dir), and a `reset-user-data:db-committed` row records it. That is the recoverable record the finding asks for, but see the retry notes below. When the failure comes before the database commit (data dir or userData read-only), nothing changes.
+    - (c) With permissions restored, a retry of delete, bulk delete, restore and reset succeeded on both runtimes, and `integrity_check` was `ok` in every inventory. Restart recovery also worked once permissions were back: the stale reset directory was removed and the operation row cleared (Electron also cleared the pack backup dir).
+    - (a) Delete and restore show only the raw error, for example `Delete failed: EACCES: permission denied, mkdir '<path>/midi-files/.delete-<id>'` and `Import failed: Error invoking remote method 'library:import': Error: EACCES: ...` (Electron adds the IPC prefix). Neither names a retry or says the library is unchanged. A restore that fails on the 2nd file shows `Path is a directory: rm returned EISDIR`, which hides the real rename error. Reset shows `Delete failed. Some data may still be saved.` and a toast `Some data may still be saved. Try again before sharing this device.`, which does name a retry, and the confirmation dialog stays open for it. This criterion is not met for delete and restore, so the owed proof is not complete.
+    - New defects found, repro steps in the run report: (1) retrying reset while the fault is still there reports `User data deleted` and `All user data was deleted` although the old MIDI files remain in the hidden dir; (2) a restart while that dir is still locked does not come up: the web server exits with code 1 (`EACCES ... unlink`), and the Electron app stays running with no window (`UnhandledPromiseRejectionWarning` in the main process); (3) the stale `restore-library:prepared` row above.
+    - Not covered: a fault injected between two commits by timing rather than by a locked path; Windows and macOS; a real full disk. The Electron relaunch used the offscreen driver, not a display.
+    - Driver: `scripts/audit/browser/proof-data001-web.mjs` and `scripts/audit/electron/proof-data001-electron.mjs` (helpers `proof-data-common.mjs`, `proof-electron-harness.mjs`). Evidence: `/tmp/claude-1000/p11/PF/data/web001/` and `/tmp/claude-1000/p11/PF/data/el001/` (`run.out`, per-step JSON inventories, screenshots).
+- Residual risk: the three defects above are open. Harmless extra: a failed restore leaves a `restore-library:prepared` row in `durable_operations` until the next restart. Host-level failures by timing, Windows, macOS and a real full disk were not covered.
 - Revisit trigger: before backup/restore or destructive-data release sign-off.
