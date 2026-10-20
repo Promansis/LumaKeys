@@ -101,13 +101,33 @@ owner. Options, in `GameSession` and the curriculum, not in the UI:
 
 Whichever is chosen, early and late presses should be graded symmetrically.
 
+Owner decision, 2026-10-20: option 1. Capstones run in Play mode, so the song keeps
+moving and does not wait for each note. They still use the capstone's tempo (90 % for
+the novice tier). `App.startCapstone` (`src/renderer/App.tsx:1098-1118`) builds the
+session with `buildSessionConfig('luma-keys', …)` and `waitForInput: false`, keeping
+the capstone's `tempoMultiplier` and `handFilter`.
+
+The fix must also stop the player from undoing that mid-run. A capstone uses the
+normal game overlay, and the overlay's session toolbar can switch the mode back to
+Learning, change the hand or set a loop (`GameScreen.tsx:220-224, 229-245, 250-256, 299`). Its tempo
+control can change the tempo live (`:966-985`, `:1426`).
+`onLessonDrillFinished` then stores the accuracy whatever the final setup was
+(`App.tsx:1747-1752`). This was found by reading the code and was not run. Either
+hide those controls when the source is a capstone, or store the result only when the
+finished run still used the capstone's mode, tempo, hand and full range.
+
 ## Required Regression Proof
 
-- Deterministic unit/integration proof: `GameSession.test.ts` cases mirroring L2
-  and L3 that assert the agreed outcome (for example, L2 below the gate).
-- Electron proof: `scripts/audit/electron/lesson-pass.mjs` still passes when the
-  notes are played on time.
-- Manual proof: the owner confirms the chosen rule (sitting 1).
+- Deterministic unit/integration proof: rerun `scripts/audit/capstone-accuracy-probe.ts`
+  against the new capstone config. On-time presses (L1) must still pass. Presses 2 s
+  late (L2) must fall below the gate, as the Play-mode control P1 does today (0.8 %).
+  Add an `App` or curriculum test showing that `startCapstone` builds a Play-mode
+  config with `waitForInput: false`, and that a run whose mode, tempo, hand or range
+  was changed is not stored.
+- Electron proof: `scripts/audit/electron/lesson-pass.mjs`, with presses timed against
+  the moving clock instead of waiting for each note, still stores a passing result
+  and unlocks the next tier.
+- Manual proof: the owner plays the novice capstone once after the fix (sitting 1).
 - Broader regression command: `npx vitest run src/lib/game src/lib/learning`.
 
 ## Challenge Record
@@ -129,7 +149,7 @@ Whichever is chosen, early and late presses should be graded symmetrically.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending consolidation
+- Accepted/rejected rationale: accepted for fixing; the owner chose option 1 (Play-mode capstones) on 2026-10-20
 - Fix branch/commit/issue:
 - Verification evidence:
 - Residual risk:
