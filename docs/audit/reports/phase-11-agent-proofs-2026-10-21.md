@@ -21,8 +21,12 @@
 - No product source changed. The drivers are new files under `scripts/audit/`.
 - Failures were injected with `chmod`, Playwright `page.route`, an IPC handler override and
   SQLite triggers on throwaway databases. No source edit injected a fault.
-- A Windows `.exe` cross-build also ran. It is held pending the owner's decision and is not
-  part of this evidence.
+- A Windows `.exe` cross-build also ran, in a throwaway copy made with `git archive` of
+  `f8bacb1` (product source `6e549b6`). The sandbox blocked electron-builder's temporary
+  file, so the build ran with an `LD_PRELOAD` shim that sends `tmpfile()` to a directory
+  under `$TMPDIR`. The owner kept the build on 2026-10-21 for
+  [sitting 2](phase-11-user-tests.md#sitting-2-windows-machine-25-min--ready). It is not
+  evidence for any finding.
 
 Tools: Node v24.15.0, Playwright 1.56.1 with Chromium 141.0.7390.37 and Firefox 142.0.1,
 Edge 155.0.4283.62, Electron 30.5.1 (Chromium 124.0.6367.243) on the existing `out/` build,

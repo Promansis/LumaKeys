@@ -81,7 +81,8 @@ and web server from B. Write the keyboard's make and model in C1's Seen column.
 
 ### E. Windows
 
-Sitting 2 below, unchanged.
+Sitting 2 below. The agent has cross-built the `.exe`; copy it off this machine before
+a reboot.
 
 ## Sitting 0: Host terminal on this machine — done (agent)
 
@@ -120,12 +121,21 @@ person's eyes and ears continues as B1 to B6.
 
 ## Sitting 2: Windows machine (~25 min) — ready
 
-Needs a portable `.exe` built from the current source: `npm run package:win`. The
-executable in `dist/win-unpacked` dated 2026-08-07 is stale and still uses the old
-names, so it cannot be used. After building on this machine, run
-`npm rebuild better-sqlite3` before starting the web server again. Alternatively, ask the
-agent to cross-build the `.exe` in a throwaway copy, which leaves the repository's builds
-alone.
+Use the portable `.exe` the agent cross-built on 2026-10-21 from the current source
+(`f8bacb1`, product source `6e549b6`) in a throwaway copy. The owner kept it the same day.
+
+- Path on this machine: `/tmp/claude-1000/p11/PF/winbuild/src/dist/LumaKeys-0.1.0-portable.exe`.
+  It is gone after a reboot, so copy it somewhere permanent first. If it is gone, ask the
+  agent to rebuild it.
+- Size 395,125,212 bytes; SHA-256
+  `bbe3604bd01cb4923eec7ccc4ca4783de7a8b1a7904b4b0859f9f45eafa6f372`. On Windows, check it
+  with `certutil -hashfile LumaKeys-0.1.0-portable.exe SHA256`.
+- It is unsigned and has no embedded version details (built without wine), so Windows
+  SmartScreen warns on first launch: More info, Run anyway. It is stored uncompressed, so
+  it is larger than a release build.
+
+The executable in `dist/win-unpacked` dated 2026-08-07 is stale and still uses the old
+names, so do not use it.
 
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
