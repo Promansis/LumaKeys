@@ -1,7 +1,15 @@
 import { spawn } from 'node:child_process';
-import { chromium } from 'playwright';
+import * as playwright from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
+
+// BROWSER picks the engine (chromium, firefox or webkit; default chromium). BROWSER_PATH
+// points it at another executable of that engine, for example an unpacked Edge.
+export const browserName = process.env.BROWSER ?? 'chromium';
+export function launchBrowser(extra = {}) {
+  const exe = process.env.BROWSER_PATH;
+  return playwright[browserName].launch({ ...(exe ? { executablePath: exe } : {}), ...extra });
+}
 
 export async function withServer(dataDir, fn, opts = {}) {
   fs.mkdirSync(dataDir, { recursive: true });
@@ -15,8 +23,8 @@ export async function withServer(dataDir, fn, opts = {}) {
     try { const r = await fetch(base + '/'); if (r.ok) break; } catch {}
     await new Promise((r) => setTimeout(r, 100));
   }
-  const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, acceptDownloads: true });
+  const browser = await launchBrowser(opts.launch);
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, acceptDownloads: true, ...(opts.context ?? {}) });
   const page = await ctx.newPage();
   page.setDefaultTimeout(opts.timeout ?? 10000);
   const errors = [];
@@ -32,7 +40,7 @@ export async function withServer(dataDir, fn, opts = {}) {
     return s2;
   };
   try {
-    await fn({ page, ctx, base, errors, get srv() { return srv; }, restart, dataDir });
+    await fn({ page, ctx, browser, base, errors, get srv() { return srv; }, restart, dataDir });
   } finally {
     await browser.close();
     srv.kill('SIGTERM');

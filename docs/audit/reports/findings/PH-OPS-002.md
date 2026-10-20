@@ -1,9 +1,9 @@
 # PH-OPS-002: Default web deployment exposes `/api/*` with no app-level gate
 
 - Lane: OPS
-- Severity: P2
-- Confidence: high that the default is open; unknown whether the live host is
-- Status: suspected
+- Severity: P0 (raised from P2 on 2026-10-20 by sitting 0 item 4; see the challenge record)
+- Confidence: high that the default is open; high that the live host answers unauthenticated `/api/*` calls from this host's address; not yet checked from another network
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -19,8 +19,12 @@
 README says to put the hostname behind Cloudflare Access first, so the intended
 posture is "Access or token." If Access is misconfigured, expires, or the tunnel is
 pointed at the service before Access is applied, the whole library (import, delete,
-reset, export) is open to the internet with no second line of defense. The owner
-has not yet confirmed that Access gates `/api/*` on the live hostname.
+reset, export) is open to the internet with no second line of defense.
+
+On 2026-10-20 the live hostname served the app and answered unauthenticated `/api/*`
+calls with no Cloudflare login (sitting 0 item 4, below). Unless an Access policy lets
+only this host's own address through, anyone who knows the hostname can import, delete,
+reset or export the owner's library.
 
 ## Expected Behavior Or Oracle
 
@@ -35,14 +39,24 @@ reachable without Access.
 ### Environment
 
 - Commit/patch identity: source `6e549b6`
-- OS/runtime/browser: static analysis; live hostname not probed by the agent (owner-controlled infrastructure)
+- OS/runtime/browser: static analysis; live hostname probed with `curl` from this host on 2026-10-20 (sitting 0 item 4)
 
 ### Reproduction
 
 1. `docker-compose.yml`: token line is a comment.
 2. `src/server/webSecurity.ts` `createApiAccessGate`: `if (!expectedSecret) { await next(); return; }`.
 3. Probe with no token configured would show `/api/access` 200 (the probe's WARN branch); the 2026-10-19 probe ran with a token and showed 401, which is the gated behavior.
-4. Live confirmation is staged in [user batch sitting 0](../phase-11-user-tests.md) item 4.
+4. Live check, [sitting 0](../phase-11-owner-sittings-2026-10-20.md#sitting-0-docker-image-and-live-host)
+   item 4, 2026-10-20 03:12 UTC, run by the agent at the owner's request. The hostname
+   `piano.a173d20e27.com` maps to `http://localhost:3001` in `/etc/cloudflared/config.yml`
+   and has no `/etc/hosts` entry. Unauthenticated requests, bodies discarded:
+   - `GET /`: 200, no redirect
+   - `POST /api/bridge/getAllSongs`: 200
+   - `GET /api/access`: 200
+   - `POST /api/midi/upload` with no file: 500 from the app
+   - `POST /api/library/import` with no file: 400 from the app
+
+   The item expects a redirect to the Cloudflare login and 302 or 403 from `/api/*`.
 
 ### Artifacts
 
@@ -77,11 +91,13 @@ with a placeholder that the server rejects until changed. `src/server/index.ts`,
 - Deduplication decision: distinct from PH-SEC-002.
 - Challenger conclusion and date: suspected, 2026-10-19
 - Consolidation challenge, 2026-10-20: kept `suspected`. Evidence gap: whether the live host gates `/api/*` through Cloudflare Access is unknown; the default is open by source and probe. Next action: the owner's sitting 0 item 4 (a private-window visit and an unauthenticated POST against the live hostname).
+- Sitting 0 challenge, 2026-10-20: accepted and raised to P0 under the rule above, because the live host answered every unauthenticated request with the app (Reproduction step 4). Alternative not excluded: an Access policy that lets this host's own public address through. The owner's private-window check from this machine would have had the same limit. If a request from another network (for example a phone on mobile data) gets the Access login, the exposure is limited to this host's address and the severity returns to P2, because the shipped default stays open by source. A follow-up request for response headers only was refused by the agent's permission layer, and the agent sent no further requests to the live host.
 
 ## Resolution
 
-- Accepted/rejected rationale: kept `suspected` at the Phase 11 consolidation on 2026-10-20 until the evidence gap below closes.
+- Accepted/rejected rationale: kept `suspected` at the Phase 11 consolidation on 2026-10-20; accepted at P0 the same day after sitting 0 item 4. Under owner decision 4's gate, slice 2 moves to the front of wave 1 ([Owner Selection](../phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20)).
+- Immediate mitigation, outside any slice and the owner's to make (production infrastructure): put a Cloudflare Access application in front of the hostname, or set `LUMAKEYS_WEB_ACCESS_TOKEN` and recreate the container. The agent changed nothing in production.
 - Fix branch/commit/issue: none.
 - Verification evidence: none yet.
 - Residual risk: as stated in User Impact.
-- Revisit trigger: after sitting 0, or before any change to the compose defaults, the tunnel or the access gate.
+- Revisit trigger: the owner's check from another network; any change to the compose defaults, the tunnel or the access gate.
