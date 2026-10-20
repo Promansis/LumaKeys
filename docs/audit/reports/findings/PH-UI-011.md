@@ -7,7 +7,7 @@
 - Owner: remediation owner TBD
 - Challenger: Claude Code (acting), pixel comparison and custom-property probe
 - Verifier: independent verifier recommended
-- Affected runtime: both (CSS); web proven, Electron owed (sitting 1)
+- Affected runtime: both (CSS; web and headless Electron proven)
 - Coverage rows: RT-008, WF-024, MOD-007
 - Related/duplicate findings: none. PH-UI-001/004 concern dialogs, not the navigation bar.
 - First observed against: `main` at `6e549b6`
@@ -72,7 +72,7 @@ Give the top bar its own scoped styling (define the variables on `.app-topbar` o
 ## Required Regression Proof
 
 - Deterministic unit/integration proof: jsdom cannot compute the variables; keep as runtime proof.
-- Electron proof: sitting 1 keyboard walk of one screen with the top bar.
+- Electron proof: reproduced headless with `scripts/audit/electron/keyboard-walk.mjs` (agent item A4, 2026-10-20); after the fix the same driver must show the corrected behaviour.
 - Web proof: re-run `keyboard-focus-matrix.mjs PART=destinations` and `focus-hud-nav-visual.mjs`; expect a strong indicator on every nav stop and a pixel diff far above the 1 px shift.
 - Data/recovery proof: none.
 - Manual hardware/UI proof: none.
@@ -80,7 +80,7 @@ Give the top bar its own scoped styling (define the variables on `.app-topbar` o
 
 ## Challenge Record
 
-- Independent reproduction attempt: two driver variants (computed-style walk with transitions disabled; screenshots with transitions enabled and a 450 ms wait) gave the same result.
+- Independent reproduction attempt: two driver variants (computed-style walk with transitions disabled; screenshots with transitions enabled and a 450 ms wait) gave the same result. Reproduced in headless Electron 30.5.1 on 2026-10-20 (agent item A4, [Electron runtime report](../phase-11-electron-runtime-2026-10-20.md#agent-items-a1-to-a4)): the eight top-bar buttons on Progress gained no outline, box shadow or border on focus (a pixel diff shows only the 1 px label shift), and the current page is marked only by `aria-current`.
 - Alternative explanations tested: transition-disabling hid a glow (ruled out: re-run with `ANIM=1`, same numbers); the indicator is on a parent element (ruled out by the screenshot); hover state masking (mouse never moved from the origin).
 - Scope/severity changes: held at P2 (AA failure, widespread, not task-blocking).
 - Deduplication decision: new; shares the surface but not the cause of PH-UI-001.

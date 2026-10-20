@@ -71,9 +71,9 @@ errors described under WF-019, and Electron's insecure-CSP warning (observation 
 | WF-004 | pass with defect | Two valid files: "Imported 2 songs." Duplicate: "1 already in library." Empty, corrupt and `.txt` files: "3 failed (empty: undefined; corrupt: Cannot read properties of undefined (reading 'forEach'); notes.txt: undefined)" ([PH-PAR-004](findings/PH-PAR-004.md)). Cancel: "Import canceled." Two content-addressed files on disk | `workflows.mjs` |
 | WF-005 | pass with defect | Folder import recurses into subfolders and accepts `.MIDI`: "3 songs imported, 1 already in library, 1 failed (bad: …forEach)". It does not follow a symlink loop. Missing folder: "No MIDI files found in that folder." Cancel: "Import canceled." | `workflows.mjs` |
 | WF-006 | pass | Missing file: the library card gives no hint. Play shows "PRACTICE UNAVAILABLE" with the raw IPC error (observation 1) and Menu, Retry, Main Menu. Reattach with another song's file: "1 failed (minuet-in-g: Selected MIDI does not match this song.)". The right file: "Reattached 1 MIDI file.", after which the song loads. Cancel: "Reattach canceled." | `backup-reset-restore.mjs` |
-| WF-007 | pass | Folder, tags, favourite and playlist set through the preload bridge all survive a relaunch. The library screens themselves were proven on the web (lane F library report) | `ipc-workflows.mjs` |
-| WF-008 | pass | `trackAssignments` changed from `{"track-0":"right","track-1":"left"}` to the reverse and survives a relaunch | `ipc-workflows.mjs` |
-| WF-009 | pass with defect | Learning: four computer-keyboard notes score 375 (3 perfect, 1 good). Play: 325 (2 perfect, 1 good, 1 ok). [PH-MUS-005](findings/PH-MUS-005.md) reproduces exactly: after Escape and Resume, focus is on the Menu button and 30 D4 presses score nothing; after one canvas click D4 scores | `workflows.mjs` |
+| WF-007 | pass with defect | Folder, tags, favourite and playlist set through the preload bridge all survive a relaunch. Item A2 below drives the library screen itself: a folder move survives a relaunch, and bulk Delete removes songs with no prompt ([PH-UI-006](findings/PH-UI-006.md)) | `ipc-workflows.mjs`, `library-one-hand.mjs` |
+| WF-008 | pass | `trackAssignments` changed from `{"track-0":"right","track-1":"left"}` to the reverse and survives a relaunch. Item A3 below: a one-hand Learn session judges exactly the six melody notes, and a Melody reassignment made in the overlay survives a relaunch | `ipc-workflows.mjs`, `library-one-hand.mjs` |
+| WF-009 | pass with defect | Learning: four computer-keyboard notes score 375 (3 perfect, 1 good). Play: 325 (2 perfect, 1 good, 1 ok). [PH-MUS-005](findings/PH-MUS-005.md) reproduces exactly: after Escape and Resume, focus is on the Menu button and 30 D4 presses score nothing; after one canvas click D4 scores. Item A1 below: a tempo change keeps the judged state and a structural change asks first ([PH-MUS-001](findings/PH-MUS-001.md) stays fixed) | `workflows.mjs`, `practice-proofs.mjs` |
 | WF-010 | pass | Both runs reach Results (93.8 % and 81.3 % accuracy). The stored rows are `["luma-keys",325,2,1,1,0]` and `["learning",375,3,1,0,0]` | `workflows.mjs` |
 | WF-011 | pass with defect | Two lesson tips give "2 / 3 STEPS", and that survives a relaunch. `loadCurriculumMidi('ode-to-joy.mid')` returns 614 bytes, matching the file on disk. `'../../package.json'` is reduced to `....package.json` and fails with ENOENT inside `public/curriculum-midis`. Lesson 1's step 3 drill played on time (eight C4 presses timed from the end of the count-in) scores eight Perfects and returns to the lesson at "3 / 3 STEPS"; "Complete Lesson" then stores the lesson. With all six tier-1 lessons stored and gating on, the first Beginner lesson is locked. The Ode to Joy capstone (learning mode, right hand, 90 % tempo) played note by note judges all 62 notes, stores `capstoneResults {"novice":100}`, returns to the hub and unlocks the first Beginner lesson, which is still unlocked after a relaunch. A C4 pressed before Space or during the count-in scores the drill's first note ([PH-MUS-012](findings/PH-MUS-012.md)) | `ipc-workflows.mjs`, `lesson-pass.mjs`, `paused-input.mjs` |
 | WF-012 | pass | Chord quiz saved as `["quiz",8,10]` | `ipc-workflows.mjs` |
@@ -88,6 +88,7 @@ errors described under WF-019, and Electron's insecure-CSP warning (observation 
 | WF-022 | pass | Delete all data leaves 0 songs, an empty `midi-files`, and empty localStorage; relaunch shows the setup guide again | `backup-reset-restore.mjs` |
 | WF-023 | pass | SIGKILL right after a result write and a settings write, then relaunch: 3 songs, 1 result, setting `"0.42"`; `PRAGMA integrity_check` ok; journal mode WAL | `backup-reset-restore.mjs` |
 | WF-024 | pass | All nine main-menu destinations return to the main menu. Keyboard Setup has no back button and returns through the top-nav "Main" | `workflows.mjs` |
+| RT-008 | reproduced defects | Item A4 below: the lane E keyboard walk gives the web's results on the desktop ([PH-UI-010](findings/PH-UI-010.md), [PH-UI-011](findings/PH-UI-011.md), [PH-UI-013](findings/PH-UI-013.md), [PH-UI-014](findings/PH-UI-014.md), [PH-UI-017](findings/PH-UI-017.md)) | `keyboard-walk.mjs` |
 | MOD-014 | reproduced defects | A Soundboard credit link opens an in-app window on the remote page. Inside it `window.appBridge` and `require` are undefined, `opener` is null, and the window is sandboxed, but it can navigate freely ([PH-SEC-005](findings/PH-SEC-005.md), now reproduced). The main window is sandboxed by Electron's default (no explicit `sandbox` option) with context isolation on, and runs with no CSP ([PH-SEC-003](findings/PH-SEC-003.md), scope widened) | `window-open.mjs`, `setup-guide-choices.mjs` |
 
 Not run on the desktop, and why:
@@ -98,6 +99,44 @@ Not run on the desktop, and why:
   sitting 0.
 - WF-026: the main-menu video and reduced-motion behaviour are covered on the web by
   lane E. The OS reduced-motion setting is in sitting 1.
+
+## Agent Items A1 To A4
+
+These four were owner items until the harness existed. The user-test batch lists them as
+agent items A1 to A4. They ran later on 2026-10-20, on the same `out/` build and harness,
+each on a fresh profile.
+
+| Item | Rows and findings | Desktop result | Driver |
+|---|---|---|---|
+| A1 | WF-008, WF-009, PH-MUS-001, PH-MUS-003 | Matches the web run value for value. Learning mode, four notes judged: score 400, combo 4. Tempo set to 75 % in the overlay keeps 400 and combo 4, and the next note makes 500. Left Hand asks "Changing the session setup restarts this run. Continue?", and Cancel keeps 500 in Learning mode. The run then finishes at 75 %. Results and the saved row agree: Learning, 1398, 10 perfect, 2 good, 4 ok, 0 misses, tempo 0.75, max combo 16, plus five measure-history rows. A max combo of 16 over 16 notes shows the combo carried through the tempo change. With measure 2 looped, the loop's first note is E4 (`track-0-note-2`, "current 3"). Choosing 5 stores `{"noteId":"track-0-note-2","noteIndex":-1,"finger":5}` through IPC. After Clear Loop the song's first note, C4, still reads "current 3" and E4 reads "current 5". PH-MUS-001 and PH-MUS-003 stay fixed on the desktop | `practice-proofs.mjs` |
+| A2 | WF-007, PH-UI-006 | Four songs imported through Upload MIDI. A sidebar folder "Marches" and the bulk bar's Move to Folder take Alpha Waltz and Bravo March. After a relaunch the folder view lists exactly those two, and their cards read "Marches". Bulk Delete on the other two removes both songs and both `.mid` files at once, with the status "Deleted 2 songs from the library." No prompt appears at any layer: no `window.confirm`, no main-process message box and no in-page dialog. PH-UI-006 reproduces on the desktop | `library-one-hand.mjs` |
+| A3 | WF-008 | "Two Hand Study" imports with Melody on the right hand and Accompaniment on the left. Learn, with Right Hand chosen in the overlay: each of the six melody keys scores, and the run ends with 6 judged notes and 0 misses (475: 3 perfect, 1 good, 2 ok). The hand choice is already back to Both Hands at the next session, before any relaunch. Melody set to Left Hand is stored as `{"track-0":"left","track-1":"left"}`. After a relaunch it still reads Left Hand, and the hand choice reads Both Hands | `library-one-hand.mjs` |
+| A4 | RT-008, PH-UI-010, PH-UI-011, PH-UI-013, PH-UI-014, PH-UI-017 | Every web result holds on the desktop. (a) Progress: all eight top-bar buttons match `:focus-visible` but gain no outline, box shadow or border. A pixel diff of the strip with and without focus changes only the focused label, 282 px from its 1 px shift. The current page is marked only by `aria-current="page"`, with nothing visible (PH-UI-011). (b) Enter on Calibrate opens the dialog but leaves focus on the Calibrate button outside it. Escape closes the dialog and leaves Settings for the main menu (PH-UI-010). (c) Soundboard: the first Escape opens the menu, the second closes it, and the third goes to the main menu (PH-UI-013). (d) Free Play: 83 Tab stops before wrapping, 72 of them invisible and 71 of those inside `aria-hidden` popouts, the same counts as the web (PH-UI-014). (e) Clear Learning Progress opens with focus on Cancel. Escape closes it and drops focus to the page body, although the trigger is still connected. The next Tab lands on the top bar's "Main" (PH-UI-017) | `keyboard-walk.mjs` |
+
+Method notes:
+
+- `practice-proofs.mjs` replaces `window.confirm` in the page with a recorder that
+  answers Cancel, just as the web driver dismissed the browser dialog. The native confirm
+  box is not exercised. Seeing it is part of sitting 1's real-window checks. Two earlier
+  attempts failed on the driver's own bugs:
+  - Escape was pressed while the overlay was already open.
+  - The score pattern did not allow the thousands separator ("1,398"). In that
+    attempt the saved row was Learning, 1481, 16 judged, 0 misses, tempo 0.75, max
+    combo 16.
+- `library-one-hand.mjs` failed twice before the passing run, both times on its own
+  locators:
+  - First attempt: a sidebar locator went stale across the relaunch.
+  - Second attempt: a click hit the folder row instead of the folder button. In that
+    attempt the song card was also not found after the second relaunch. This did not
+    happen again, and the cause was not found. That attempt's one-hand run scored 500
+    (4 perfect, 2 ok, 0 misses).
+- `keyboard-walk.mjs` reloads the renderer before each part to reach the main menu.
+  `document.hasFocus()` is true in the offscreen window. The driver ran twice; the second
+  run only removed duplicate top-bar stops from its count. The first run once logged
+  "[AudioEngine] Failed to load sampler: TypeError: Failed to fetch"; the recorded second
+  run did not, and neither did the drivers that do not reload. The cause was not
+  investigated. Both runs log the input warning 'The specified value "off" cannot be
+  parsed', which the web drivers also filter out.
 
 ## Web Cross-Check
 
@@ -158,6 +197,9 @@ Raw output stays in `$TMPDIR/p11/EL2/` and is not committed.
 | `paused-input.mjs` | `paused.out`, `paused.2.out` | `e208116e…e4b821ae` (both) |
 | `../paused-input-probe.ts` (engine, `node --import tsx`) | `paused-probe.out` | `0b4e581e…58aee527` |
 | `../capstone-accuracy-probe.ts` (engine, [PH-MUS-013](findings/PH-MUS-013.md)) | `capstone-probe.1.out`, `.2.out` | `3250f768…469166c5` (both) |
+| `practice-proofs.mjs` (A1) | `a1.out` | `df52b027…7f996dcf` |
+| `library-one-hand.mjs` (A2, A3) | `a23.out` | `29c9c067…293a5570` |
+| `keyboard-walk.mjs` (A4) | `a4.out` | `40f9ffbf…5c6a1081` |
 
 ## Effect On The User Batch
 
@@ -169,6 +211,9 @@ These runs supersede the following owner items:
   1 and 2, except anything that needs real audio or a Windows path.
 - The capstone pass for WF-011, which no sitting had to carry because the drill and
   capstone run headless.
+- Agent items A1 to A4: lane C proposed item 8, lane F library items 9 and 10, and the
+  Electron half of lane E proposed item 3. Edge and Firefox still need the owner
+  (sitting 3 item 3).
 
 Items that still need a person are listed in
 [phase-11-user-tests.md](phase-11-user-tests.md).

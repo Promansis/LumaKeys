@@ -7,7 +7,7 @@
 - Owner: remediation owner TBD
 - Challenger: Claude Code (acting), mouse control and a second page per symptom (see Challenge Record)
 - Verifier: independent verifier recommended
-- Affected runtime: both (renderer code, no runtime branch); web proven, Electron owed (sitting 1)
+- Affected runtime: both (renderer code, no runtime branch; web and headless Electron proven)
 - Coverage rows: RT-008, WF-018, MOD-005
 - Related/duplicate findings: same defect class as PH-UI-001 (focus containment) and PH-UI-004 (Escape also navigates). Their Phase 9 fixes covered the Settings confirmation dialog and the immersive session menus, not this dialog. Lead may fold this into a reopened PH-UI-001/004 or keep it separate.
 - First observed against: `main` at `6e549b6` (audit-only commits after it)
@@ -76,7 +76,7 @@ Use `useModalFocusTrap` for the dialog (focus first control, contain Tab, restor
 ## Required Regression Proof
 
 - Deterministic unit/integration proof: Testing Library test in `SettingsScreen.test.tsx` or a new `LatencyWizard.test.tsx`: open, assert focus inside, Escape closes only the dialog and the settings screen stays, Enter on the close button closes, Enter on Apply applies.
-- Electron proof: sitting 1, same keyboard sequence.
+- Electron proof: reproduced headless with `scripts/audit/electron/keyboard-walk.mjs` (agent item A4, 2026-10-20); after the fix the same driver must show the corrected behaviour.
 - Web proof: re-run `latency-wizard-keyboard.mjs`.
 - Data/recovery proof: Apply by keyboard persists `audio.latencyCompMs`.
 - Manual hardware/UI proof: audible click calibration is a sitting 1 or 4 item and is not needed for this defect.
@@ -84,7 +84,7 @@ Use `useModalFocusTrap` for the dialog (focus first control, contain Tab, restor
 
 ## Challenge Record
 
-- Independent reproduction attempt: run twice (the dedicated driver and the matrix driver `keyboard-focus-matrix.mjs` part `dialogs`), each from a fresh page; Escape navigated away both times; focus escape measured as 14 of 14 stops outside the dialog in the matrix run.
+- Independent reproduction attempt: run twice (the dedicated driver and the matrix driver `keyboard-focus-matrix.mjs` part `dialogs`), each from a fresh page; Escape navigated away both times; focus escape measured as 14 of 14 stops outside the dialog in the matrix run. Reproduced in headless Electron 30.5.1 on 2026-10-20 (agent item A4, [Electron runtime report](../phase-11-electron-runtime-2026-10-20.md#agent-items-a1-to-a4)): Enter on Calibrate left focus on the Calibrate button outside the dialog, and Escape closed the dialog and left Settings for the main menu.
 - Alternative explanations tested: driver error (Enter pressed on the wrong element) ruled out by logging the focused element before each press; broken Apply ruled out by the mouse control; audio dependence ruled out because the dialog state machine runs without sound.
 - Scope/severity changes: held at P2 because the setting is optional and a pointer workaround exists. A reviewer could argue P3.
 - Deduplication decision: not a duplicate of PH-UI-001 or PH-UI-004 (different component; both fixes verified on their own surfaces in this phase).

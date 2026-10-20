@@ -7,7 +7,7 @@
 - Owner: remediation owner TBD
 - Challenger: Claude Code (acting), keyboard and focus() trace
 - Verifier: independent verifier recommended
-- Affected runtime: both (renderer); web proven
+- Affected runtime: both (renderer; web and headless Electron proven)
 - Coverage rows: RT-008, WF-018, WF-021, WF-022, MOD-005
 - Related/duplicate findings: PH-UI-001 and PH-UI-004 are verified for this dialog (containment and Escape hold); this is the third part of the Phase 5 modal oracle, "restore focus on close".
 - First observed against: `main` at `6e549b6`
@@ -55,7 +55,7 @@ Record the trigger once on mount (empty dependency list, callback through a ref,
 ## Required Regression Proof
 
 - Deterministic unit/integration proof: after Cancel and after Escape, `document.activeElement` is the trigger button (extend "keeps keyboard focus inside confirmation dialogs").
-- Electron proof: sitting 1.
+- Electron proof: reproduced headless with `scripts/audit/electron/keyboard-walk.mjs` (agent item A4, 2026-10-20); after the fix the same driver must show the corrected behaviour.
 - Web proof: re-run the driver.
 - Data/recovery proof: none.
 - Manual hardware/UI proof: none.
@@ -63,7 +63,7 @@ Record the trigger once on mount (empty dependency list, callback through a ref,
 
 ## Challenge Record
 
-- Independent reproduction attempt: two drivers, three dialogs (two confirmation dialogs plus the repeat).
+- Independent reproduction attempt: two drivers, three dialogs (two confirmation dialogs plus the repeat). Reproduced in headless Electron 30.5.1 on 2026-10-20 (agent item A4, [Electron runtime report](../phase-11-electron-runtime-2026-10-20.md#agent-items-a1-to-a4)): Escape closed the Clear Learning Progress confirmation with focus on the page body while the trigger was still connected, and the next Tab landed on the top bar's "Main".
 - Alternative explanations tested: trigger removed from the DOM (ruled out: `isConnected` true); focus restored then stolen (the trace shows only a `focus(BODY)` call on close).
 - Scope/severity changes: held at P3.
 - Deduplication decision: part of the same oracle as PH-UI-001 but a separate defect with its own root cause.

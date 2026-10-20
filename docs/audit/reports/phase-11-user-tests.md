@@ -102,7 +102,7 @@ On any machine that has both browsers. Start a throwaway web server on this mach
 |---|---|---|---|---|---|
 | 1 | RT-002 | In Edge, then Firefox: Library, upload any `.mid` (for example `scripts/audit/fixtures/midi/pmus-16.mid`), start it | The game canvas renders in both | | |
 | 2 | RT-006, PH-UI-002, PH-UI-012 | In both: zoom to 150 and 200 percent, click every Settings tab; at 150 percent open Free Play, press Tab once, click SETTINGS | Every tab opens. Today: the HUD collision at 150 percent | | |
-| 3 | RT-008, PH-UI-010, PH-UI-011, PH-UI-013, PH-UI-014, PH-UI-017 | Keyboard only, in both: (a) Progress, Tab through the top bar. (b) Settings, Audio, Calibrate, press Escape. (c) Soundboard: press Escape three times. (d) Free Play: Tab through the page, counting stops you cannot see. (e) Settings, Practice, open Clear Learning Progress, press Escape, then Tab | Today (Chrome): (a) no visible focus on the top bar; (b) the dialog closes and Settings is left; (c) the third press leaves to the main menu; (d) most stops invisible; (e) focus restarts from the page top. Record which hold in each browser | | |
+| 3 | RT-008, PH-UI-010, PH-UI-011, PH-UI-013, PH-UI-014, PH-UI-017 | Keyboard only, in both: (a) Progress, Tab through the top bar. (b) Settings, Audio, Calibrate, press Escape. (c) Soundboard: press Escape three times. (d) Free Play: Tab through the page, counting stops you cannot see. (e) Settings, Practice, open Clear Learning Progress, press Escape, then Tab | Today (Chrome and, from agent item A4, Electron): (a) no visible focus on the top bar; (b) the dialog closes and Settings is left; (c) the third press leaves to the main menu; (d) most stops invisible; (e) focus restarts from the page top. Record which hold in each browser | | |
 | 4 | WF-002, RT-011 | Firefox: open the app and Settings, Input | A clear message or a permission prompt; the computer keyboard still plays | | |
 | 5 | BR-008, MOD-009, PH-PAR-002 | In both: Library, "Upload MIDI / MSCZ", press Cancel in the file dialog; then press it again and pick a `.mid` | After Cancel the button returns from "Importing..." within 1 s and is enabled; the second try imports the song | | |
 
@@ -132,15 +132,17 @@ and 3 in Chrome at the throwaway web server.
 
 ## Moved To The Agent (headless Electron)
 
-These were owner items. They need the desktop app but no person, so the agent runs
-them with `scripts/audit/electron/` before consolidation.
+These were owner items. They need the desktop app but no person, so the agent ran them
+with `scripts/audit/electron/` on 2026-10-20. The
+[Electron runtime report](phase-11-electron-runtime-2026-10-20.md#agent-items-a1-to-a4)
+has the detail.
 
-| # | Coverage row / finding | Check | Came from |
-|---|---|---|---|
-| A1 | WF-008, WF-009, PH-MUS-001, PH-MUS-003 | Tempo change keeps judged notes; a structural change asks first; a fingering set inside a loop binds to the right note through IPC | lane C proposed item 8 |
-| A2 | WF-007, PH-UI-006 | Library UI: move ticked songs into a folder, relaunch, still there; bulk delete removes them with no confirmation | lane F library item 9 |
-| A3 | WF-008 | One-hand session from the overlay, six judged notes, hand assignment kept across relaunch and hand choice reset | lane F library item 10 |
-| A4 | RT-008, PH-UI-010, PH-UI-011, PH-UI-013, PH-UI-014, PH-UI-017 | Sitting 3 item 3's keyboard walk in Electron | lane E proposed item 3 |
+| # | Coverage row / finding | Check | Came from | Result |
+|---|---|---|---|---|
+| A1 | WF-008, WF-009, PH-MUS-001, PH-MUS-003 | Tempo change keeps judged notes; a structural change asks first; a fingering set inside a loop binds to the right note through IPC | lane C proposed item 8 | done: same values as the web; PH-MUS-001 and PH-MUS-003 stay fixed |
+| A2 | WF-007, PH-UI-006 | Library UI: move ticked songs into a folder, relaunch, still there; bulk delete removes them with no confirmation | lane F library item 9 | done: the move survives a relaunch; PH-UI-006 reproduces with no prompt at any layer |
+| A3 | WF-008 | One-hand session from the overlay, six judged notes, hand assignment kept across relaunch and hand choice reset | lane F library item 10 | done: 6 judged notes and 0 misses; the assignment survives a relaunch and the hand choice resets |
+| A4 | RT-008, PH-UI-010, PH-UI-011, PH-UI-013, PH-UI-014, PH-UI-017 | Sitting 3 item 3's keyboard walk in Electron | lane E proposed item 3 | done: all five web results hold on the desktop; Edge and Firefox stay in sitting 3 |
 
 ## Returned To The Agent
 

@@ -7,7 +7,7 @@
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-19
 - Verifier: TBD
-- Affected runtime: both (same renderer code; reproduced on web)
+- Affected runtime: both (same renderer code; web and headless Electron proven)
 - Coverage rows: WF-007
 - Related/duplicate findings: none (PH-UI-004 covers the Settings reset dialog, not the library)
 - First observed against: `main` at source identity `6e549b6`, Phase 11 lane F (FB), 2026-10-19
@@ -74,7 +74,7 @@ removed. Folder and playlist deletes do not touch songs and can stay immediate.
 ## Required Regression Proof
 
 - Deterministic unit/integration proof: update the `LibraryScreen.test.tsx` delete tests to expect a prompt and a cancel path that leaves the song.
-- Electron proof: same prompt in the desktop app.
+- Electron proof: reproduced headless with `scripts/audit/electron/library-one-hand.mjs` (agent item A2, 2026-10-20); after the fix the same driver must show the corrected behaviour.
 - Web proof: `library-organize-bulk.mjs` modified to cancel, then confirm.
 - Data/recovery proof: cancel leaves rows, files, and results intact.
 - Manual hardware/UI proof: none.
@@ -82,7 +82,7 @@ removed. Folder and playlist deletes do not touch songs and can stay immediate.
 
 ## Challenge Record
 
-- Independent reproduction attempt: second full driver run, same outcome; the bulk path and the editor path both reproduce.
+- Independent reproduction attempt: second full driver run, same outcome; the bulk path and the editor path both reproduce. Reproduced in headless Electron 30.5.1 on 2026-10-20 (agent item A2, [Electron runtime report](../phase-11-electron-runtime-2026-10-20.md#agent-items-a1-to-a4)): bulk Delete removed two songs and their files with no `window.confirm`, no main-process message box and no in-page dialog.
 - Alternative explanations tested: a native `confirm` auto-dismissed by the driver would have left the songs in place, which did not happen; the driver registered the dialog handler before the click and recorded zero dialogs. Checked for an in-page modal (`[role=dialog], [role=alertdialog]`): none.
 - Scope/severity changes: held at P2; the unit test shows intent, so the status may become accepted-risk if the owner decides immediate delete is the product rule.
 - Deduplication decision: not covered by any ledger entry (searched for confirm, delete, bulk).

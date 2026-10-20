@@ -109,6 +109,6 @@ GameScreen orchestration, and focused tests.
 
 - Accepted rationale: a normal live tempo adjustment destroys core practice data and can reopen an already played note.
 - Fix branch/commit/issue: `d5839aa`, completed by `d4ba395`.
-- Verification evidence: deterministic tempo/config tests and independent source review pass; [Phase 10](../phase-10-verification-2026-08-07.md) records remaining real-input/runtime proof.
-- Residual risk: physical MIDI/computer-keyboard completion and persisted history are not yet manually verified.
+- Verification evidence: deterministic tempo/config tests and independent source review pass; [Phase 10](../phase-10-verification-2026-08-07.md) records remaining real-input/runtime proof. Phase 11, 2026-10-20: on the web (lane C) and in headless Electron (agent item A1, [Electron runtime report](../phase-11-electron-runtime-2026-10-20.md#agent-items-a1-to-a4)) a tempo change keeps score and combo, and a structural change asks first. The Electron run then finishes at 75 % and saves 16 judged notes, 0 misses, tempo 0.75 and max combo 16, matching the Results screen.
+- Residual risk: computer-keyboard completion and persisted history are proven on both runtimes (Phase 11). A run on a MIDI controller is still owed (sitting 4 item 4).
 - Revisit trigger: before the next practice-engine remediation or release readiness review.

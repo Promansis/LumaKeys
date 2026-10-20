@@ -7,7 +7,7 @@
 - Owner: remediation owner TBD
 - Challenger: Claude Code (acting), keyboard and mouse sequences on Soundboard, Free Play, and Game
 - Verifier: independent verifier recommended
-- Affected runtime: both (renderer); web proven
+- Affected runtime: both (renderer; web and headless Electron proven)
 - Coverage rows: RT-008, WF-016, WF-024, MOD-002
 - Related/duplicate findings: related to PH-UI-004 (Escape semantics) but a different mechanism: listener ordering, not a missing `preventDefault`.
 - First observed against: `main` at `6e549b6`
@@ -60,7 +60,7 @@ Register the Soundboard handler once (empty or ref-based dependencies, as Free P
 ## Required Regression Proof
 
 - Deterministic unit/integration proof: `App.test.tsx` case "lets soundboard own Escape" with three presses.
-- Electron proof: sitting 1, press Escape three times on the Soundboard.
+- Electron proof: reproduced headless with `scripts/audit/electron/keyboard-walk.mjs` (agent item A4, 2026-10-20); after the fix the same driver must show the corrected behaviour.
 - Web proof: re-run `escape-semantics.mjs`.
 - Data/recovery proof: none.
 - Manual hardware/UI proof: none.
@@ -68,7 +68,7 @@ Register the Soundboard handler once (empty or ref-based dependencies, as Free P
 
 ## Challenge Record
 
-- Independent reproduction attempt: keyboard-only and mouse-open variants; Soundboard four runs, Free Play and Game two.
+- Independent reproduction attempt: keyboard-only and mouse-open variants; Soundboard four runs, Free Play and Game two. Reproduced in headless Electron 30.5.1 on 2026-10-20 (agent item A4, [Electron runtime report](../phase-11-electron-runtime-2026-10-20.md#agent-items-a1-to-a4)): on the Soundboard the first Escape opened the menu, the second closed it and the third went to the main menu.
 - Alternative explanations tested: focus on the Menu button changing behaviour (ruled out: the mouse variant blurs focus before Escape); driver pressing a key twice (ruled out: each press is logged with the resulting state).
 - Scope/severity changes: held at P3.
 - Deduplication decision: not a duplicate of PH-UI-004 (that fix is verified; this concerns a screen with no modal open).

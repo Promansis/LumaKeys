@@ -7,7 +7,7 @@
 - Owner: remediation owner TBD
 - Challenger: Claude Code (acting), per-stop probe plus a pin-path check
 - Verifier: independent verifier recommended
-- Affected runtime: both (renderer); web proven
+- Affected runtime: both (renderer; web and headless Electron proven)
 - Coverage rows: RT-008, WF-015, WF-016, MOD-003, MOD-006
 - Related/duplicate findings: related to PH-UI-001 (focus on controls the user cannot see) but a different surface (collapsed HUD popouts, not modal dialogs).
 - First observed against: `main` at `6e549b6`
@@ -60,7 +60,7 @@ Apply `inert` (or `visibility: hidden` after the close transition) to closed pop
 ## Required Regression Proof
 
 - Deterministic unit/integration proof: closed popout has `inert` or `visibility: hidden`; no focusable descendant is reachable.
-- Electron proof: sitting 1, Tab through Free Play and count visible stops.
+- Electron proof: reproduced headless with `scripts/audit/electron/keyboard-walk.mjs` (agent item A4, 2026-10-20); after the fix the same driver must show the corrected behaviour.
 - Web proof: re-run `hidden-focus-stops.mjs`; expect zero stops inside `aria-hidden`.
 - Data/recovery proof: none.
 - Manual hardware/UI proof: screen-reader pass (sitting 3 or later).
@@ -68,7 +68,7 @@ Apply `inert` (or `visibility: hidden` after the close transition) to closed pop
 
 ## Challenge Record
 
-- Independent reproduction attempt: two runs of the probe (15 ms and 330 ms waits); the aria-hidden counts are independent of the wait.
+- Independent reproduction attempt: two runs of the probe (15 ms and 330 ms waits); the aria-hidden counts are independent of the wait. Reproduced in headless Electron 30.5.1 on 2026-10-20 (agent item A4, [Electron runtime report](../phase-11-electron-runtime-2026-10-20.md#agent-items-a1-to-a4)): Free Play had 83 Tab stops before wrapping, 72 of them invisible and 71 of those inside `aria-hidden` popouts, the same counts as the web.
 - Alternative explanations tested: transition timing (ruled out by the longer wait); popout opening on focus (it does for the toggle, but closes as soon as focus moves to the next control, which is the next DOM sibling, not the popout).
 - Scope/severity changes: P3 because two workarounds exist and the Menu overlay carries the same controls.
 - Deduplication decision: new surface.
