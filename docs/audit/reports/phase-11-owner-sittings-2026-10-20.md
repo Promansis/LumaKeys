@@ -67,6 +67,12 @@ settle it, open the site from another network, for example a phone on mobile dat
 consequence is recorded in [PH-OPS-002](findings/PH-OPS-002.md): it is accepted at P0, and
 under owner decision 4's gate slice 2 moves to the front of wave 1.
 
+Owner follow-up (user tests A1), 2026-10-20: from a phone on mobile data the app opened
+with no Cloudflare login, so the exposure is not limited to this host's address. The
+owner said the site looks like an old version. Read-only image metadata shows the image
+was built 13 seconds after commit `6e549b6`, and only audit docs have changed since; see
+[PH-OPS-002](findings/PH-OPS-002.md) step 5.
+
 ### Added: crafted archives (OP-017)
 
 The lane A gap for OP-017 was a crafted archive run in the image. Sitting 0 had no item for

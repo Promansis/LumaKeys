@@ -298,7 +298,7 @@ One finding was accepted as a risk after consolidation: [PH-OPS-004](findings/PH
 | Item | Rationale | Owner | Revisit trigger |
 |---|---|---|---|
 | OP-017, MOD-013 residual | The crafted scores did not reach the MuseScore 45 s timeout, 30 s CPU limit or 10 MB output limit | Claude Code (acting) | Before relying on those limits, or when the converter changes |
-| PH-OPS-002 on the live host | Sitting 0 item 4 found `/api/*` open. A check from a phone on mobile data confirms what an outsider sees; the agent may not probe the live host again | Owner, user tests A1 | Now; then Cloudflare Access or `LUMAKEYS_WEB_ACCESS_TOKEN` until slice 2 lands |
+| PH-OPS-002 on the live host | Sitting 0 item 4 found `/api/*` open. The owner's phone on mobile data also got the app with no login (A1, 2026-10-20), so anyone who knows the hostname can reach the library. P0 stands | Owner (production) | Now: Cloudflare Access or `LUMAKEYS_WEB_ACCESS_TOKEN`, then repeat A1; slice 2 for the default |
 | PH-OPS-004 | Accepted risk: the database blobs in history hold no personal data, and a rewrite would break every clone for no privacy gain | Owner, decision 2 (taken 2026-10-20) | A database blob in history is found to hold personal data, or history is rewritten for another reason |
 | RT-010, PH-MUS-014, PH-MUS-015, GNOME switch, CPU on real hardware | Listening on speakers, a colour-vision review, GNOME's own reduced-motion switch and system-monitor numbers need this machine's desktop and a person | Owner, user tests B | After slices 6, 11, 16 and 18, and before release |
 | PH-DATA-005 Windows half | A real `%APPDATA%\luma-keys` profile update | Owner, sitting 2 | After slice 1 |

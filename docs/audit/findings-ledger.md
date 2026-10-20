@@ -137,7 +137,8 @@ in the detailed report.
   scripted MIDI device); sitting 2 (Windows) and the hardware, speaker and
   colour-vision checks still need the owner. See
   [the sittings report](reports/phase-11-owner-sittings-2026-10-20.md). PH-OPS-002
-  moved to `accepted` at P0: the live host serves `/api` with no login. PH-PAR-002,
+  moved to `accepted` at P0: the live host serves `/api` with no login, and the owner's
+  phone on mobile data got the app with no login too (user tests A1). PH-PAR-002,
   PH-UI-001, PH-UI-002 and PH-UI-004 moved to `verified`. Four new findings were
   raised: PH-MUS-014 (P1), PH-MUS-015, PH-MUS-016 and PH-UI-019 (P3). PH-UI-012 is
   now confirmed under real zoom. Coverage stands at 154 of 156 rows; RT-010 (colour

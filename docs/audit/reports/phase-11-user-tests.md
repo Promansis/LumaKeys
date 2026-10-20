@@ -30,7 +30,7 @@ data, and a desktop build run without an isolated profile migrates it.
 
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
-| A1 | OP-014, PH-OPS-002 | On a phone with Wi-Fi off (mobile data), open `https://<your hostname>/` in a private tab | Cloudflare's login page, not the app. On 2026-10-20 the app and its `/api` answered this machine with no login. If the phone also gets the app, the library is open to anyone who knows the hostname: put a Cloudflare Access application in front of it, or set `LUMAKEYS_WEB_ACCESS_TOKEN` and recreate the container ([PH-OPS-002](findings/PH-OPS-002.md)) | | |
+| A1 | OP-014, PH-OPS-002 | On a phone with Wi-Fi off (mobile data), open `https://<your hostname>/` in a private tab | Cloudflare's login page, not the app. On 2026-10-20 the app and its `/api` answered this machine with no login. If the phone also gets the app, the library is open to anyone who knows the hostname: put a Cloudflare Access application in front of it, or set `LUMAKEYS_WEB_ACCESS_TOKEN` and recreate the container ([PH-OPS-002](findings/PH-OPS-002.md)) | **fail**: the app opened over mobile data with no login. The owner said it looks like an old version; the image was built from `6e549b6`, the code this audit tested. Repeat after Access or the token is in place | owner, phone, 2026-10-20 |
 
 ### B. This machine's desktop, with speakers (~20 min)
 

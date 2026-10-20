@@ -2,7 +2,7 @@
 
 - Lane: OPS
 - Severity: P0 (raised from P2 on 2026-10-20 by sitting 0 item 4; see the challenge record)
-- Confidence: high that the default is open; high that the live host answers unauthenticated `/api/*` calls from this host's address; not yet checked from another network
+- Confidence: high that the default is open; high that the live host serves the app with no login to another network (the owner's phone on mobile data, 2026-10-20) and answers unauthenticated `/api/*` calls from this host's address
 - Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
@@ -57,6 +57,14 @@ reachable without Access.
    - `POST /api/library/import` with no file: 400 from the app
 
    The item expects a redirect to the Cloudflare login and 302 or 403 from `/api/*`.
+5. Owner check, user tests A1, 2026-10-20: on a phone over mobile data, the hostname
+   opened the app with no Cloudflare login. The owner said it looks like an old version.
+   Read-only image metadata (`docker image inspect`, `docker ps`; nothing changed): the
+   image `lumakeys-lumakeys` was built 2026-10-06 16:47:35 +08:00, 13 seconds after
+   commit `6e549b6`, and the running container was created from it the same minute.
+   Since `6e549b6` only audit docs have changed, so the live host runs the code this
+   audit tested. Why it looks old is not known; a page cached on the phone or at
+   Cloudflare is one possibility.
 
 ### Artifacts
 
@@ -92,12 +100,13 @@ with a placeholder that the server rejects until changed. `src/server/index.ts`,
 - Challenger conclusion and date: suspected, 2026-10-19
 - Consolidation challenge, 2026-10-20: kept `suspected`. Evidence gap: whether the live host gates `/api/*` through Cloudflare Access is unknown; the default is open by source and probe. Next action: the owner's sitting 0 item 4 (a private-window visit and an unauthenticated POST against the live hostname).
 - Sitting 0 challenge, 2026-10-20: accepted and raised to P0 under the rule above, because the live host answered every unauthenticated request with the app (Reproduction step 4). Alternative not excluded: an Access policy that lets this host's own public address through. The owner's private-window check from this machine would have had the same limit. If a request from another network (for example a phone on mobile data) gets the Access login, the exposure is limited to this host's address and the severity returns to P2, because the shipped default stays open by source. A follow-up request for response headers only was refused by the agent's permission layer, and the agent sent no further requests to the live host.
+- Owner check, 2026-10-20 (user tests A1, Reproduction step 5): the app opened from a phone on mobile data with no login. This excludes an Access policy that lets only this host through. P0 stands.
 
 ## Resolution
 
 - Accepted/rejected rationale: kept `suspected` at the Phase 11 consolidation on 2026-10-20; accepted at P0 the same day after sitting 0 item 4. Under owner decision 4's gate, slice 2 moves to the front of wave 1 ([Owner Selection](../phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20)).
-- Immediate mitigation, outside any slice and the owner's to make (production infrastructure): put a Cloudflare Access application in front of the hostname, or set `LUMAKEYS_WEB_ACCESS_TOKEN` and recreate the container. The agent changed nothing in production.
+- Immediate mitigation, outside any slice and the owner's to make (production infrastructure): put a Cloudflare Access application in front of the hostname, or set `LUMAKEYS_WEB_ACCESS_TOKEN` and recreate the container. The live build (`6e549b6`) already reads the token, so the token needs no rebuild; README section 5a gives the one-time `/api/access?access_token=` sign-in for each device. The agent changed nothing in production.
 - Fix branch/commit/issue: none.
 - Verification evidence: none yet.
 - Residual risk: as stated in User Impact.
-- Revisit trigger: the owner's check from another network; any change to the compose defaults, the tunnel or the access gate.
+- Revisit trigger: Cloudflare Access or the token is put in front of the live host (then repeat user tests A1); any change to the compose defaults, the tunnel or the access gate.

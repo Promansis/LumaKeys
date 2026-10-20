@@ -70,7 +70,7 @@ starts only when the owner says so.
 
 | Wave | Slices | Goal | Starts |
 |---|---|---|---|
-| Gate | sitting 0 item 4 | Settle PH-OPS-002. If the deployed `/api/*` is open, slice 2 moves to the front of wave 1. **Tripped 2026-10-20**: the live host answered `/` and `/api/*` with no login (from this host's own address; user tests A1 checks another network) | done |
+| Gate | sitting 0 item 4 | Settle PH-OPS-002. If the deployed `/api/*` is open, slice 2 moves to the front of wave 1. **Tripped 2026-10-20**: the live host answered `/` and `/api/*` with no login (from this host's own address; the owner's phone on mobile data confirmed it the same day, user tests A1) | done |
 | 1: carry-over release (proposed `0.2.0`) | 2, then 0, then 1 with 15, then 3; task D1 alongside. Proposed: 18 after 0 | Close the open web surface, then CI, then the desktop and browser carry-over a safe desktop update needs, then a supported Electron. Slice 18 is a proposal awaiting the owner | on the owner's go-ahead |
 | 2 | 4, 5, 6, 7, 8, 9, 10, 11, then 12 after 4 | P2 practice correctness, and the capstone change from decision 1 | after slice 0 is merged |
 | Deferred | 13, 14, 16, 17 | P3 polish | a later owner decision |
