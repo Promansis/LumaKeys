@@ -3,7 +3,7 @@
 - Lane: ARCH
 - Severity: P3
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-19
 - Verifier: TBD
@@ -78,10 +78,11 @@ and `destPath` optional on the shared type and omit them in the web router.
 - Scope/severity changes: held at P3; no browser crash was demonstrated at 8.6 MB, the 120 MB figure is an extrapolation and is labelled as such.
 - Deduplication decision: distinct from PH-PAR-004 and PH-SEC-004.
 - Challenger conclusion and date: reproduced, Claude Code (acting), 2026-10-19.
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue: none
 - Verification evidence: none
 - Residual risk: response bloat, path disclosure

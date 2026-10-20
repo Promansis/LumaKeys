@@ -3,8 +3,8 @@
 - Lane: UI/accessibility
 - Severity: P2
 - Confidence: high
-- Status: reproduced
-- Owner: remediation owner TBD
+- Status: accepted
+- Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), mouse control and a second page per symptom (see Challenge Record)
 - Verifier: independent verifier recommended
 - Affected runtime: both (renderer code, no runtime branch; web and headless Electron proven)
@@ -89,10 +89,11 @@ Use `useModalFocusTrap` for the dialog (focus first control, contain Tab, restor
 - Scope/severity changes: held at P2 because the setting is optional and a pointer workaround exists. A reviewer could argue P3.
 - Deduplication decision: not a duplicate of PH-UI-001 or PH-UI-004 (different component; both fixes verified on their own surfaces in this phase).
 - Challenger conclusion and date: reproduced, Claude Code (acting), 2026-10-19.
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending lead.
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue: none.
 - Verification evidence: none yet.
 - Residual risk: none beyond the above.

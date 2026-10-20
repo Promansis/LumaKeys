@@ -3,7 +3,7 @@
 - Lane: DATA
 - Severity: P3
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -62,7 +62,8 @@ Node-side boundary.
 - Alternative explanations tested: "the web deployment never shipped packs before the rename" would make this moot; the owner should confirm whether any pack was installed on the pre-rename web build.
 - Scope/severity changes: none.
 - Challenger conclusion and date: reproduced (static), 2026-10-19
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3; deduplication: canonical for the IndexedDB pack store rename. PH-DATA-007 has the same pattern for localStorage filter presets but a different store and carry-over, so both stay and share one remediation slice. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending consolidation
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.

@@ -3,7 +3,7 @@
 - Lane: SEC
 - Severity: P3
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -73,7 +73,8 @@ reporting already propagates messages.
 - Alternative explanations tested: "sequential loop makes it a non-issue" rejected because the flag is process-wide across requests.
 - Scope/severity changes: P3 per single-user README; revisit if multi-user.
 - Challenger conclusion and date: reproduced (static), 2026-10-19
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3; deduplication: none; this is the only import-concurrency finding. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending consolidation
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.

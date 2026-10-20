@@ -3,7 +3,7 @@
 - Lane: SEC
 - Severity: P3
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -102,7 +102,8 @@ plus a unit test around the handler if the window setup is extracted.
 - Scope/severity changes: narrowed from the L-11-008 lead.
 - Deduplication decision: none
 - Challenger conclusion and date: suspected pending runtime probe, 2026-10-19; reproduced at runtime, severity P3 kept (no bridge, sandboxed child), 2026-10-20
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending consolidation
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.

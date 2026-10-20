@@ -3,7 +3,7 @@
 - Lane: DATA
 - Severity: P3
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -100,10 +100,11 @@ rename instead of returning or refusing. Make the refusal text name the safe act
 - Scope/severity changes: P2 considered; P3 chosen because the trigger needs both an unclean exit of the old build and a crash inside a once-per-install window of two syscalls. H5 recorded as a related resilience observation, not a separate finding.
 - Deduplication decision: distinct root cause from PH-DATA-005 (wrong source directory) and PH-OPS-006 (refusal visibility).
 - Challenger conclusion and date: reproduced by constructed state, 2026-10-19.
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending consolidation
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue:
 - Verification evidence:
 - Residual risk:

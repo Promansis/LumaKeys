@@ -76,7 +76,12 @@ with a placeholder that the server rejects until changed. `src/server/index.ts`,
 - Scope/severity changes: P2 unless the live check shows Access absent, in which case P0 until fixed.
 - Deduplication decision: distinct from PH-SEC-002.
 - Challenger conclusion and date: suspected, 2026-10-19
+- Consolidation challenge, 2026-10-20: kept `suspected`. Evidence gap: whether the live host gates `/api/*` through Cloudflare Access is unknown; the default is open by source and probe. Next action: the owner's sitting 0 item 4 (a private-window visit and an unauthenticated POST against the live hostname).
 
 ## Resolution
 
-- Accepted/rejected rationale: pending owner confirmation and consolidation
+- Accepted/rejected rationale: kept `suspected` at the Phase 11 consolidation on 2026-10-20 until the evidence gap below closes.
+- Fix branch/commit/issue: none.
+- Verification evidence: none yet.
+- Residual risk: as stated in User Impact.
+- Revisit trigger: after sitting 0, or before any change to the compose defaults, the tunnel or the access gate.

@@ -3,7 +3,7 @@
 - Lane: UI
 - Severity: P3
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-19
 - Verifier: TBD
@@ -74,10 +74,11 @@ to each playlist row, with a status announcement.
 - Scope/severity changes: P3 because a workaround exists.
 - Deduplication decision: not in the ledger; PH-UI-001 is about focus containment in dialogs.
 - Challenger conclusion and date: reproduced, Claude Code (acting), 2026-10-19.
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue: none
 - Verification evidence: none
 - Residual risk: keyboard users cannot reorder

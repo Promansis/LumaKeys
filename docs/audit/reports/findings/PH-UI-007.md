@@ -3,7 +3,7 @@
 - Lane: UI
 - Severity: P3
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-19
 - Verifier: TBD
@@ -81,10 +81,11 @@ day). Owner: `LibraryScreen.tsx` helper `withinDateRange`.
 - Scope/severity changes: none; the project's own host zone (UTC+8) is partly affected (songs added 00:00 to 08:00 local), which the Perth run did not hit because the import time was 22:24.
 - Deduplication decision: not in the ledger.
 - Challenger conclusion and date: reproduced, Claude Code (acting), 2026-10-19.
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue: none
 - Verification evidence: none
 - Residual risk: wrong day bucket near midnight

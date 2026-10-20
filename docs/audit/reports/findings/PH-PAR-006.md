@@ -3,7 +3,7 @@
 - Lane: PAR
 - Severity: P2
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-20
 - Verifier: TBD
@@ -87,10 +87,11 @@ set), in both `loadInstrument` and `renderRecordingToWav`.
 - Scope/severity changes: none.
 - Deduplication decision: separate from PH-MUS-007 (WAV export scheduling), though both touch the custom-sampler construction.
 - Challenger conclusion and date: reproduced, 2026-10-20
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending consolidation
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue:
 - Verification evidence:
 - Residual risk:

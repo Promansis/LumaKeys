@@ -3,8 +3,8 @@
 - Lane: UI/accessibility
 - Severity: P2
 - Confidence: high
-- Status: reproduced
-- Owner: remediation owner TBD
+- Status: accepted
+- Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), pixel comparison and custom-property probe
 - Verifier: independent verifier recommended
 - Affected runtime: both (CSS; web and headless Electron proven)
@@ -85,10 +85,11 @@ Give the top bar its own scoped styling (define the variables on `.app-topbar` o
 - Scope/severity changes: held at P2 (AA failure, widespread, not task-blocking).
 - Deduplication decision: new; shares the surface but not the cause of PH-UI-001.
 - Challenger conclusion and date: reproduced, Claude Code (acting), 2026-10-19.
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending lead.
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue: none.
 - Verification evidence: none yet.
 - Residual risk: none.

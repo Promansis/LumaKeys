@@ -3,8 +3,8 @@
 - Lane: UI/accessibility
 - Severity: P2
 - Confidence: medium (emulated zoom; real zoom owed to sitting 1)
-- Status: reproduced (emulation)
-- Owner: remediation owner TBD
+- Status: accepted
+- Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), reachability sweeps at five sizes
 - Verifier: user sitting 1 with real zoom
 - Affected runtime: both (layout depends only on CSS pixel width); web emulation proven
@@ -77,10 +77,11 @@ Add a HUD breakpoint (for example collapse status cards or wrap the nav) for rou
 - Scope/severity changes: held at P2; the confidence is medium only because real zoom was not available.
 - Deduplication decision: new component, same oracle as PH-UI-002.
 - Challenger conclusion and date: reproduced under emulation, Claude Code (acting), 2026-10-19.
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending lead.
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue: none.
 - Verification evidence: none yet.
 - Residual risk: none.

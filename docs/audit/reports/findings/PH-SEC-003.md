@@ -3,7 +3,7 @@
 - Lane: SEC
 - Severity: P3
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -90,7 +90,8 @@ browser before merging.
 - Scope/severity changes: entered at P3 after confirming no injection vector. On 2026-10-20 the lead widened the scope to Electron. The first pass had parked the desktop CSP as "a separate hardening item under MOD-014", but no finding tracked it, and one meta tag fixes both runtimes. Severity stays P3: the desktop window loads only bundled `file://` content, is sandboxed, and has context isolation.
 - Deduplication decision: none
 - Challenger conclusion and date: reproduced, 2026-10-19
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending consolidation
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.

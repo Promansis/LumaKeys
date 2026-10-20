@@ -3,7 +3,7 @@
 - Lane: SEC
 - Severity: P2
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -84,10 +84,11 @@ only.
 - Scope/severity changes: P2, not P1, because exploitation needs log or history access and Access sits in front.
 - Deduplication decision: distinct from PH-OPS-002 (whether a gate exists at all).
 - Challenger conclusion and date: reproduced, 2026-10-19
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending consolidation
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue:
 - Verification evidence:
 - Residual risk:

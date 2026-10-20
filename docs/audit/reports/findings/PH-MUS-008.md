@@ -3,7 +3,7 @@
 - Lane: MUS
 - Severity: P3
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), lane C, 2026-10-19
 - Verifier: TBD
@@ -97,10 +97,11 @@ the tempo in force at tick 0.
 - Scope/severity changes: P3 because the bundled curriculum files are unaffected and the frequency in user libraries is unknown; raise to P2 if real-world files with a late first tempo turn up.
 - Deduplication decision: the ledger makes PH-MUS-002 canonical for tempo-change measure symptoms unless a consumer has an independent root cause. This one is not in the measure-boundary code that PH-MUS-002 fixed; it shifts note times as well as barlines and comes from the tempo map the parser adopts. Raised separately; the lead may merge it under PH-MUS-002 as a follow-up if preferred.
 - Challenger conclusion and date: reproduced, 2026-10-19
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending consolidation
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue:
 - Verification evidence:
 - Residual risk:

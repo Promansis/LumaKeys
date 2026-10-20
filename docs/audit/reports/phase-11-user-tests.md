@@ -61,7 +61,7 @@ reduced-motion setting. The web app is at `http://127.0.0.1:3998`. In both, choo
 
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
-| 1 | WF-026, RT-012, BR-067, PH-PAR-001 | Desktop app: (a) watch the main-menu background for 5 s. (b) Settings (Audio opens first), set Instrument to Flute, press "Install Better Sounds" | (a) The neon background moves (video), not a still image. (b) "Flute Enhanced Pack ready." appears | | |
+| 1 | WF-026, RT-012, BR-067, PH-PAR-001 | Desktop app: (a) watch the main-menu background for 5 s. (b) Settings (Audio opens first), set Instrument to Flute, press "Install Better Sounds". (c) Guided Lessons, open the Novice tier capstone (Ode to Joy), press Space, then Escape and Main Menu | (a) The neon background moves (video), not a still image. (b) "Flute Enhanced Pack ready." appears. (c) The capstone loads in the packaged app and notes fall | | |
 | 2 | RT-006, PH-UI-002, PH-UI-012 | Chrome at the web app, window at its usual size: zoom to 125, 150, 175 and 200 percent (Ctrl and +). At each: open Settings and click every tab. At 150 and 175: open Free Play, press Tab once to expand the top HUD, click SETTINGS, then go back and click PROGRESS. Repeat in the desktop app if Ctrl and + zooms it; if it does not, write "no zoom" | Every Settings tab opens at every zoom. Today (emulated): at 150 and 175 percent the instrument button sits over SETTINGS and the HUD overlaps the status cards; not at 125 or 200 | | |
 | 3 | RT-009, RT-012, WF-026, PH-UI-003 | Turn the OS setting on: `gsettings set org.gnome.desktop.interface enable-animations false` (or Settings, Accessibility, Reduce Animation). Reload the web app's main menu and open Free Play; in the desktop app go to the main menu and open Free Play. Turn it off again with `gsettings set org.gnome.desktop.interface enable-animations true` | Under the setting the main menu does not play the video, and the Free Play background does not animate while no key is pressed; pressed keys still light up. With it off, the video and animation come back | | |
 | 4 | WF-026, RT-012, L-11-015 | Desktop app on the main menu: open the system monitor, note the app's CPU, minimise the window for 30 s and note the CPU again, then restore | CPU drops while minimised and the video resumes on restore. Record the two numbers | | |
@@ -106,7 +106,7 @@ On any machine that has both browsers. Start a throwaway web server on this mach
 | 4 | WF-002, RT-011 | Firefox: open the app and Settings, Input | A clear message or a permission prompt; the computer keyboard still plays | | |
 | 5 | BR-008, MOD-009, PH-PAR-002 | In both: Library, "Upload MIDI / MSCZ", press Cancel in the file dialog; then press it again and pick a `.mid` | After Cancel the button returns from "Importing..." within 1 s and is enabled; the second try imports the song | | |
 
-## Sitting 4: MIDI keyboard and speakers (~25 min) — ready
+## Sitting 4: MIDI keyboard and speakers (~30 min) — ready
 
 A USB MIDI keyboard on this machine. Write its make and model in item 1's Seen column.
 Use the desktop app from sitting 1 (a new throwaway profile is fine), then repeat items 1
@@ -120,6 +120,7 @@ and 3 in Chrome at the throwaway web server.
 | 4 | WF-009, PH-MUS-001 | Play a song on the keyboard, pause and resume halfway | Notes judged before the pause keep their state | | |
 | 5 | WF-009 latency | Play a steady beat at the default latency setting | No lag you would call wrong; note the setting | | |
 | 6 | PH-MUS-011 (optional, needs a second MIDI keyboard) | Settings, Input, MIDI Device: select the first keyboard by name. Close the app, unplug it, plug in the second, reopen the app, open Settings, Input, then play the second keyboard in Free Play | Today: the MIDI Device select is blank and the summary reads "Any connected device", while notes from the second keyboard are ignored | | |
+| 7 | PH-MUS-002 | Library, Upload MIDI, pick `scripts/audit/fixtures/midi/6-8-then-3-4-reached.mid` (two bars of 6/8, then two of 3/4). Learn, Escape, set the loop to measures 3 to 4, Set Loop, Resume, Space, and play the looped notes on the keyboard twice round | The overlay reads "Looping measures 3–4"; the loop starts on the first 3/4 bar and repeats exactly the last two bars (six notes), as a musician reading the bars would expect. Record anything that looks one bar off | | |
 
 ## Owner Decisions (not tests)
 
@@ -128,7 +129,7 @@ and 3 in Chrome at the throwaway web server.
 | 1 | PH-MUS-013: what the capstone gate measures | Decided 2026-10-20: capstones run in Play mode at the capstone tempo, and the run's settings are locked |
 | 2 | PH-OPS-004: the user database in git history | Open. Inspect the blob (steps in the finding), then accept the risk or rewrite history. A rewrite is yours to run |
 | 3 | Lane H: end date for the legacy-name fallback (suggested 2027-01-31), and whether `CLAUDE.md` and `AGENTS.md` are tracked | Open; asked at the end-of-discovery review |
-| 4 | Which findings enter remediation | Open; the consolidation report proposes the order |
+| 4 | Which findings enter remediation | Open; the [consolidation](consolidation-2026-10-20.md) and the [remediation plan](phase-11-remediation-plan-2026-10-20.md) propose 18 slices in order. Choose the slices, their owners and branches |
 
 ## Moved To The Agent (headless Electron)
 

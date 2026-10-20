@@ -1,0 +1,1100 @@
+# Phase 11 Remediation Plan
+
+- Baseline identity: `main` at `6e549b6bde622a5f74ad4c15fb596103f4d60c1a` ([baseline](baseline-2026-10-19.md))
+- Planning date: 2026-10-20
+- Audit lead: Claude Code (acting)
+- Input: the 42 accepted Phase 11 findings in [the findings ledger](../findings-ledger.md)
+  and [the Phase 11 consolidation](consolidation-2026-10-20.md)
+- Scope: planning only. No product code, finding status, severity or coverage
+  disposition changed.
+
+## Stage Decision
+
+All 42 accepted findings are assigned to one of 18 vertical slices. A slice holds more
+than one finding only when the findings share an owning module and the same proof
+session. Findings with different root causes keep their own regression tests inside the
+slice and are verified one by one. Slice 17 is the exception: five unrelated one-file
+fixes, kept together only to save review overhead. Each can ship on its own.
+
+The two suspected findings are not planned:
+
+- [PH-OPS-002](findings/PH-OPS-002.md) joins slice 2 if sitting 0 item 4 confirms the
+  deployed `/api/*` is open.
+- [PH-OPS-004](findings/PH-OPS-004.md) waits for owner decision 2. A history rewrite is
+  the owner's to run and is not a code slice.
+
+The owner assigns the implementation owner and branch before a slice starts (owner
+decision 4). Below, "proposed branch" is a suggestion only. P1 slices need a verifier
+other than the implementer where one is available.
+
+## Execution Order
+
+| Order | Slice | Findings | Severity | Dependency |
+|---:|---|---|---|---|
+| 0 | CI and proof debt | PH-OPS-005 | P3 | none; first, so every later slice runs under it |
+| 1 | Desktop startup migration | PH-DATA-005, PH-DATA-006, PH-OPS-006 | P1, P3, P2 | none; release blocker for a desktop update |
+| 2 | Web access | PH-SEC-002, PH-SEC-003 (+PH-OPS-002 if confirmed) | P2, P3 | sitting 0 item 4 for PH-OPS-002 only |
+| 3 | Electron upgrade and window-open guard | PH-OPS-003, PH-SEC-005 | P2, P3 | merge after slice 1 (both edit `src/main/index.ts`) |
+| 4 | Practice input integrity | PH-MUS-005, PH-MUS-012 | P2, P3 | none |
+| 5 | MIDI device lifecycle | PH-MUS-010, PH-MUS-011 | P2, P2 | none |
+| 6 | Audio output | PH-PAR-006, PH-MUS-007 | P2, P2 | none |
+| 7 | Web startup without MIDI permission | PH-PAR-007 | P2 | after slice 5 if both edit the MIDI startup in `App.tsx` |
+| 8 | Delete confirmation | PH-UI-006 | P2 | none |
+| 9 | Timing | PH-MUS-006, PH-MUS-008 | P2, P3 | none |
+| 10 | Dialogs and Escape | PH-UI-010, PH-UI-013, PH-UI-017 | P2, P3, P3 | none |
+| 11 | Navigation focus and HUD zoom | PH-UI-011, PH-UI-012, PH-UI-014 | P2, P2, P3 | none |
+| 12 | Learning flow | PH-MUS-013, PH-UI-018, PH-DATA-009 | P3, P3, P3 | after slice 4 (capstone accuracy depends on its judging rule) |
+| 13 | Import outcomes | PH-PAR-004, PH-UI-009, PH-ARCH-004, PH-SEC-004 | P3 | none |
+| 14 | Settings values | PH-DATA-008, PH-ARCH-003 | P3 | none |
+| 15 | Browser rename carry-over | PH-DATA-004, PH-DATA-007 | P3 | owner decision 3 (legacy end date) |
+| 16 | Colour | PH-UI-015, PH-UI-016 | P3 | none |
+| 17 | Small independent fixes | PH-UI-005, PH-UI-007, PH-UI-008, PH-MUS-009, PH-PAR-005 | P3 | none |
+
+Order is by user risk: data loss on update first, then the open web surface, then the
+shipped runtime, then practice correctness, then access and polish. P2 slices without a
+dependency can run in parallel once slice 0 is merged. The table sets merge and
+verification order. It does not require one long-lived branch.
+
+## Shared Rules For Every Slice
+
+- Work in a dedicated worktree, not the main checkout. That keeps `out/` and `dist/` in
+  the main checkout, which the audit drivers use, unchanged.
+- Use only isolated data: `$TMPDIR` data directories and Electron profiles. Never use
+  `/media/storage/lumakeys`, the repository's `.lumakeys-data` or `.pianohero-data`, or
+  a real `~/.config` profile. `~/.config/PianoHero` holds a copy of the owner's old
+  desktop data.
+- Reproduce the finding with the smallest failing check before changing code. The
+  "Fails before fix" column below names that check.
+- Keep hardening notes, unaccepted leads and unrelated cleanup out of the slice.
+- After the fix, rerun the named audit driver. Record the result in the finding's
+  Resolution section and move the finding to `fixed`. It moves to `verified` only when
+  every proof in its table has passed, including the owner's sitting where one is
+  named.
+- Re-run `node scripts/audit/recount-coverage.mjs --check` after any ledger change.
+
+## Slice 0: CI And Proof Debt
+
+- Accepted finding IDs: PH-OPS-005
+- Priority/order: 0, P3
+- Implementation owner: TBD by the owner
+- Verifier: any reviewer
+- Proposed branch: `remediation/p11-s00-ci`
+
+### User-Visible Outcome
+
+None directly. A regression in any fixed finding fails a check on push instead of
+reaching a user. The five proof gaps that re-verification found become tests.
+
+### Boundaries Touched
+
+- Deployment/packaging: `package.json` (`verify` script; `assert-electron-assets` in
+  `package:*`), new `.github/workflows/verify.yml`
+- Tests only: GameScreen, the two reduced-motion canvases, and parser meter fixtures
+
+### Scope
+
+Included:
+
+- A `verify` script: `typecheck`, the server typecheck
+  (`tsc --noEmit -p tsconfig.server.json`), `vitest run`, `build`, `build:web`, and
+  `node scripts/assert-electron-assets.mjs`.
+- One workflow running `npm ci` with `LUMAKEYS_SKIP_ELECTRON_REBUILD=1`, then
+  `npm run verify` and `node scripts/audit/recount-coverage.mjs --check`.
+- Proof-debt tests from the [re-verification](phase-11-reverification-2026-10-19.md#proof-gaps-found-by-re-verification):
+  - PH-ARCH-001: a GameScreen test where `getSong` rejects and Retry and Back render.
+  - PH-UI-003: `matchMedia('(prefers-reduced-motion: reduce)')` mocked; neither canvas
+    schedules a decorative animation frame.
+  - PH-MUS-002: a two-meter MIDI fixture under `src/` with measure-boundary
+    assertions, plus a 6/8 case.
+  - PH-PAR-001: `assert-electron-assets.mjs` runs inside every `package:*` script.
+  - PH-UI-002: remove the claim of an automated tab-row height assertion from the
+    finding. Layout stays runtime proof (sitting 1 item 2).
+
+Excluded: packaging or Docker builds in CI, the Electron upgrade (slice 3), and any
+product change.
+
+### Failure And Data Safety Plan
+
+No user data is involved: CI runs on a clean checkout. The only risk is a red build on
+`main` from a flaky test. If that happens, quarantine the test with a linked issue
+rather than weakening the job.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression | no job exists | workflow green on `main` | GitHub Actions |
+| Boundary/parity proof | breaking one test still merges | a branch with a deliberately broken test fails | throwaway branch |
+| Recovery/integrity proof | each new proof-debt test passes on today's code, so instead | each fails when its Phase 9 fix line is reverted locally | local mutation check, not committed |
+| Manual UI/hardware proof | not required | not required | n/a |
+
+### Validation
+
+- Narrow: `npm run verify`
+- Affected lane rerun: none
+- Required: the workflow passes on `main` and fails on the broken branch
+
+## Slice 1: Desktop Startup Migration
+
+- Accepted finding IDs: PH-DATA-005, PH-DATA-006, PH-OPS-006
+- Priority/order: 1, P1
+- Implementation owner: TBD by the owner
+- Verifier: independent persistence verifier required (P1)
+- Proposed branch: `remediation/p11-s01-desktop-migration`
+
+### User-Visible Outcome
+
+A desktop user who updates from any earlier build opens their own library, results,
+streak, settings and sample packs. If the update stopped half way, the next start
+finishes it without losing recent practice. If startup fails for any reason, a dialog
+names the error and the app exits. It does not leave an invisible process running.
+
+### Boundaries Touched
+
+- Electron adapter: `src/main/index.ts`
+  - pin `userData` to `<appData>/lumakeys` at module top level, before `ready`
+  - move `app.setName` before `ready`, or remove it
+  - a startup error boundary: `dialog.showErrorBox`, then `app.exit(1)`
+  - `app.requestSingleInstanceLock()`
+- Persistence/storage: `src/persistence/legacyBrandMigration.ts`
+  - ordered candidate list: `luma-keys`, `piano-hero`, `PianoHero`
+  - checkpoint before moving
+  - sidecars first, main database last
+  - finish a partial move
+  - refusal text that names the safe action
+- Web adapter/server: same-directory mode only; no server code change expected
+
+### Scope
+
+Included:
+
+- Migrate from the single candidate that holds `pianohero.db`.
+- If two or more candidates hold data, refuse with a visible message naming both
+  directories.
+- A destination `lumakeys.db` with no user rows (songs, results, practice days,
+  achievements) is backed up and then replaced. Anything else needs an explicit
+  choice; it is never overwritten silently.
+
+Excluded:
+
+- Browser-side stores (slice 15).
+- Removing the legacy fallback (owner decision 3).
+- Installer changes.
+- The Electron upgrade (slice 3).
+
+### Failure And Data Safety Plan
+
+- Initial durable state: a legacy profile holding `pianohero.db` with committed rows
+  only in `-wal`, built from a real WAL-bearing database. Variants: two candidates, and
+  an empty pre-existing `lumakeys.db`.
+- Failure and interruption points:
+  - after the checkpoint
+  - after each sidecar rename
+  - after the main rename
+  - after an empty destination is backed up and before it is replaced
+- Recovery and cleanup:
+  - `PRAGMA wal_checkpoint(TRUNCATE)` on the legacy database first, so only the main
+    file carries data.
+  - On start, a `lumakeys.db` without sidecars, next to legacy sidecars, means a move
+    was interrupted. Finish it.
+  - Nothing is deleted. A replaced empty database is kept as a timestamped backup.
+- Backward compatibility: profiles already on `<appData>/lumakeys` are untouched. The
+  web server keeps its same-directory behaviour.
+- Rollback: reverting the build restores today's lookup. Migrated data stays in
+  `lumakeys/`, so a downgraded build opens it as before. Nothing to undo.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression | `legacyBrandMigration.test.ts` cases for `luma-keys`, `piano-hero`, `PianoHero`, two candidates, and an empty `lumakeys.db` | each migrates, refuses or asks as specified | unit, temp dirs |
+| Boundary/parity proof | `scripts/audit/electron-userdata-probe.mjs --packaged` P1 shows an empty library | the legacy song count is in `lumakeys/lumakeys.db` | rebuilt Linux package in `$TMPDIR` |
+| Recovery/integrity proof | WAL-only rows lost in states H2, H3, H4 | rows survive restart; `integrity_check` ok; `legacy-brand-server-probe.mjs` with an added H3 case passes | unit plus server probe |
+| Startup failure | a thrown migration error leaves the process running with no window (probe case P2) | the error reaches the dialog callback and the process exits non-zero | extracted startup test plus probe P2 |
+| Manual UI/hardware proof | sitting 2 item 1 shows the gap on Windows | sitting 2 items 1 and 6 pass on a real `%APPDATA%\luma-keys` profile | owner, Windows |
+
+### Validation
+
+- Narrow: `npx vitest run src/persistence`
+- Affected lane rerun: lane B migration probes; `backup-reset-restore.mjs` (Electron)
+- Required: `npm run verify`, `npm run package:local` in the worktree, probe P1 and P2
+- Packaging/hardware: sitting 2
+
+## Slice 2: Web Access
+
+- Accepted finding IDs: PH-SEC-002, PH-SEC-003 (PH-OPS-002 if sitting 0 confirms it)
+- Priority/order: 2, P2
+- Implementation owner: TBD by the owner
+- Verifier: security reviewer
+- Proposed branch: `remediation/p11-s02-web-access`
+
+### User-Visible Outcome
+
+Logging in to the web app never puts the access token in a URL, browser history, proxy
+logs or a `Referer`. HTML responses tell the browser to refuse framing and foreign
+scripts. The desktop renderer runs under the same Content-Security-Policy.
+
+### Boundaries Touched
+
+- Web adapter/server:
+  - `src/server/webSecurity.ts` and its test: drop the `access_token` query parser and
+    add `POST /api/access` that reads the token from the body or a header.
+  - `src/server/index.ts`: one middleware for HTML responses that sets the CSP header
+    (needed for `frame-ancestors`), `X-Content-Type-Options: nosniff`,
+    `Referrer-Policy: no-referrer` and `X-Frame-Options: DENY`.
+  - `src/server/staticFiles.test.ts`
+- Renderer/UI: `src/renderer/index.html` gets a CSP `<meta>` for both builds, and a
+  minimal login form if the POST route needs one.
+- Documentation: `README.md` section 5a.
+- If PH-OPS-002 is confirmed: the default in `docker-compose.yml` and the README
+  changes so a deployment without Cloudflare Access is not left open. That design
+  choice is recorded in the slice when it starts.
+
+### Scope
+
+Included: the three transports reduced to header and cookie, the login path, the
+headers, and the CSP.
+
+Excluded:
+
+- Hardening notes L-11-002 (constant-time compare) and L-11-003 (separator in the
+  containment check). These can be separate small changes.
+- Cloudflare Access configuration on the owner's host.
+
+### Failure And Data Safety Plan
+
+- Initial state: an existing cookie session and a token in the environment.
+- Failure points:
+  - the owner locks themself out
+  - the CSP blocks the main-menu video, the Tone.js sampler (`blob:` on the web,
+    `file:` packs on the desktop), soundboard media, or Free Play export
+- Mitigation: header login keeps working throughout. Each policy source is checked in
+  a browser before merging.
+- Backward compatibility: cookies minted earlier stay valid until they expire.
+  Old bookmarks with `?access_token=` stop working, by design.
+- Rollback: code revert.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression | `webSecurity.test.ts`: a query-string token gets 200 and a cookie | 401 and no cookie; header and cookie still pass | unit |
+| Boundary/parity proof | `staticFiles.test.ts`: no security headers on `/` or the SPA fallback | all four headers on both | unit |
+| Web runtime | `scripts/audit/web-security-probe.sh` reports "query-string token accepted" | the line is gone; the "Response headers" section shows four PASS lines | built server on `$TMPDIR` data |
+| Electron runtime | the harness logs Electron's insecure-CSP warning | no warning; `workflows.mjs`, `freeplay-export.mjs` and `sample-pack.mjs` unchanged | headless Electron |
+| Manual UI/hardware proof | n/a | the owner logs in once through the new path in a private window, plays a song and opens the Soundboard with no CSP errors in the console | owner, after deploy |
+
+### Validation
+
+- Narrow: `npx vitest run src/server`
+- Affected lane rerun: lane A probe
+- Required: `npm run verify`
+
+## Slice 3: Electron Upgrade And Window-Open Guard
+
+- Accepted finding IDs: PH-OPS-003, PH-SEC-005
+- Priority/order: 3, P2
+- Implementation owner: TBD by the owner
+- Verifier: runtime reviewer
+- Proposed branch: `remediation/p11-s03-electron`
+
+### User-Visible Outcome
+
+Desktop users run a supported Electron that still gets security fixes. A Soundboard
+credit link opens in the system browser. The app window cannot be navigated away from
+the app.
+
+### Boundaries Touched
+
+- Electron adapter: `src/main/index.ts` `createMainWindow`:
+  - `setWindowOpenHandler` denies every window and calls `shell.openExternal` for
+    `https:` only
+  - a `will-navigate` handler denies navigation away from the app's own `file://` or
+    dev-server origin
+  - an explicit `sandbox: true`
+- Deployment/packaging: `electron`, `electron-vite`, `electron-builder` and the
+  `better-sqlite3` ABI rebuild in `package.json` and the lockfile; release checklist
+  step to read `scripts/audit/dependency-triage.mjs` shipped-runtime section.
+- Audit harness: rebuild the Electron-ABI `better-sqlite3` copy under `$TMPDIR` for the
+  new version. This is audit-only and outside the product.
+
+### Scope
+
+Do PH-SEC-005 first as its own commit. It is small and it protects users on 30.5.1 too.
+Then upgrade one supported major and review `BrowserWindow` defaults for breaking
+changes.
+
+Excluded: the CSP (slice 2), Node version changes for the server, and renderer
+refactors.
+
+### Failure And Data Safety Plan
+
+- Initial durable state: a profile written by the 30.5.1 build, with songs, results,
+  settings and an installed pack.
+- Failure points: the native module ABI, the userData path, IPC behaviour, and media
+  and sampler loading.
+- Backward compatibility: same userData path and SQLite format. The new build must
+  open the old profile unchanged.
+- Rollback: revert the lockfile and rebuild. The profile stays readable because the
+  schema does not change.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression | `scripts/audit/electron/window-open.mjs` reports a child window with `bridge: "undefined"` | "no child window"; the stubbed `shell.openExternal` receives the URL | headless Electron |
+| Handler unit | no handler exists | `deny` for every URL; `openExternal` only for `https:` | unit, if the window setup is extracted |
+| Boundary/parity proof | `npm audit` lists 37 high advisories for electron | the shipped-runtime section shows a supported major | `dependency-triage.mjs` |
+| Recovery/integrity proof | n/a | an old-build profile opens with all data; Electron drivers `workflows.mjs`, `backup-reset-restore.mjs`, `sample-pack.mjs` and `keyboard-walk.mjs` repeat their Phase 11 results | headless Electron |
+| Manual UI/hardware proof | n/a | packaged Linux launch, main menu, one song, Settings read-back (sitting 1); Windows portable (sitting 2) | owner |
+
+### Validation
+
+- Narrow: `npm test`
+- Affected lane rerun: lane D Electron-only bridge methods (Phase 4 parity table)
+- Required: `npm run verify`, `npm run package:local`
+
+## Slice 4: Practice Input Integrity
+
+- Accepted finding IDs: PH-MUS-005, PH-MUS-012
+- Priority/order: 4, P2
+- Implementation owner: TBD by the owner
+- Verifier: music-correctness reviewer
+- Proposed branch: `remediation/p11-s04-input`
+
+### User-Visible Outcome
+
+Computer-keyboard notes play and score while an on-screen button has focus, including
+straight after Resume. Space and Enter still press the button. Notes pressed before the
+song starts, during the count-in or while paused still sound, but they are not judged.
+
+### Boundaries Touched
+
+- Domain/practice engine:
+  - `src/lib/input/computerKeyboardInputService.ts` `isEditableTarget`: a focused
+    `BUTTON` blocks only Space and Enter.
+  - `src/lib/game/GameSession.ts` `ingestInputEvent`: held-note and sustain
+    bookkeeping as now, but no `matchNote` while `isPlaying` is false.
+- Renderer/UI: none. `GameScreen` keeps forwarding events so presses still sound.
+
+### Scope
+
+Included: the two guards. Excluded: undoing the PH-UI-001 focus return,
+wait-for-input semantics, and capstone rules (slice 12).
+
+### Failure And Data Safety Plan
+
+No durable state changes. Stored results after the fix no longer include notes judged
+while stopped. Results stored before the fix are left as they are.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression | `computerKeyboardInputService.test.ts`: a note key with a focused button emits nothing | `noteon` emitted; Space and Enter are not | unit |
+| Engine regression | `GameSession.test.ts`: a press before `play` and a press after `pause` near a note both score (cases from `scripts/audit/paused-input-probe.ts`) | neither scores; a press while playing still does | unit |
+| Boundary/parity proof | GameScreen test: open the overlay, Resume, a note key is not ingested | it is ingested | component |
+| Runtime | Electron `workflows.mjs`: D4 scores nothing after Resume; `paused-input.mjs` scores the pre-Space and count-in presses | D4 scores at once; Score 0 after the count-in | headless Electron; web `pause-resume-focus.mjs` |
+| Manual UI/hardware proof | n/a | sitting 4 item 4 (pause and resume on a MIDI keyboard) | owner |
+
+### Validation
+
+- Narrow: `npx vitest run src/lib/game src/lib/input`
+- Required: `npm run verify`
+
+## Slice 5: MIDI Device Lifecycle
+
+- Accepted finding IDs: PH-MUS-010, PH-MUS-011
+- Priority/order: 5, P2
+- Implementation owner: TBD by the owner
+- Verifier: music-correctness reviewer
+- Proposed branch: `remediation/p11-s05-midi-devices`
+
+### User-Visible Outcome
+
+A keyboard that drops out and reconnects, or a second device being plugged in, does not
+restart the song. A saved device that is no longer connected is shown as such in
+Settings. Input and the screen agree on what is happening.
+
+### Boundaries Touched
+
+- Renderer/UI: `src/renderer/App.tsx`: memoise the GameScreen `source` per screen state.
+  Alternatively, key the GameScreen song-load effect on `source.kind` and the song id.
+- Domain: `src/lib/midi/midiInputService.ts` and the SettingsScreen device card.
+
+### Scope
+
+Included: stable source identity, and one rule for a missing saved device.
+
+Recommended rule: keep the filter and make the card say "Saved device not connected:
+<name or id>", with a one-click "Use any connected device". This is the smallest
+change and never routes input from a device the player did not choose. The other
+option, the service ignoring a filter for an absent device, is acceptable if the
+implementer records why.
+
+Excluded: PH-MUS-004 (fixed) and a hot-swap redesign.
+
+### Failure And Data Safety Plan
+
+The saved device setting is not rewritten unless the user picks a new option. No
+other durable state changes.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression | App or GameScreen test: changing the MIDI device list mid-run remounts the session and zeroes the score | same session object and score | component |
+| Missing device | `midiInputService` test with a filter for an absent device; SettingsScreen card reads "Any connected device" | the card names the missing device; the chosen rule holds in the service | unit and component |
+| Runtime | `scripts/audit/browser/midi-permission-fallback.mjs` disconnect, reconnect and absent-device cases | the HUD keeps its score; the card names the missing device | headless Chromium with scripted Web MIDI |
+| Manual UI/hardware proof | sitting 4 item 3 shows the restart | sitting 4 items 3 and 6 pass | owner |
+
+### Validation
+
+- Narrow: `npx vitest run src/renderer src/lib/midi`
+- Required: `npm run verify`
+
+## Slice 6: Audio Output
+
+- Accepted finding IDs: PH-PAR-006, PH-MUS-007
+- Priority/order: 6, P2
+- Implementation owner: TBD by the owner
+- Verifier: audio reviewer
+- Proposed branch: `remediation/p11-s06-audio`
+
+### User-Visible Outcome
+
+A web user who installs Flute, Marimba or Trumpet hears the installed samples. Honky-tonk
+and warm pad become playable on the web. A desktop WAV export contains the recording.
+
+### Boundaries Touched
+
+- Domain: `src/lib/audio/audioEngine.ts` only.
+  - PH-PAR-006: in `loadInstrument` and `renderRecordingToWav`, leave out the
+    `baseUrl` key when there is none, instead of passing `null` or `undefined`.
+  - PH-MUS-007: inside `renderRecordingToWav`, schedule and start on the `Tone.Offline`
+    callback's own `context.transport`.
+
+### Scope
+
+Two root causes in one file, with one listening session. Each gets its own test.
+Excluded: new instruments, pack format changes, and web WAV export (PH-PAR-005 is
+slice 17).
+
+### Failure And Data Safety Plan
+
+Packs already in IndexedDB start playing with no reinstall. WAV files saved earlier
+stay silent; the user records again.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression (PH-PAR-006) | fake Tone records Sampler URLs starting with `undefined` for `{ urls: { C4: 'blob:x' }, baseUrl: null }` | no URL starts with `undefined` | unit |
+| Targeted regression (PH-MUS-007) | an offline render of two notes is all zeros | energy after each onset | Chromium (`scripts/audit/browser/wav-render-probe.mjs` pattern) or an `OfflineAudioContext` shim |
+| Web runtime | `sample-pack-engine-log.mjs` logs `Failed to load custom sampler` and a fallback | neither | headless Chromium |
+| Electron runtime | `freeplay-export.mjs`: every sample is zero | non-zero peak; `sample-pack.mjs` unchanged | headless Electron |
+| Manual UI/hardware proof | n/a | sitting 1 items 5 and 6: listen to an exported take and compare the built-in and installed Flute | owner |
+
+### Validation
+
+- Narrow: `npx vitest run src/lib/audio`
+- Required: `npm run verify`
+
+## Slice 7: Web Startup Without MIDI Permission
+
+- Accepted finding IDs: PH-PAR-007
+- Priority/order: 7, P2
+- Implementation owner: TBD by the owner
+- Verifier: runtime reviewer
+- Proposed branch: `remediation/p11-s07-midi-startup`
+
+### User-Visible Outcome
+
+A first-time web visitor sees the main menu at once and can play with the computer
+keyboard, whether or not they answer the browser's MIDI prompt. MIDI devices appear as
+soon as permission is granted.
+
+### Boundaries Touched
+
+- Renderer/UI: `src/renderer/App.tsx` startup. Render once settings are ready, and let
+  `midiInputService.init()` settle in the background. The existing permission-change
+  listener updates the device state.
+
+### Scope
+
+Excluded: Electron (no prompt there), MIDI device UI (slice 5), and the setup guide.
+
+### Failure And Data Safety Plan
+
+Settings must still load before the first render, so defaults never overwrite stored
+values. The MIDI device setting is not written while permission is pending.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression | App test with a `requestMIDIAccess` that never settles stays on "Loading services..." | the main menu renders and computer keys play | component |
+| Runtime | `midi-permission-fallback.mjs` "pending" case | the main menu appears without settling the promise | headless Chromium |
+| Manual UI/hardware proof | sitting 1 item 8 shows the hang | the main menu appears with the prompt unanswered for 30 s | owner, fresh Chrome profile |
+
+### Validation
+
+- Narrow: `npx vitest run src/renderer/App.test.tsx`
+- Required: `npm run verify`
+
+## Slice 8: Delete Confirmation
+
+- Accepted finding IDs: PH-UI-006
+- Priority/order: 8, P2
+- Implementation owner: TBD by the owner
+- Verifier: UI reviewer
+- Proposed branch: `remediation/p11-s08-delete-confirm`
+
+### User-Visible Outcome
+
+`Delete` in the bulk bar and `Delete Song` in the metadata editor ask first. The prompt
+names how many songs will go and says their results and practice history go too.
+Cancel, which takes focus, leaves everything as it was.
+
+### Boundaries Touched
+
+- Renderer/UI: `src/renderer/components/LibraryScreen.tsx` and its test. Use a
+  Settings-style confirmation modal with `useModalFocusTrap`.
+
+### Scope
+
+Excluded: folder and playlist deletes (they do not remove songs), undo, and the
+delete operation itself (atomic since PH-DATA-001).
+
+### Failure And Data Safety Plan
+
+Cancel makes no bridge call. Confirm calls the existing `bulkDeleteSongs` unchanged.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression | `LibraryScreen.test.tsx`: Delete removes songs with no prompt | a prompt; Cancel keeps the song; Confirm deletes | component |
+| Web runtime | `library-organize-bulk.mjs` deletes at once | modified driver: cancel, then confirm | headless Chromium |
+| Electron runtime | `scripts/audit/electron/library-one-hand.mjs` (A2) deletes with no prompt | the same driver shows the prompt | headless Electron |
+| Recovery/integrity proof | n/a | after Cancel, rows, MIDI files and results are intact | both runtimes |
+
+### Validation
+
+- Narrow: `npx vitest run src/renderer/components/LibraryScreen.test.tsx`
+- Required: `npm run verify`
+
+## Slice 9: Timing
+
+- Accepted finding IDs: PH-MUS-006, PH-MUS-008
+- Priority/order: 9, P2
+- Implementation owner: TBD by the owner
+- Verifier: music-correctness reviewer
+- Proposed branch: `remediation/p11-s09-timing`
+
+### User-Visible Outcome
+
+The in-game metronome clicks on the beat at any practice tempo, accents barlines in
+every meter, and follows tempo changes. A MIDI file whose first tempo event is after
+the start plays with continuous timing, and the library shows the tempo it starts at.
+
+### Boundaries Touched
+
+- Domain:
+  - `src/lib/midi/midiFileParser.ts`: when the first tempo is after tick 0, insert
+    `{ ticks: 0, bpm: 120 }` and call `header.update()` before reading times. Report
+    the tick-0 tempo as `bpm`.
+  - `src/lib/game/types.ts`: `ParsedSong` carries the tempo map.
+  - A new pure helper in `src/lib/game/` maps song time to a beat index and a downbeat
+    flag, from the tempo map and `measureBoundaries`. Song time is its only clock
+    input.
+- Renderer/UI: the GameScreen metronome effect calls the helper. The count-in and
+  lead-in code is unchanged.
+
+### Scope
+
+Order inside the slice: the parser first, then the tempo map in `ParsedSong`, then the
+metronome. Excluded: recomputing stored song metadata (see below) and audible click
+sounds.
+
+### Failure And Data Safety Plan
+
+Songs imported before the fix keep their stored BPM and duration until re-imported.
+The implementer records whether a one-off recompute is wanted. If it is, that is a
+separate, reviewed data change. This slice does not rewrite the database.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression (PH-MUS-006) | helper absent; `scripts/audit/metronome-replay-probe.ts` shows wall gaps of 2.0 s at 50 % | 4/4 at 120 BPM: gaps of 1.0, 0.5 and 0.333 s at tempo 0.5, 1 and 1.5; accents on barlines for 3/4, 6/8 and a 6/8-to-3/4 change; spacing doubles after 120 to 60 BPM | unit |
+| Targeted regression (PH-MUS-008) | `midiFileParser.test.ts`, first tempo 60 BPM at tick 1920: the note at 1920 is misplaced | starts at 2.0 s; the tick-1440 note lasts 0.5 s; boundaries [0, 2] and [2, 6] s; `bpm` 120 | unit, fixture under `src/` |
+| Web runtime | `metronome-and-quiz.mjs` part B: 50 % gaps 2.0 s | 1.00 s | headless Chromium |
+| Manual UI/hardware proof | n/a | optional: sitting 1 item 7, by ear | owner |
+
+### Validation
+
+- Narrow: `npx vitest run src/lib/game src/lib/midi`
+- Required: `npm run verify`
+
+## Slice 10: Dialogs And Escape
+
+- Accepted finding IDs: PH-UI-010, PH-UI-013, PH-UI-017
+- Priority/order: 10, P2
+- Implementation owner: TBD by the owner
+- Verifier: accessibility reviewer
+- Proposed branch: `remediation/p11-s10-dialogs`
+
+### User-Visible Outcome
+
+A keyboard user can run latency calibration: focus moves into the dialog, Tab stays
+inside, Enter on a button presses it, and Escape closes only the dialog. On the
+Soundboard, Escape always toggles the session menu. Closing a Settings confirmation
+returns focus to the button that opened it.
+
+### Boundaries Touched
+
+- Renderer/UI:
+  - `src/renderer/components/LatencyWizard.tsx`: `useModalFocusTrap`; the Space and
+    Enter shortcut limited to the tapping phase when focus is not on a button.
+  - `src/renderer/components/NoveltySoundboardScreen.tsx`: register the Escape
+    handler once, with refs, as Free Play does.
+  - `src/renderer/App.tsx`: add `soundboard` to the Escape exclusion list.
+  - `src/renderer/components/SettingsScreen.tsx` `ConfirmActionModal`: record the
+    trigger once on mount, or reuse `useModalFocusTrap`.
+
+### Scope
+
+Excluded: the HUD and navigation (slice 11) and the latency measurement itself.
+
+### Failure And Data Safety Plan
+
+Apply by keyboard must persist `audio.latencyCompMs`. Cancel and Escape persist
+nothing.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression (PH-UI-010) | new `LatencyWizard.test.tsx`: focus stays on "Calibrate...", Escape leaves Settings, Enter on close starts measuring | focus inside; Escape closes only the dialog; Enter on close closes; Enter on Apply applies | component |
+| Targeted regression (PH-UI-013) | `App.test.tsx` "lets soundboard own Escape": the third Escape exits | the screen stays | component |
+| Targeted regression (PH-UI-017) | `SettingsScreen.test.tsx`: focus on `body` after Cancel and Escape | focus on the trigger | component |
+| Runtime | web `latency-wizard-keyboard.mjs`, `escape-semantics.mjs`, `confirm-dialog-focus-restore.mjs`; Electron `keyboard-walk.mjs` parts (b), (c), (e) | corrected behaviour in each | headless Chromium and Electron |
+| Manual UI/hardware proof | n/a | sitting 3 item 3 in Edge and Firefox | owner |
+
+### Validation
+
+- Narrow: `npx vitest run src/renderer`
+- Required: `npm run verify`
+
+## Slice 11: Navigation Focus And HUD Zoom
+
+- Accepted finding IDs: PH-UI-011, PH-UI-012, PH-UI-014
+- Priority/order: 11, P2
+- Implementation owner: TBD by the owner
+- Verifier: accessibility reviewer
+- Proposed branch: `remediation/p11-s11-hud`
+
+### User-Visible Outcome
+
+- The top bar shows which button has keyboard focus and which page is current, by more
+  than colour.
+- At 150 to 200 % zoom the HUD on Free Play, Soundboard and Game does not overlap
+  itself, and every button is clickable.
+- Closed popouts are not in the Tab order.
+
+### Boundaries Touched
+
+- Renderer/UI:
+  - `src/renderer/styles.css`: scoped top-bar focus and current-page styles (define
+    the variables on `.app-topbar`, or an explicit `:focus-visible` outline using
+    `--color-accent`), and a HUD breakpoint for roughly 780 to 1100 px.
+  - `App.tsx`: only if a current-page marker element is needed.
+  - The four popout components (instrument list, visual-mode list, sound key map,
+    soundboard mode list): `inert` when closed, and a toggle that opens in one press.
+
+### Scope
+
+Excluded: Settings tab layout (PH-UI-002, fixed) and the Library sticky sidebar.
+
+### Failure And Data Safety Plan
+
+No durable state. `inert` works in the Chromium that Electron 30 ships, so the slice
+does not depend on slice 3.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression (PH-UI-014) | closed popout has focusable descendants | `inert` (or `visibility: hidden`); none reachable | component |
+| PH-UI-011 runtime (no jsdom layout) | `keyboard-focus-matrix.mjs PART=destinations` and `focus-hud-nav-visual.mjs`: only a 1 px shift | a strong indicator on every nav stop; a pixel diff far above the 1 px shift | headless Chromium; Electron `keyboard-walk.mjs` (a) |
+| PH-UI-012 runtime | `zoom-hud-overlap.mjs`: nav covered at 150 and 175 % | no covered button at any size | headless Chromium emulation |
+| PH-UI-014 runtime | `hidden-focus-stops.mjs`: 71 of 83 Free Play stops invisible | zero stops inside `aria-hidden` | headless Chromium; Electron `keyboard-walk.mjs` (d) |
+| Manual UI/hardware proof | sitting 1 item 2 at real zoom | no overlap; Settings clickable; sitting 3 items 2 and 3 in Edge and Firefox | owner |
+
+### Validation
+
+- Narrow: `npx vitest run src/renderer`
+- Required: `npm run verify`
+
+## Slice 12: Learning Flow
+
+- Accepted finding IDs: PH-MUS-013, PH-UI-018, PH-DATA-009
+- Priority/order: 12, P3
+- Implementation owner: TBD by the owner
+- Verifier: music-correctness reviewer
+- Proposed branch: `remediation/p11-s12-learning`
+
+### User-Visible Outcome
+
+- A tier capstone plays at its tempo without waiting for each note, so the 85 % gate
+  measures timing. Owner decision, 2026-10-20.
+- A capstone run cannot be switched to Learning mode, another hand, a loop or another
+  tempo mid-run.
+- A drill that falls short shows the score and the pass mark, for example "72 % of
+  80 % needed. Try again."
+- Lesson progress that fails to save says so.
+
+### Boundaries Touched
+
+- Renderer/UI:
+  - `src/renderer/App.tsx` `startCapstone` (around lines 1098 to 1118):
+    `buildSessionConfig('luma-keys', …)` with `waitForInput: false`, keeping the
+    capstone's `tempoMultiplier` and `handFilter`.
+  - `onLessonDrillFinished` (around lines 1747 to 1752) carries the attempt's accuracy
+    into the `lesson` screen state.
+  - `src/renderer/components/GameScreen.tsx`: hide or lock the mode, hand, loop and
+    tempo controls when the source is a capstone. Alternatively, store the result only
+    when the run kept the capstone's mode, tempo, hand and full range.
+  - `LessonScreen.tsx`: shows the last attempt.
+- Domain: `src/lib/learning/learningProgress.ts`: the save leaves the state updater,
+  is awaited, and on failure shows the same session-only message and toast that
+  Settings uses.
+
+### Scope
+
+Excluded: curriculum content, gate thresholds and drill generation.
+
+### Failure And Data Safety Plan
+
+- Existing `capstoneResults` and unlocked tiers stay. A learner who passed under wait
+  mode keeps the unlock; nothing is recomputed.
+- A failed progress save leaves the in-memory step complete for the session and says
+  it was not saved. A reload shows the stored truth.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression (PH-MUS-013) | `scripts/audit/capstone-accuracy-probe.ts`: presses 2 s late (L2) score 100 % | on-time (L1) still passes; L2 below the gate | engine probe against the new config |
+| Capstone config | App test: `startCapstone` builds a learning config | Play mode, `waitForInput: false`; a run whose mode, tempo, hand or range changed is not stored | component |
+| Targeted regression (PH-UI-018) | App test: a drill finished at 50 % returns with no score | the lesson shows 50 % and the target | component |
+| Targeted regression (PH-DATA-009) | App test with a rejecting `setSetting`: an unhandled rejection and no message | the error toast and no unhandled rejection | component |
+| Runtime | Electron `lesson-pass.mjs` (waits for each note); web `lesson-progression.mjs` failed-drill case | with presses timed against the moving clock, a passing result is stored and the next tier unlocks; the failed drill shows its score | headless Electron and Chromium |
+| Manual UI/hardware proof | n/a | the owner plays the novice capstone once (sitting 1 after the fix) | owner |
+
+### Validation
+
+- Narrow: `npx vitest run src/lib/game src/lib/learning src/renderer/App.test.tsx`
+- Required: `npm run verify`
+
+## Slice 13: Import Outcomes
+
+- Accepted finding IDs: PH-PAR-004, PH-UI-009, PH-ARCH-004, PH-SEC-004
+- Priority/order: 13, P3
+- Implementation owner: TBD by the owner
+- Verifier: any reviewer
+- Proposed branch: `remediation/p11-s13-import`
+
+### User-Visible Outcome
+
+- A failed import says why ("corrupt: <parser reason>").
+- An import where nothing was added does not ask the user to review metadata.
+- A web upload's response is about the size of its metadata and names no server path.
+- Several `.mscz` files in one upload all convert, one after another.
+
+### Boundaries Touched
+
+- Domain: `src/lib/midi/midiFileParser.ts`. Wrap the `Midi` constructor and rethrow
+  `new Error(String(thrown))`, or add a shared `errorMessage(unknown)` helper for the
+  three import catch blocks (`src/main/index.ts`, `src/server/midiRouter.ts`).
+- Renderer: `src/renderer/services/libraryService.ts` `formatMidiImportResult` appends
+  the hint only when `songs.length > 0`. Optionally add a next step to the
+  no-MuseScore server error.
+- Web adapter/server:
+  - `src/server/midiRouter.ts` maps `ImportedSong` to the fields the client reads;
+    optionally `fileData` and `destPath` become optional in `src/shared/ipc.ts`.
+  - `src/server/museScore.ts`: a one-slot promise queue with a per-request cap
+    replaces the `converting` flag.
+
+### Scope
+
+Excluded:
+
+- MuseScore sandboxing (open lead L-11-006).
+- Import UI redesign.
+- The PH-DATA-003 restore message. A song title, not just its id, may be added here
+  if the owner wants it; see the proof-owed table below.
+
+### Failure And Data Safety Plan
+
+No stored data changes. The queue keeps the existing 45 s timeout and `prlimit`. The
+cap stops one request from holding the converter indefinitely, and its rejection
+message is distinct from a bad file.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| PH-PAR-004 | parser test: corrupt bytes reject with a non-`Error` (`undefined` message) | an `Error` with a non-empty message; `midiRouter` returns a string `message` | unit |
+| PH-UI-009 | `libraryService.test.ts` with only errors ends "Review the metadata before playing." | no hint | unit |
+| PH-ARCH-004 | `midiRouter.test.ts`: the response holds `fileData` and `destPath` | neither present; size a small multiple of the metadata | unit |
+| PH-SEC-004 | `museScore.test.ts`: the second of two concurrent stubbed conversions is rejected | both resolve in order; one beyond the cap fails with a queue message | unit |
+| Runtime | Electron `workflows.mjs` WF-004 shows "empty: undefined"; web `mscz-upload-no-musescore.mjs` | parser reasons shown; no false hint | headless Electron and Chromium |
+| Manual UI/hardware proof | n/a | sitting 0 item 2 after the fix: two parallel `.mscz` uploads in Docker both import | owner |
+
+### Validation
+
+- Narrow: `npx vitest run src/server src/lib/midi src/renderer/services`
+- Required: `npm run verify`
+
+## Slice 14: Settings Values
+
+- Accepted finding IDs: PH-DATA-008, PH-ARCH-003
+- Priority/order: 14, P3
+- Implementation owner: TBD by the owner
+- Verifier: any reviewer
+- Proposed branch: `remediation/p11-s14-settings`
+
+### User-Visible Outcome
+
+A key the user unbinds, or moves to another note, stays that way after a restart, so
+two notes no longer share one key. Skipping first-run setup with reminders off shows
+0 in Settings, and the browser stops logging a parse error.
+
+### Boundaries Touched
+
+- Domain: `src/lib/input/settings.ts` `parseKeyboardMapping`. An explicit `null` means
+  unbound; only a missing key gets the default.
+- Renderer: `src/renderer/App.tsx` setup save writes `'0'`, not `'off'`. The read path
+  maps a stored `"off"` to 0.
+
+### Scope
+
+Excluded: validating every setting against the registry in the bridge. That would be a
+broader change; propose it separately if wanted.
+
+### Failure And Data Safety Plan
+
+Mappings already stored with `null` read back as unbound, which is what the user set.
+A user who now has a doubled key keeps it until they rebind; nothing is rewritten
+automatically. A legacy `"off"` reads as 0 and is written as `'0'` on the next save.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| PH-DATA-008 | `settings.test.ts`: `{ "note-0": null }` parses to the default key | unbound; `{}` still gives the default | unit |
+| PH-ARCH-003 | the setup save writes `'off'`; Settings shows an empty box for `"off"` | writes `'0'`; shows 0 | unit and component |
+| Runtime | `keyboard-remap-persistence.mjs`: labels differ after reload; Electron `workflows.mjs` stores `"off"` | labels match; stores `"0"` | headless Chromium and Electron |
+
+### Validation
+
+- Narrow: `npx vitest run src/lib/input src/renderer`
+- Required: `npm run verify`
+
+## Slice 15: Browser Rename Carry-Over
+
+- Accepted finding IDs: PH-DATA-004, PH-DATA-007
+- Priority/order: 15, P3
+- Implementation owner: TBD by the owner
+- Verifier: persistence reviewer
+- Proposed branch: `remediation/p11-s15-browser-legacy`
+
+### User-Visible Outcome
+
+Sample packs and library filter presets saved before the August rename appear after
+updating. The old browser stores do not linger, and "Reset all user data" clears both
+names.
+
+### Boundaries Touched
+
+- Renderer/UI:
+  - `src/renderer/webBridge.ts`: on first open, copy records from
+    `pianohero-instrument-sample-packs` into the new IndexedDB store, then delete the
+    old database. `resetUserData` deletes both names.
+  - A small renderer start-up helper, or `LibraryScreen.tsx`: copy
+    `pianohero-filter-presets` to `lumakeys-filter-presets` when the new key is absent,
+    then remove the old key.
+
+### Scope
+
+Both carry-overs are removed in the same release as the Node-side legacy fallback. That
+release date is owner decision 3, suggested 2027-01-31. Excluded: the desktop profile
+(slice 1).
+
+### Failure And Data Safety Plan
+
+- Copy only when the new store or key is absent.
+- Delete the legacy store only after the copy transaction commits.
+- If both exist, keep the new one and leave the legacy one untouched until reset or
+  the end date, so nothing is lost by a merge.
+- Rollback: code revert. Records already copied stay in the new store.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| PH-DATA-004 | `webBridge.test.ts` with a fake IndexedDB holding only the legacy name: packs not installed | packs installed; the legacy database gone; reset clears both names | unit |
+| PH-DATA-007 | `LibraryScreen` test seeding the legacy key: no preset chip | the chip "Legacy Preset" shows | component |
+| Runtime | `legacy-filter-presets.mjs` case L lists nothing | lists "Legacy Preset" | headless Chromium |
+| Manual UI/hardware proof | n/a | optional: sitting 1 item 9 if the owner's browser has a pre-rename pack; Electron filter presets after slice 1 | owner |
+
+### Validation
+
+- Narrow: `npx vitest run src/renderer/webBridge.test.ts src/renderer/components/LibraryScreen.test.tsx`
+- Required: `npm run verify`
+
+## Slice 16: Colour
+
+- Accepted finding IDs: PH-UI-015, PH-UI-016
+- Priority/order: 16, P3
+- Implementation owner: TBD by the owner
+- Verifier: accessibility reviewer
+- Proposed branch: `remediation/p11-s16-colour`
+
+### User-Visible Outcome
+
+In colour-blind mode, a missed note no longer looks like a pending right-hand note,
+and a good hit no longer looks like a pending left-hand note. Grade letters on the
+results screen are readable in the dark theme.
+
+### Boundaries Touched
+
+- Renderer/UI:
+  - `src/renderer/components/FallingNotesCanvas.tsx` `noteFill`: a distinct treatment
+    for judged notes, such as lightness, a border or a glyph, plus a new test file.
+  - `src/renderer/styles.css`: theme-aware grade colours.
+
+### Scope
+
+Excluded: the default palette for non-colour-blind mode, and theme redesign.
+
+### Failure And Data Safety Plan
+
+No durable state.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| PH-UI-015 | new `FallingNotesCanvas.test.tsx`: in colour-blind mode, `noteFill` for `miss` equals pending right, and `good` equals pending left | each pair differs | unit |
+| PH-UI-016 | `grade-badge-contrast.mjs`: D and F at 1.7:1, A at 3.0:1 | every grade at or above 3:1 (large bold text) in every theme | headless Chromium |
+| Runtime | `color-state-evidence.mjs` montage; `palette-cvd-distance.py` | judged and pending states separable under simulated deficiencies | headless Chromium |
+| Manual UI/hardware proof | n/a | sitting 1 item 10: a person with a colour-vision deficiency plays a short song in both palettes | owner |
+
+### Validation
+
+- Narrow: `npx vitest run src/renderer/components/FallingNotesCanvas.test.tsx`
+- Required: `npm run verify`
+
+## Slice 17: Small Independent Fixes
+
+- Accepted finding IDs: PH-UI-005, PH-UI-007, PH-UI-008, PH-MUS-009, PH-PAR-005
+- Priority/order: 17, P3
+- Implementation owner: TBD by the owner
+- Verifier: any reviewer
+- Proposed branch: `remediation/p11-s17-small`, or one branch per finding
+
+### User-Visible Outcome
+
+- PH-UI-005: the Progress dashboard names the same measure numbers as Results.
+- PH-UI-007: the "Date Added" filter includes songs imported on the chosen days, in
+  every time zone.
+- PH-UI-008: playlist rows can be reordered with Move up and Move down buttons, by
+  keyboard.
+- PH-MUS-009: quiz and interval answers are in a uniformly random position.
+- PH-PAR-005: web Free Play no longer promises an export that does not exist.
+
+### Boundaries Touched
+
+- PH-UI-005: `ProgressDashboardScreen.tsx` label adds 1 to both values. Storage and the
+  Practice loop range stay as they are.
+- PH-UI-007: `LibraryScreen.tsx` `withinDateRange`. Parse `date_added` as UTC; build
+  the From and To bounds from local date parts.
+- PH-UI-008: `PlaylistView.tsx` buttons call the existing
+  `onReorderSong(songId, newOrder)` and announce the result.
+- PH-MUS-009: one Fisher-Yates `shuffle` in `src/lib/theory/` replaces the helpers in
+  `TheoryQuizScreen.tsx` and `IntervalTrainerScreen.tsx`.
+- PH-PAR-005: `FreePlayScreen.tsx` status and Backing Track copy become runtime-aware
+  under `IS_WEB`. A browser MIDI download is a larger product choice and not in
+  scope.
+
+### Scope
+
+Each fix is one file plus its test. They do not depend on each other.
+
+### Failure And Data Safety Plan
+
+Only PH-UI-008 writes data, through the existing reorder call. The order must persist
+after a reload.
+
+### Test-First Proof
+
+| Finding | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| PH-UI-005 | `ProgressDashboardScreen` test: a trouble spot at 0 to 0 reads "Measures 0–0" | "Measures 1–1" | component |
+| PH-UI-007 | `withinDateRange` test under a western and an eastern `TZ` excludes same-day songs | included | unit; web `library-date-filter-timezone.mjs`, all four zones PASS |
+| PH-UI-008 | `PlaylistView` test: no Move down control | `onReorderSong` called; order persists after reload | component; extended `library-organize-bulk.mjs` |
+| PH-MUS-009 | shuffle test: 20,000 shuffles of 4 items put position 1 far from 25 % (`shuffle-bias-probe.cjs`) | each position within 1.5 points of 25 %; a seeded source gives a known permutation | unit |
+| PH-PAR-005 | `FreePlayScreen.test.tsx` web case: "You can replay or export it now." | runtime-aware text; desktop wording and export unchanged | component; web `freeplay-recording-export.mjs` |
+
+### Validation
+
+- Narrow: each finding's test file
+- Required: `npm run verify`
+
+## Proof Owed By Fixed Findings
+
+These 16 findings are `fixed`, not `verified`. None needs new product code unless noted.
+The proof each still owes:
+
+| Finding | Severity | Owed proof | Where |
+|---|---|---|---|
+| PH-DATA-001 | P1 | Forced filesystem failure during restore, delete and reset through the UI, on both runtimes, with the error naming a safe retry | agent: headless Electron and web drivers with an injected failure |
+| PH-MUS-001 | P1 | Pause and resume on a MIDI keyboard keeps judged state | sitting 4 item 4 |
+| PH-MUS-002 | P1 | Meter fixtures under `src/`; an Electron non-4/4 loop; MuseScore-converted meter map; a musician's check of labels and loop bounds | slice 0; agent Electron run; sitting 0 item 3; sitting 4 item 7 |
+| PH-PAR-001 | P1 | The capstone, the main-menu video and a pack install in a packaged profile; the asset assertion wired into `package:*` | sitting 1 item 1; slice 0 |
+| PH-UI-002 | P1 | Every Settings tab reachable at real 150 to 200 % zoom | sitting 1 item 2; sitting 3 item 2 |
+| PH-DATA-002 | P2 | The reset confirmation copy checked against what reset actually removes (now including packs), on both runtimes | agent: capture the dialog text in the Electron and web reset drivers |
+| PH-DATA-003 | P2 | The required proof says the restore error names the affected song and the retry path. The observed message names the song id only. Either accept the id or add the title in slice 13 | owner decision at slice 13 |
+| PH-MUS-003 | P2 | Fingering save and re-open while hand and track controls vary, plus a backup round trip | agent Electron run |
+| PH-MUS-004 | P2 | A held note stops when a real keyboard is unplugged | sitting 4 item 2 |
+| PH-PAR-002 | P2 | Upload picker cancel in Edge and Firefox | sitting 3 item 5 |
+| PH-PAR-003 | P2 | Hash-mismatched and unreadable legacy sources leave no playable row | agent: lane B probe extension |
+| PH-UI-001 | P2 | Overlay focus containment in Edge and Firefox (Chromium and Electron done) | sitting 3 item 3 |
+| PH-UI-003 | P2 | The OS reduced-motion setting; a canvas test | sitting 1 item 3; slice 0 |
+| PH-UI-004 | P2 | Modal Escape in Edge and Firefox | sitting 3 item 3 |
+| PH-ARCH-001 | P2 | A GameScreen recovery test; Edge and Firefox | slice 0; sitting 3 item 1 |
+| PH-ARCH-002 | P2 | A forced setting-write failure in Electron shows "Save failed" and reads back the stored value | agent: headless Electron |
+
+## Phase 11 Remediation Start Gate
+
+Before a slice starts:
+
+- The owner names the slice, its implementation owner, its verifier and its branch
+  (owner decision 4).
+- The implementer reproduces the "Fails before fix" check on the current `main` and
+  records the source identity if `main` has moved past `6e549b6`.
+- Data stays isolated as described under the shared rules.
+
+## Phase 11 Planning Completion
+
+- Accepted findings planned: 42 of 42.
+- P1 planned: 1 of 1 (PH-DATA-005, slice 1).
+- P2 planned: 14 of 14.
+- P3 planned: 27 of 27.
+- Findings merged or dropped: 0.
+- Suspected findings held back: 2 (PH-OPS-002, PH-OPS-004).
+- Product changes made: 0.
+- Remaining gate: the owner chooses which slices enter remediation and assigns them.

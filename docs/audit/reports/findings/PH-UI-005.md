@@ -3,7 +3,7 @@
 - Lane: UI
 - Severity: P3
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -45,7 +45,8 @@ button's loop range unchanged.
 
 - The "100%" beside each spot is the latest accuracy; spots resolve after three runs above 85 percent, so that part is by design.
 - Challenger conclusion and date: reproduced, 2026-10-19
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3; deduplication: canonical for the zero-based measure shown on Progress. PH-MUS-002's measure map is correct and is not involved. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending consolidation
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.

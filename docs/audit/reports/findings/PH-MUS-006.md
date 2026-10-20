@@ -3,7 +3,7 @@
 - Lane: MUS
 - Severity: P2
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), lane C, 2026-10-19
 - Verifier: TBD
@@ -114,10 +114,11 @@ the only clock input (no second tempo factor). Have the effect call it. The coun
 - Scope/severity changes: the meter and tempo-map parts were kept in this finding because they share the consumer and the remedy; the lead may split them under PH-MUS-002 if preferred, but PH-MUS-002's fix does not touch this code.
 - Deduplication decision: no existing ledger entry or Phase 3 note mentions the metronome; distinct from PH-MUS-002 (independent root cause, per the ledger rule for distinct measure-map consumers).
 - Challenger conclusion and date: reproduced, 2026-10-19
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending consolidation
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue:
 - Verification evidence:
 - Residual risk:

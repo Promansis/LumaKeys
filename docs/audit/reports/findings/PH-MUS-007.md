@@ -3,7 +3,7 @@
 - Lane: MUS
 - Severity: P2
 - Confidence: high (the file Electron saves is all zero samples; the one-change control renders sound in the same Electron renderer)
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-19
 - Verifier: TBD
@@ -84,10 +84,11 @@ notes and asserts non-zero samples after each onset.
 - Deduplication decision: not in the ledger.
 - Electron file-level proof, 2026-10-20 (`scripts/audit/electron/freeplay-export.mjs`, `$TMPDIR/p11/EL2/fpx.out` sha256 `e90f6f8d…5d98fe8e`): record C4 E4 G4 C5 in Free Play, Export WAV through the real save handler (dialog stubbed to a path): status "WAV saved to …/take.wav.", a 6.26 s 16-bit stereo 44.1 kHz file (sha256 `317fde61…dcc7eef44`) with peak 0 and 0 non-zero samples. In the same renderer, the product bundle renders peak 0 and the control bundle renders peak 0.580 (179,532 non-zero samples). No listening is needed; the sitting item is withdrawn.
 - Challenger conclusion and date: reproduced at engine level, Claude Code (acting), 2026-10-19; reproduced in the Electron file, 2026-10-20.
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P2. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending Electron confirmation
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue: none
 - Verification evidence: none
 - Residual risk: silent exports until fixed

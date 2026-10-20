@@ -46,4 +46,8 @@ parts: [web workflows](phase-11-lane-f-workflows-2026-10-19.md),
 [Electron runtime](phase-11-electron-runtime-2026-10-20.md), run headless with the
 drivers in `../../../scripts/audit/electron/`.
 Proof the owner must run by hand is batched in
-[phase-11-user-tests.md](phase-11-user-tests.md).
+[phase-11-user-tests.md](phase-11-user-tests.md). The
+[Phase 11 consolidation](consolidation-2026-10-20.md) records the readiness decision,
+lead dispositions and blocked environments, and the
+[Phase 11 remediation plan](phase-11-remediation-plan-2026-10-20.md) maps the 42
+accepted findings to 18 ordered slices.

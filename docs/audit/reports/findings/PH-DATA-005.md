@@ -3,7 +3,7 @@
 - Lane: DATA
 - Severity: P1
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -131,10 +131,11 @@ an explicit choice. Remove `app.setName` from `whenReady` or move it before `rea
 - Lead check of this host, 2026-10-19 (directory names and metadata only, contents not read): `~/.config/PianoHero/` exists holding `pianohero.db` (180 KB) and `midi-files/`, every entry stamped 2026-08-08 01:08:43, which looks like a single copy rather than app use; `~/.config/piano-hero`, `luma-keys`, `lumakeys`, and `LumaKeys` do not exist. So on this Linux host the current build would find and migrate that copy (case E3), and the title's "no build wrote" should read "no build's default `userData`". The defect still hits any real install, including the August Windows portable build (`%APPDATA%\luma-keys`), which sitting 2 checks.
 - Deduplication decision: distinct from PH-DATA-004 (browser IndexedDB name, web only) and PH-PAR-003 (legacy JSON metadata, which migrates correctly in both runtimes, cases J1 and P3).
 - Challenger conclusion and date: reproduced, 2026-10-19.
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P1. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending consolidation
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue:
 - Verification evidence:
 - Residual risk:

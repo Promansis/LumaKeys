@@ -3,7 +3,7 @@
 - Lane: PAR
 - Severity: P3
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -54,7 +54,8 @@ all three import catch blocks.
 - Reproduced at the HTTP boundary and in the browser UI.
 - Electron reproduction, 2026-10-20 (`scripts/audit/electron/workflows.mjs`, `$TMPDIR/p11/EL2/wf.out`): Upload MIDI with an empty `.mid`, a corrupt `.mid` starting `MThd`, and a `.txt` reports "3 failed (empty: undefined; corrupt: Cannot read properties of undefined (reading 'forEach'); notes.txt: undefined)"; Import Folder reports "bad: Cannot read properties of undefined (reading 'forEach')". So on the desktop the empty-file case is also unreadable, because the desktop handlers have no empty-file or extension check before parsing, and a file with a valid header but broken body reports a raw `TypeError`. The `.txt` case needs the user to bypass the dialog's MIDI filter.
 - Challenger conclusion and date: reproduced, 2026-10-19; Electron scope added 2026-10-20
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3; deduplication: it shares a message line with PH-UI-009 and a route with PH-ARCH-004. Each of the three has its own root cause (error normalisation, an unconditional hint, DTO serialisation), so all three stay and share one remediation slice. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending consolidation
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.

@@ -3,8 +3,8 @@
 - Lane: UI/accessibility
 - Severity: P3
 - Confidence: high
-- Status: reproduced
-- Owner: remediation owner TBD
+- Status: accepted
+- Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), per-stop probe plus a pin-path check
 - Verifier: independent verifier recommended
 - Affected runtime: both (renderer; web and headless Electron proven)
@@ -73,10 +73,11 @@ Apply `inert` (or `visibility: hidden` after the close transition) to closed pop
 - Scope/severity changes: P3 because two workarounds exist and the Menu overlay carries the same controls.
 - Deduplication decision: new surface.
 - Challenger conclusion and date: reproduced, Claude Code (acting), 2026-10-19.
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending lead.
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue: none.
 - Verification evidence: none yet.
 - Residual risk: none.

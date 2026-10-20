@@ -3,7 +3,7 @@
 - Lane: MUS
 - Severity: P3
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-20
 - Verifier: TBD
@@ -146,6 +146,7 @@ finished run still used the capstone's mode, tempo, hand and full range.
 - Deduplication decision: new; related to PH-MUS-012 only in that both let a score
   include notes not played in time.
 - Challenger conclusion and date: reproduced, 2026-10-20.
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3. Accepted.
 
 ## Resolution
 

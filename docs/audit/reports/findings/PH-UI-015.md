@@ -3,8 +3,8 @@
 - Lane: UI/accessibility
 - Severity: P3
 - Confidence: high
-- Status: reproduced
-- Owner: remediation owner TBD
+- Status: accepted
+- Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), screenshot and palette arithmetic
 - Verifier: person with colour-vision deficiency (user test item proposed in the lane report)
 - Affected runtime: both (canvas code); web proven
@@ -72,10 +72,11 @@ Give judged notes a different treatment from pending notes in colour-blind mode 
 - Scope/severity changes: held at P3.
 - Deduplication decision: new.
 - Challenger conclusion and date: reproduced, Claude Code (acting), 2026-10-19. The simulated distances are a numeric screen, not a calibrated colour-vision review.
+- Consolidation challenge, 2026-10-20: every template section is present and the root cause names an owning boundary; severity stays P3. Accepted.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending lead.
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue: none.
 - Verification evidence: none yet.
 - Residual risk: none.

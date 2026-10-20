@@ -50,7 +50,12 @@ Owner decision, not an agent action: inspect the blob (`git cat-file -p 5142e0d7
 - Independent reproduction attempt: object listing is deterministic.
 - Alternative explanations tested: the 4,096-byte variant is an empty schema; the 180 KB one is not, so content is plausible.
 - Challenger conclusion and date: suspected pending owner inspection, 2026-10-19
+- Consolidation challenge, 2026-10-20: kept `suspected`. Evidence gap: whether the blobs in history hold personal data is unknown. Next action: the owner inspects the blob (steps in this file), then accepts the risk or authorises a history rewrite (owner decision 2 in the user-test file). Deduplication: none; this is the only finding about repository history.
 
 ## Resolution
 
-- Accepted/rejected rationale: pending owner
+- Accepted/rejected rationale: kept `suspected` at the Phase 11 consolidation on 2026-10-20 until the evidence gap below closes.
+- Fix branch/commit/issue: none.
+- Verification evidence: none yet.
+- Residual risk: as stated in User Impact.
+- Revisit trigger: before the repository is shared with anyone new or made public.
