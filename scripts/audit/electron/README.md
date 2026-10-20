@@ -72,7 +72,8 @@ filter it out of their error list.
 | `paused-input.mjs` | WF-011, PH-MUS-012 | a note pressed during the count-in or before Space scores |
 | `practice-proofs.mjs` | WF-008, WF-009, WF-010, PH-MUS-001, PH-MUS-003 | a tempo change keeps the judged notes and the finished run saves them, a structural change asks first, a fingering set inside a loop is stored on the right note through IPC. Needs `POS` (see the file header) |
 | `library-one-hand.mjs` | WF-007, WF-008, PH-UI-006 | a library-screen folder move survives a relaunch, bulk Delete has no prompt at any layer, a one-hand Learn session judges six notes, and a track reassignment survives a relaunch. Needs `FIX_LIB` and `FIX_TWO` from `../browser/midi-fixtures.mjs` |
-| `keyboard-walk.mjs` | RT-008, PH-UI-010, PH-UI-011, PH-UI-013, PH-UI-014, PH-UI-017 | lane E's keyboard walk: top-bar focus, the Calibrate dialog's Escape, Soundboard's Escape sequence, invisible Free Play Tab stops, focus after the Settings confirmation closes |
+| `keyboard-walk.mjs` | RT-008, PH-UI-001, PH-UI-010, PH-UI-011, PH-UI-013, PH-UI-014, PH-UI-017 | lane E's keyboard walk: top-bar focus, the Calibrate dialog's Escape, Soundboard's Escape sequence, invisible Free Play Tab stops, focus after the Settings confirmation closes; part (f) checks PH-UI-001 focus containment in four dialogs |
+| `reset-with-pack.mjs` | WF-022, PH-DATA-002 | Delete User Data with the Flute pack installed removes the pack directory, and the pack does not resolve after a relaunch |
 
 ## Limits
 

@@ -6,9 +6,11 @@
 // (d) Free Play: Tab through the page; how many stops are invisible (aria-hidden or
 //     transparent)?
 // (e) Settings, Practice, Clear Learning Progress (Enter), Escape, Tab: where does focus go?
+// (f) PH-UI-001: in the Free Play, Soundboard and Game session overlays and the Settings
+//     confirmation, 50 Tab and 4 Shift+Tab presses; how many stops leave the dialog?
 // Each part starts from a renderer reload, which opens the main menu, like the web
 // drivers' fresh page. Env: PROFILE (empty, under $TMPDIR), LK_SQLITE_MODULE. Run from $TMPDIR/pw.
-import { withElectron, text } from './electron-harness.mjs';
+import { withElectron, text, REPO } from './electron-harness.mjs';
 import path from 'node:path';
 const profile = process.env.PROFILE;
 const j = JSON.stringify;
@@ -104,6 +106,38 @@ await withElectron(profile, async (h) => {
   await page.keyboard.press('Tab'); await page.waitForTimeout(200);
   const eTab = await page.evaluate(() => { const a = document.activeElement; const r = a.getBoundingClientRect(); return { focus: `${a.tagName} "${(a.getAttribute('aria-label') || a.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 30)}"`, top: Math.round(r.top), inNav: !!a.closest('.immersive-hud-nav') }; });
   console.log('(e) open', j(eOpen), '| Escape ->', j(eClosed), '| Tab ->', j(eTab));
+
+  // (f) overlay containment
+  const contain = async (label, open) => {
+    await open();
+    const opened = { where: await page.evaluate(where), focus: await page.evaluate(active) };
+    let outside = 0; const stops = new Set();
+    for (const [key, n] of [['Tab', 50], ['Shift+Tab', 4]]) {
+      for (let i = 0; i < n; i++) {
+        await page.keyboard.press(key); await page.waitForTimeout(40);
+        const f = await page.evaluate(() => { const a = document.activeElement; return { inDialog: !!a?.closest('[role=dialog]'), label: a && a !== document.body ? `${a.tagName} "${(a.getAttribute('aria-label') || a.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 20)}"` : 'body' }; });
+        if (!f.inDialog) outside += 1; stops.add(f.label);
+      }
+    }
+    console.log(`(f) ${label}: opened ${j(opened)}; 54 presses, ${outside} outside the dialog, ${stops.size} distinct stops`);
+  };
+  const overlay = (screen) => async () => { await go(screen); await page.keyboard.press('Escape'); await page.waitForTimeout(500); };
+  await contain('Free Play overlay', overlay('Free Play'));
+  await contain('Soundboard overlay', overlay('Soundboard'));
+  await home();
+  await page.getByRole('button', { name: 'Play Songs', exact: true }).click(); await page.waitForTimeout(800);
+  await h.stubOpen([path.join(REPO, 'scripts/audit/fixtures/midi/pmus-16.mid')]);
+  await page.getByRole('button', { name: 'Upload MIDI', exact: true }).click(); await page.waitForTimeout(2000);
+  await contain('Game overlay', async () => {
+    await home(); await page.getByRole('button', { name: 'Play Songs', exact: true }).click(); await page.waitForTimeout(800);
+    await page.locator('article.song-card').first().getByRole('button', { name: 'Play', exact: true }).click(); await page.waitForTimeout(1500);
+    await page.evaluate(() => document.activeElement?.blur());
+    await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+  });
+  await contain('Settings confirmation', async () => {
+    await go('Settings'); await page.getByRole('tab', { name: 'Practice' }).click(); await page.waitForTimeout(300);
+    await page.getByRole('button', { name: /^Clear Learning Progress/ }).first().focus(); await page.keyboard.press('Enter'); await page.waitForTimeout(800);
+  });
   console.log('ERRORS', j(h.errors.filter((e) => !/Insecure Content-Security-Policy|polyphony/.test(e)).slice(0, 10)));
 });
 console.log('DONE');

@@ -85,7 +85,7 @@ errors described under WF-019, and Electron's insecure-CSP warning (observation 
 | WF-019 | pass | Flute, then Install Better Sounds: "Flute Enhanced Pack ready."; 10 files appear under `<userData>/instrument-sample-packs/flute/`. The resolved base URL is `file:////…/flute/` (four slashes); fetching `C4.mp3` from it returns 190,962 bytes. No sampler errors after install or after a relaunch. Remove: "Flute reverted to bundled audio."; the directory is gone and the built-in sampler loads (observation 2). The web half fails: [PH-PAR-006](findings/PH-PAR-006.md) | `sample-pack.mjs` |
 | WF-020 | pass | Export Library writes `backup.json` (version, exportedAt, songs, folders, playlists, fingerings, settings, and `midiFiles` with base64 bytes). Garbage file: "Invalid library backup file." One flipped base64 character: "MIDI backup content does not match <id>." with 0 songs written. Valid file: "Imported 3 songs, 0 folders, 0 playlists, and 3 MIDI files." Cancel changes nothing | `backup-reset-restore.mjs` |
 | WF-021 | pass | The reset dialog takes focus; Escape and Cancel both close it. Confirming clears game results and keeps all 3 songs | `backup-reset-restore.mjs` |
-| WF-022 | pass | Delete all data leaves 0 songs, an empty `midi-files`, and empty localStorage; relaunch shows the setup guide again | `backup-reset-restore.mjs` |
+| WF-022 | pass | Delete all data leaves 0 songs, an empty `midi-files`, and empty localStorage; relaunch shows the setup guide again. With the Flute pack installed, the same reset also removes `instrument-sample-packs/` ([PH-DATA-002](findings/PH-DATA-002.md) holds) | `backup-reset-restore.mjs`, `reset-with-pack.mjs` |
 | WF-023 | pass | SIGKILL right after a result write and a settings write, then relaunch: 3 songs, 1 result, setting `"0.42"`; `PRAGMA integrity_check` ok; journal mode WAL | `backup-reset-restore.mjs` |
 | WF-024 | pass | All nine main-menu destinations return to the main menu. Keyboard Setup has no back button and returns through the top-nav "Main" | `workflows.mjs` |
 | RT-008 | reproduced defects | Item A4 below: the lane E keyboard walk gives the web's results on the desktop ([PH-UI-010](findings/PH-UI-010.md), [PH-UI-011](findings/PH-UI-011.md), [PH-UI-013](findings/PH-UI-013.md), [PH-UI-014](findings/PH-UI-014.md), [PH-UI-017](findings/PH-UI-017.md)) | `keyboard-walk.mjs` |
@@ -112,6 +112,8 @@ each on a fresh profile.
 | A2 | WF-007, PH-UI-006 | Four songs imported through Upload MIDI. A sidebar folder "Marches" and the bulk bar's Move to Folder take Alpha Waltz and Bravo March. After a relaunch the folder view lists exactly those two, and their cards read "Marches". Bulk Delete on the other two removes both songs and both `.mid` files at once, with the status "Deleted 2 songs from the library." No prompt appears at any layer: no `window.confirm`, no main-process message box and no in-page dialog. PH-UI-006 reproduces on the desktop | `library-one-hand.mjs` |
 | A3 | WF-008 | "Two Hand Study" imports with Melody on the right hand and Accompaniment on the left. Learn, with Right Hand chosen in the overlay: each of the six melody keys scores, and the run ends with 6 judged notes and 0 misses (475: 3 perfect, 1 good, 2 ok). The hand choice is already back to Both Hands at the next session, before any relaunch. Melody set to Left Hand is stored as `{"track-0":"left","track-1":"left"}`. After a relaunch it still reads Left Hand, and the hand choice reads Both Hands | `library-one-hand.mjs` |
 | A4 | RT-008, PH-UI-010, PH-UI-011, PH-UI-013, PH-UI-014, PH-UI-017 | Every web result holds on the desktop. (a) Progress: all eight top-bar buttons match `:focus-visible` but gain no outline, box shadow or border. A pixel diff of the strip with and without focus changes only the focused label, 282 px from its 1 px shift. The current page is marked only by `aria-current="page"`, with nothing visible (PH-UI-011). (b) Enter on Calibrate opens the dialog but leaves focus on the Calibrate button outside it. Escape closes the dialog and leaves Settings for the main menu (PH-UI-010). (c) Soundboard: the first Escape opens the menu, the second closes it, and the third goes to the main menu (PH-UI-013). (d) Free Play: 83 Tab stops before wrapping, 72 of them invisible and 71 of those inside `aria-hidden` popouts, the same counts as the web (PH-UI-014). (e) Clear Learning Progress opens with focus on Cancel. Escape closes it and drops focus to the page body, although the trigger is still connected. The next Tab lands on the top bar's "Main" (PH-UI-017) | `keyboard-walk.mjs` |
+| extra | PH-UI-001 (RT-008) | Not an owner item; added because the desktop half was owed. The Free Play, Soundboard and Game session overlays open with focus on Resume, and the Settings confirmation opens with focus on Cancel. In each, 50 Tab and 4 Shift+Tab presses never leave the dialog: 0 of 54 stops are outside. PH-UI-001 stays fixed on the desktop | `keyboard-walk.mjs` part (f) |
+| extra | PH-DATA-002 (WF-022) | Not an owner item; added because no desktop run had reset with a pack installed. The Flute pack is installed ("Flute Enhanced Pack ready.", 11 entries under `instrument-sample-packs/`, and it resolves to 10 sample files). Delete User Data then removes the whole `instrument-sample-packs` directory, and the pack no longer resolves. After a relaunch the setup guide shows again and the pack still does not resolve. PH-DATA-002 stays fixed on the desktop | `reset-with-pack.mjs` |
 
 Method notes:
 
@@ -130,12 +132,18 @@ Method notes:
     attempt the song card was also not found after the second relaunch. This did not
     happen again, and the cause was not found. That attempt's one-hand run scored 500
     (4 perfect, 2 ok, 0 misses).
+- `reset-with-pack.mjs` shows the installed pack's `baseUrl` with four slashes on Linux
+  (`file:////tmp/…`), because `instrumentSamplePackStore.ts` puts `file:///` in front of
+  an absolute POSIX path. Linux reads the leading `//` as `/`, and a Windows path gets the
+  usual three slashes, so this is a note, not a finding.
 - `keyboard-walk.mjs` reloads the renderer before each part to reach the main menu.
-  `document.hasFocus()` is true in the offscreen window. The driver ran twice; the second
-  run only removed duplicate top-bar stops from its count. The first run once logged
-  "[AudioEngine] Failed to load sampler: TypeError: Failed to fetch"; the recorded second
-  run did not, and neither did the drivers that do not reload. The cause was not
-  investigated. Both runs log the input warning 'The specified value "off" cannot be
+  `document.hasFocus()` is true in the offscreen window. The driver ran three times:
+  - The second run only removed duplicate top-bar stops from the count.
+  - The third run added part (f).
+  The first and third runs each logged "[AudioEngine] Failed to load sampler: TypeError:
+  Failed to fetch" once; the second run did not. No driver that skips reloading has
+  logged it. The cause was not investigated, so it is recorded here, not raised as a
+  finding. Every run logs the input warning 'The specified value "off" cannot be
   parsed', which the web drivers also filter out.
 
 ## Web Cross-Check
@@ -199,7 +207,8 @@ Raw output stays in `$TMPDIR/p11/EL2/` and is not committed.
 | `../capstone-accuracy-probe.ts` (engine, [PH-MUS-013](findings/PH-MUS-013.md)) | `capstone-probe.1.out`, `.2.out` | `3250f768…469166c5` (both) |
 | `practice-proofs.mjs` (A1) | `a1.out` | `df52b027…7f996dcf` |
 | `library-one-hand.mjs` (A2, A3) | `a23.out` | `29c9c067…293a5570` |
-| `keyboard-walk.mjs` (A4) | `a4.out` | `40f9ffbf…5c6a1081` |
+| `keyboard-walk.mjs` (A4, PH-UI-001) | `a4.out` | `dbf09367…1733c854` |
+| `reset-with-pack.mjs` (PH-DATA-002) | `rwp.out` | `e351a3d5…183a5ca3` |
 
 ## Effect On The User Batch
 
