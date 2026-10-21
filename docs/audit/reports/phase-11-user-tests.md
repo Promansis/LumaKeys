@@ -29,8 +29,8 @@ profile migration), slice 15 (`7c9ec01`, browser rename carry-over), slice 3 (`e
 Electron 44 and the window-open guard) and the slice 0 follow-up (`04f0ef9`). Group B gains
 B7 to B15 for them, B6 is updated, group G is new (housekeeping and one run outside the
 sandbox), and sitting 2 needs a new Windows build. Every B row below that starts the desktop
-app uses the post-merge Linux build (path given in the agent report). Decisions 7 to 9 are
-new.
+app uses the post-merge Linux build in `/tmp/claude-1000/p11-owner-build` (built from
+`ed40fa6`; see section B). Decisions 7 to 9 are new.
 
 **Never point a test at your real data.** Every command below uses a throwaway data
 directory or container. Do not use `docker compose up` or your normal desktop profile
@@ -55,14 +55,23 @@ Cloudflare, or tell the agent if you want it allowed. The app itself must still 
 
 ### B. This machine's desktop, with speakers (~20 min)
 
-Log in to the desktop session and open a terminal at the repository root. Use the package the agent built from the current source in
-a throwaway copy, so nothing in the repository is rebuilt. It lives under `/tmp` and is gone
-after a reboot; if so, ask the agent to rebuild it. For B1 to B15 use the post-merge Linux
-build (path given in the agent report): it holds slices 18, 1, 15 and 3, which the older
-package under `/tmp/claude-1000/p11/S1V/` does not.
+Log in to the desktop session and open a terminal in the agent's post-merge build copy,
+`cd /tmp/claude-1000/p11-owner-build`, so nothing in the repository is rebuilt (the web
+server serves `dist/web` from the current folder, and the copy holds the whole tree). The
+agent built it on 2026-10-21 from `main` at `ed40fa6` with `npm run package:local`; it
+holds slices 18, 1, 15 and 3, which the older package under `/tmp/claude-1000/p11/S1V/` does
+not. It lives under `/tmp` and is gone after a reboot; if so, ask the agent to rebuild it.
+
+- Unpacked app: `/tmp/claude-1000/p11-owner-build/dist/linux-unpacked/lumakeys` (SHA-256
+  `84fa94067d7122fbc52adbbe9d0f89c2decb95da1e94cfac0ce79274b2d3aec5`).
+- AppImage: `/tmp/claude-1000/p11-owner-build/dist/LumaKeys-0.1.0.AppImage` (214,048,515
+  bytes, SHA-256 `bc06be4273286a09fd79ab0deb9c0ef91d116c4a9988652df8641158f94193e2`).
+- The agent could not open its window: the single-instance lock aborts it inside the agent
+  sandbox (G2). Run as Node, the packaged binary reports Electron 44.9.2 and opens and writes
+  a database.
 
 ```bash
-APP="<the post-merge Linux build, path given in the agent report>/lumakeys"
+APP="/tmp/claude-1000/p11-owner-build/dist/linux-unpacked/lumakeys"
 newp() { local p; p=$(mktemp -d); mkdir -p "$p/.config"; ln -s ~/.config/dconf "$p/.config/dconf"; echo "$p"; }
 run()  { XDG_CONFIG_HOME="$1/.config" "$APP" --no-sandbox; }                 # run "$P": desktop app on a throwaway profile
 P=$(newp); run "$P" &                                                        # desktop app, throwaway profile
@@ -180,8 +189,10 @@ person's eyes and ears continues as B1 to B6.
 
 **Slices 1 and 3 need a new Windows build.** The kept exe below
 (`LumaKeys-0.1.0-portable.exe`, SHA-256 `bbe3604b…f6f372`) was built before slices 1 and 3,
-so items 1, 6, 7, 8 and 9 need a new Windows build from `main` at `ed40fa6` or later; ask the
-agent to cross-build it (its path, size and SHA-256 will be in the agent report). Items 2 to 5
+so items 1, 6, 7, 8 and 9 need a new Windows build from `main` at `ed40fa6` or later. Either
+build it on Windows with `BUILD_PORTABLE.md`, or ask the agent to cross-build it. The last
+cross-build needed a workaround for a sandbox limit, so tell the agent whether it may run
+that step outside the sandbox (`/sandbox`); it records the path, size and SHA-256 here. Items 2 to 5
 can use either exe, but prefer the new one, since that is what will ship. Building on Windows
 now needs Python plus the Visual Studio Build Tools ("Desktop development with C++"), or the
 `npm ci --ignore-scripts` then `node scripts/postinstall.cjs` route in `BUILD_PORTABLE.md`.
@@ -209,7 +220,7 @@ names, so do not use it.
 | 3 | WF-001 | Reopen the setup guide from the main-menu card, set a 20-minute reminder and Large hands, Start Practice, restart the app, open Settings | The reminder and hand size are kept | | |
 | 4 | WF-004, PH-UI-021 | Import one `.mid` from Downloads; start it. Note which folder the file dialog opens in, then open it again and note the folder again | The song appears in the library and starts. On the new build the dialog opens in Downloads both times (PH-UI-021); write down what you see | | |
 | 5 | WF-019 | Settings, Audio, Instrument Flute, "Install Better Sounds"; Free Play, press a few keys. If item 1 carried over a profile that already had a pack installed, check that pack too | "Flute Enhanced Pack ready." and the Flute plays. This is the first run of the pack's `file:///C:/…` path. After slice 1 the desktop builds the pack address from the current profile (`%APPDATA%\lumakeys\instrument-sample-packs`) on every read, so a pack carried over from `luma-keys` plays too | | |
-| 6 | OP-015, PH-OPS-006 | Do this last, on the new build. Before launching the portable build, make sure the profile has two earlier profile folders, for example `%APPDATA%\luma-keys` and `%APPDATA%\piano-hero`, each holding a `pianohero.db` (and no `%APPDATA%\lumakeys`). Launch LumaKeys. Setup note: item 1 will have moved your database, so restore the folders from the item 1 backup (`robocopy` it back), copy one `pianohero.db` into each, and rename `%APPDATA%\lumakeys` to `lumakeys-parked` for this item; rename it back and restore your real folders afterwards | Expected: a "LumaKeys could not start" dialog names both folders and says nothing was moved, and the app exits after OK. Both folders are unchanged. Before slice 1 (the kept exe) there is no window and no message while a LumaKeys process keeps running | | |
+| 6 | OP-015, PH-OPS-006 | Do this last, on the new build, in a **throwaway Windows user account**, not your own, so your real profile is never renamed or overwritten. Create a local account (Settings, Accounts, Other users, Add account, "I don't have this person's sign-in information", "Add a user without a Microsoft account"), sign in to it, and copy the exe there. Before launching the portable build, make sure the profile has two earlier profile folders, for example `%APPDATA%\luma-keys` and `%APPDATA%\piano-hero`, each holding a `pianohero.db` (and no `%APPDATA%\lumakeys`). A copy of the `pianohero.db` from your item 1 backup works for both. Launch LumaKeys. Afterwards, delete the throwaway account | Expected: a "LumaKeys could not start" dialog names both folders and says nothing was moved, and the app exits after OK. Both folders are unchanged. Before slice 1 (the kept exe) there is no window and no message while a LumaKeys process keeps running | | |
 | 7 | DATA-017, PH-DATA-006 | After item 1 and after item 2, with the app closed, wait 5 s and run `dir /a "%APPDATA%\lumakeys"`. Watch whether Windows deletes the sidecars on close | Neither `lumakeys.db-wal` nor `lumakeys.db-shm` is left once the app has closed. Write down if either remains, and whether it is gone after a minute (the migration refuses to move a library while its sidecar files are left) | | |
 | 8 | MOD-014, OP-013, PH-SEC-005 | Needs the new build. Soundboard, Show Credits, click a source link that starts with `https://` | The page opens in your default browser and no LumaKeys window appears | | |
 | 9 | OP-015, PH-OPS-006 | Needs the new build. With LumaKeys running, start the exe a second time | No second window; the first window comes to the front (restored if minimised) | | |
@@ -297,8 +308,7 @@ They need no person, so the agent ran them with throwaway profiles. The
   it. B1 is the human half.
 - 2026-10-21, later: after the second half of wave 1 the agent staged B7 to B15, G1 and G2,
   updated B6, and re-staged sitting 2 for a new build. Left with the agent, not on your
-  list: the Electron 44 proof runs on the merged tree (being re-run by a separate agent;
-  the audit lead records the results), a headless Electron run of the PH-DATA-007 filter
+  list: a headless Electron run of the PH-DATA-007 filter
   preset carry-over on a carried-over profile, and the packaged `--packaged` userdata run,
   which needs the sandbox off (G2).
 - Date the batch was run: sittings 0, 1, 3 and 4 by the agent on 2026-10-20; A to G not yet.

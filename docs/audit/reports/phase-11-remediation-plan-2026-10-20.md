@@ -139,8 +139,32 @@ in `44024d0` (ADR 0002, `CONTEXT.md`, and the audit's citations):
   using `npm run dev` or building the desktop app there. Since better-sqlite3 13, `npm ci`
   runs node-gyp at install, which needs Python, `make`, a C++ compiler and access to
   nodejs.org (see `BUILD_PORTABLE.md`).
-- The Electron 44 proofs on the merged tree are being re-run by a separate agent; the
-  audit lead records their results afterwards. Nothing here cites them.
+- Post-merge Electron 44 proofs (audit lead, 2026-10-21). A separate agent re-ran these on a
+  clean copy of `ed40fa6` (its own `npm ci` on Node 22.23.3, Electron 44.9.2,
+  better-sqlite3 13.0.3), one Electron process at a time, all on throwaway profiles. Every
+  result matches the pre-merge slice results:
+  - `electron-userdata-probe.mjs --harness-only`, exit 0:
+    - P1: `luma-keys` carried into `lumakeys/lumakeys.db` (1 song, 2 theory results).
+    - P2: exit 1, one "LumaKeys could not start" dialog, both `pianohero.db` files unmoved,
+      no renderer.
+    - P3: the JSON song migrated.
+    - P4: the empty current database backed up to `before-legacy-migration-*`, the earlier
+      one opened.
+  - `electron/window-open.mjs`: four PASS lines, `ERRORS []`.
+  - `electron/workflows.mjs` and `electron/backup-reset-restore.mjs`: exit 0, `ERRORS []`,
+    `integrity_check` ok.
+  - `electron/sample-pack.mjs`: exit 0. The pack address is derived from the current profile
+    (`…/.config/lumakeys/instrument-sample-packs/flute/`); only the known removal-path errors
+    appear.
+  - `browser/legacy-sample-packs.mjs` (slice 15) against the built web server: exit 0, all
+    five cases as expected.
+  - `npm run package:local` built `dist/LumaKeys-0.1.0.AppImage` (SHA-256 `bc06be42…4193e2`)
+    and `dist/linux-unpacked`. The packaged binary aborts in the sandbox on the
+    single-instance lock (`process_singleton_posix.cc: socket() failed: Operation not
+    permitted`), so its window is owed (user tests G2, B7). Run as Node it reports
+    Electron 44.9.2 and opens and writes a database through the unpacked better-sqlite3.
+  - The owner's Linux build for group B is that package, in
+    `/tmp/claude-1000/p11-owner-build`.
 - A new finding from the slice 3 implementation and review:
   [PH-UI-021](findings/PH-UI-021.md) (P3, `reproduced` from the Electron 43 release notes
   and the code, not yet seen on a display): all 8 `showOpenDialog` calls in
@@ -1400,8 +1424,8 @@ lock needs a Unix socket); they run outside it, if the owner allows that through
 | PH-OPS-006 | P2 | The packaged exit code and the error dialog with the real lock, on a real display. Windows with two earlier profiles that both hold `pianohero.db`. The harness run (exit 1, dialog called once, both folders named) passed | owner B13, B14; sitting 2 item 6 |
 | PH-DATA-004 | P3 | A browser profile that really installed a pack on the pre-rename release (optional; the owner may have none, then record it as not reproducible at runtime). The unit tests and the headless Chromium driver passed. Release gate: slices 1 and 15 verified in both runtimes | owner B6 (optional) |
 | PH-DATA-007 | P3 | A headless Electron run of the filter-preset carry-over on a carried-over profile (PH-DATA-005 is fixed now, so the agent can run it), and the Windows profile. The `LibraryScreen` test and the web driver passed | agent; sitting 2 item 1 |
-| PH-OPS-003 | P2 | The packaged Linux app on a real display: launch, main menu, one song, a setting read back; an existing profile still opens. The Windows portable build. The post-merge Electron 44 proof runs on the merged tree (the audit lead records them). The clean `npm ci` and `npm run verify` on the merged tree passed | owner B7, B9; sitting 2; audit lead |
-| PH-SEC-005 | P3 | A real click on a Soundboard credit link in the packaged app: the system browser opens and no LumaKeys window does. The post-merge `window-open.mjs` run. The unit tests and the driver on Electron 30.5.1 and 44.9.2 passed | owner B8; sitting 2 item 8; audit lead |
+| PH-OPS-003 | P2 | The packaged Linux app on a real display: launch, main menu, one song, a setting read back; an existing profile still opens. The Windows portable build. The clean `npm ci` and `npm run verify` on the merged tree, and the post-merge Electron 44 driver runs and Linux package build (Remediation Progress), passed | owner B7, B9; sitting 2 |
+| PH-SEC-005 | P3 | A real click on a Soundboard credit link in the packaged app: the system browser opens and no LumaKeys window does. The unit tests, the driver on Electron 30.5.1 and 44.9.2, and the post-merge `window-open.mjs` run passed | owner B8; sitting 2 item 8 |
 
 ## Phase 11 Remediation Start Gate
 
