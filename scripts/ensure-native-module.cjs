@@ -17,6 +17,11 @@ function run(command, args, options = {}) {
   return result;
 }
 
+function firstErrorLine(result) {
+  const text = String(result.stderr ?? '').trim();
+  return text.split('\n').find((line) => /error/i.test(line)) ?? text.split('\n')[0] ?? '';
+}
+
 function ensureNativeModule(target) {
   if (target !== 'node' && target !== 'electron') {
     console.error(`Unknown native runtime target: ${target}`);
@@ -24,8 +29,11 @@ function ensureNativeModule(target) {
   }
 
   if (target === 'electron' && (process.env.LUMAKEYS_SKIP_ELECTRON_REBUILD === '1' || process.env.PIANOHERO_SKIP_ELECTRON_REBUILD === '1')) {
+    // The variable keeps its old name so CI, the Dockerfile and the docs need no change. It no
+    // longer skips a rebuild (better-sqlite3 13 is N-API and is never rebuilt per Electron
+    // version); it skips the Electron probe, which would fetch the Electron binary.
     // ponytail: legacy var accepted for one release; drop PIANOHERO_SKIP_ELECTRON_REBUILD after migration.
-    console.log('Skipping Electron native-module rebuild because LUMAKEYS_SKIP_ELECTRON_REBUILD=1');
+    console.log('Skipping the Electron native-module check because LUMAKEYS_SKIP_ELECTRON_REBUILD=1');
     return true;
   }
 
@@ -34,7 +42,7 @@ function ensureNativeModule(target) {
     env: target === 'electron'
       ? { ...process.env, ELECTRON_RUN_AS_NODE: '1' }
       : process.env,
-    stdio: 'ignore',
+    stdio: ['ignore', 'ignore', 'pipe'],
   });
 
   if (probeResult.status === 0) {
@@ -42,20 +50,16 @@ function ensureNativeModule(target) {
     return true;
   }
 
-  console.log(`Rebuilding better-sqlite3 for ${target}`);
-  const rebuildResult = target === 'electron'
-    ? run(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['electron-rebuild', '-f', '-w', 'better-sqlite3'], {
-      stdio: 'inherit',
-    })
-    : run(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['rebuild', 'better-sqlite3'], {
-      stdio: 'inherit',
-    });
-
-  if (rebuildResult.status === 0) {
-    return true;
-  }
-
-  console.error(`Unable to rebuild better-sqlite3 for ${target}`);
+  // better-sqlite3 13 ships N-API prebuilt binaries that load in Node and in Electron, and
+  // neither `electron-rebuild` nor `npm rebuild` can produce a missing one, so there is
+  // nothing to rebuild here. A reinstall is the fix.
+  const cause = firstErrorLine(probeResult);
+  console.error(`better-sqlite3 could not be loaded for ${target}${cause ? `: ${cause}` : '.'}`);
+  console.error(
+    'Its prebuilt binary is missing or unusable. Run `npm ci` again with Node 22.14 or later '
+      + '(see engines in package.json). On Windows without Python and the Visual Studio Build '
+      + 'Tools, see BUILD_PORTABLE.md.',
+  );
   return false;
 }
 

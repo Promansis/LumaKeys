@@ -29,8 +29,7 @@
     "typecheck": "tsc --noEmit",
     "verify": "npm run typecheck && tsc --noEmit -p tsconfig.server.json && npm test && npm run build && npm run build:web && node scripts/assert-electron-assets.mjs",
     "normalize:samples": "node scripts/normalize-audio-assets.mjs",
-    "postinstall": "node scripts/postinstall.cjs",
-    "rebuild": "electron-rebuild -f -w better-sqlite3"
+    "postinstall": "node scripts/postinstall.cjs"
   },
   "dependencies": {
     "@fontsource-variable/oxanium": "^5.2.8",
@@ -57,7 +56,6 @@
     "concurrently": "^9.1.2",
     "electron": "^44.9.2",
     "electron-builder": "^24.13.3",
-    "electron-rebuild": "^3.2.9",
     "electron-vite": "^2.3.0",
     "esbuild": "^0.25.3",
     "jsdom": "^25.0.1",
