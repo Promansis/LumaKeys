@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ACHIEVEMENTS } from '../lib/achievements/achievementDefinitions';
-import { App } from './App';
+import { App, parseStoredAudioNumber } from './App';
 import type { AchievementRow, SongRow } from '../shared/dbTypes';
 
 const preloadSpy = vi.fn(() => Promise.resolve());
@@ -12,6 +12,9 @@ const setInstrumentReverbPresetSpy = vi.fn();
 const clearCustomSamplerSpy = vi.fn(() => Promise.resolve());
 const unlockAchievementSpy = vi.fn((_achievementId: string) => Promise.resolve());
 const setSettingSpy = vi.fn().mockResolvedValue(undefined);
+const setMasterVolumeSpy = vi.fn();
+const setMetronomeVolumeSpy = vi.fn();
+const setReverbLevelSpy = vi.fn();
 
 vi.mock('./components/AchievementToast', () => ({
   AchievementToast: () => null,
@@ -197,9 +200,9 @@ vi.mock('../lib/audio/audioEngine', () => ({
     init() {
       return Promise.resolve();
     }
-    setMasterVolume() {}
-    setMetronomeVolume() {}
-    setReverbLevel() {}
+    setMasterVolume = setMasterVolumeSpy;
+    setMetronomeVolume = setMetronomeVolumeSpy;
+    setReverbLevel = setReverbLevelSpy;
     setInstrument = setInstrumentSpy;
     setInstrumentReverbPreset = setInstrumentReverbPresetSpy;
     setCustomSampler() {
@@ -247,6 +250,21 @@ vi.mock('../lib/midi/midiFileParser', () => ({
   })),
 }));
 
+describe('parseStoredAudioNumber', () => {
+  it('returns the fallback for a missing, empty or non-numeric value', () => {
+    expect(parseStoredAudioNumber(null, 80)).toBe(80);
+    expect(parseStoredAudioNumber(undefined, 80)).toBe(80);
+    expect(parseStoredAudioNumber('', 80)).toBe(80);
+    expect(parseStoredAudioNumber('   ', 80)).toBe(80);
+    expect(parseStoredAudioNumber('loud', 80)).toBe(80);
+  });
+
+  it('keeps a stored number, including a saved zero', () => {
+    expect(parseStoredAudioNumber('55', 80)).toBe(55);
+    expect(parseStoredAudioNumber('0', 80)).toBe(0);
+  });
+});
+
 describe('App', () => {
   afterEach(() => {
     cleanup();
@@ -259,6 +277,9 @@ describe('App', () => {
     setInstrumentSpy.mockClear();
     setInstrumentReverbPresetSpy.mockClear();
     clearCustomSamplerSpy.mockClear();
+    setMasterVolumeSpy.mockClear();
+    setMetronomeVolumeSpy.mockClear();
+    setReverbLevelSpy.mockClear();
     unlockAchievementSpy.mockClear();
     setSettingSpy.mockReset();
     setSettingSpy.mockResolvedValue(undefined);
@@ -418,6 +439,42 @@ describe('App', () => {
     await screen.findByText('Open Free Play');
 
     expect(setInstrumentReverbPresetSpy).toHaveBeenCalledWith('hall');
+  });
+
+  it('starts a fresh profile at the audio defaults the settings screen shows', async () => {
+    render(<App />);
+
+    await screen.findByText('Open Free Play');
+
+    expect(setMasterVolumeSpy).toHaveBeenCalledWith(80);
+    expect(setMetronomeVolumeSpy).toHaveBeenCalledWith(65);
+    expect(setReverbLevelSpy).toHaveBeenCalledWith(20);
+  });
+
+  it('keeps saved audio levels, including a saved zero, over the defaults', async () => {
+    vi.mocked(window.appBridge!.getSetting).mockImplementation(async (category: string, key: string) => {
+      if (category === 'onboarding' && key === 'setupComplete') {
+        return 'true';
+      }
+      if (category === 'audio' && key === 'masterVolume') {
+        return '35';
+      }
+      if (category === 'audio' && key === 'metronomeVolume') {
+        return '0';
+      }
+      if (category === 'audio' && key === 'reverbLevel') {
+        return '50';
+      }
+      return null;
+    });
+
+    render(<App />);
+
+    await screen.findByText('Open Free Play');
+
+    expect(setMasterVolumeSpy).toHaveBeenCalledWith(35);
+    expect(setMetronomeVolumeSpy).toHaveBeenCalledWith(0);
+    expect(setReverbLevelSpy).toHaveBeenCalledWith(50);
   });
 
   it('keeps the shell usable with defaults when startup settings fail', async () => {
