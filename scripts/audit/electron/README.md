@@ -14,8 +14,8 @@ records what they proved and what they cannot prove.
   `out/main/index.js` unchanged.
 - `hooks.mjs` redirects two imports of the main bundle and nothing else: `electron` to
   `electron-shim.mjs`, whose `BrowserWindow` forces `show: false` and
-  `offscreen: true` (a visible window crashes Electron 30 without a display), and
-  `better-sqlite3` to an Electron-ABI copy outside the repository.
+  `offscreen: true` (a visible window crashed Electron 30 without a display), and
+  `better-sqlite3` to the package named by `LK_SQLITE_MODULE`.
 - `electron-harness.mjs` exports `withElectron(profile, fn)`. The callback gets `app`,
   `page`, `errors` (console errors, warnings and page errors), `relaunch({ kill })`
   (close or SIGKILL, then launch again on the same profile), `stubOpen(paths)`,
@@ -29,28 +29,31 @@ Node-ABI `better-sqlite3`.
 ## Setup (outside the repository)
 
 Needs the browser drivers' Playwright install (see `../browser/README.md`) and an
-existing `out/` build. Do not run `npm run build` for an audit: it rewrites the shared
-`out/`.
+existing `out/` build. In a checkout you may build (`npm run build`); do not rebuild the
+shared `out/` of the main checkout for an audit.
+
+`better-sqlite3` 13 is an N-API module: the one prebuilt binary in
+`node_modules/better-sqlite3/prebuilds/` loads in Node and in Electron, so no
+Electron-ABI copy is needed. Point `LK_SQLITE_MODULE` at the checkout's own package.
+(Before the Electron 44 upgrade the drivers needed a `prebuild-install` copy built for
+the Electron version.)
 
 ```bash
-# Electron-ABI copy of better-sqlite3; the repository's Node-ABI build stays as it is.
-M="$TMPDIR/p11/EL/electron-modules/node_modules"
-mkdir -p "$M"
-cp -r node_modules/better-sqlite3 node_modules/bindings node_modules/file-uri-to-path "$M/"
-(cd "$M/better-sqlite3" && npm_config_cache="$TMPDIR/npm-cache" \
-  node /media/storage/LumaKeys/node_modules/prebuild-install/bin.js --runtime electron --target 30.5.1)
-
 # Drivers run next to the Playwright install so `import 'playwright'` resolves.
 cp scripts/audit/electron/*.mjs "$TMPDIR/pw/"
+# electron-harness.mjs hard-codes REPO; point it at the checkout under test.
+sed -i "s#^export const REPO = .*#export const REPO = '$PWD';#" "$TMPDIR/pw/electron-harness.mjs"
 ```
 
-The `prebuild-install` step downloads from `github.com` once; later runs use the cache.
+If the Electron binary is missing (Electron 42 and later no longer download it at
+install time), run `npx install-electron --no` once. With Node 24 behind a proxy, set
+`NODE_USE_ENV_PROXY=1`.
 
 ## Run
 
 ```bash
 cd "$TMPDIR/pw"
-PROFILE="$TMPDIR/p11/EL2/wf" LK_SQLITE_MODULE="$TMPDIR/p11/EL/electron-modules/node_modules/better-sqlite3" \
+PROFILE="$TMPDIR/p11/EL2/wf" LK_SQLITE_MODULE="<checkout>/node_modules/better-sqlite3" \
   timeout 300 node workflows.mjs > "$TMPDIR/p11/EL2/wf.out" 2>&1
 ```
 

@@ -4,6 +4,12 @@
 - Node.js and npm installed
 - Windows machine (or Docker for cross-compilation)
 
+## Before You Release
+
+Run `node scripts/audit/dependency-triage.mjs` and read its "Desktop Runtime Advisories"
+section. Electron ships to every desktop user, so that section must be empty and
+`package.json` must name a supported Electron major (the latest three).
+
 ## Build Steps
 
 ### 1. Install Dependencies
@@ -70,7 +76,7 @@ To view data directory:
 
 **Issue**: "better-sqlite3 not found" error
 - **Cause**: Native module not properly bundled
-- **Solution**: Rebuild on Windows machine: `npm run rebuild && npm run package:win`
+- **Solution**: Reinstall on the Windows machine and package again: `npm ci && npm run package:win`. `better-sqlite3` ships a prebuilt N-API binary that Electron loads directly, so no native rebuild is needed.
 
 **Issue**: Application won't start
 - **Cause**: Missing Visual C++ Redistributable
