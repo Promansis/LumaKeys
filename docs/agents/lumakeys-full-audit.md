@@ -5,7 +5,7 @@ Do not use it to perform all lanes in one pass.
 
 ## Load First
 
-1. `AGENTS.md`, `CONTEXT.md`, `PRODUCT.md`, and `DESIGN.md`.
+1. `CONTEXT.md`, `PRODUCT.md`, and `DESIGN.md`.
 2. `docs/adr/README.md` and accepted ADRs.
 3. `docs/audit/README.md`, `charter.md`, `coverage-matrix.md`, and
    `findings-ledger.md`.

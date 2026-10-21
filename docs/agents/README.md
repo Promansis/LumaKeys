@@ -21,7 +21,7 @@ plus relevant ADRs have been read.
 
 ## Shared Rules
 
-- Read `AGENTS.md`, `CONTEXT.md`, `docs/audit/charter.md`, the coverage matrix, and
+- Read `CONTEXT.md`, `docs/audit/charter.md`, the coverage matrix, and
   the findings ledger before lane work.
 - Discovery is read-only except for reports and ledgers under `docs/audit`.
 - Historical `.codex-audits` reports are leads, not current evidence.
