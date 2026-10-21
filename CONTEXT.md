@@ -101,12 +101,19 @@ Runtime-specific differences must be explicit in bridge categories or UI gating.
 LumaKeys ships two runtimes from one source tree. Both share `src/lib/` (game,
 theory, audio, input), the React screens under `src/renderer/`, and the single
 `AppDatabase` class. Only the transport between renderer and database differs. The
-facts below were checked against `main` at `5017b8e`. Remediation slices change some
-of these facts; the slice that changes one updates this section.
+facts below were checked against `main` at `5017b8e`; the web access, security
+header and CI facts were updated for `44024d0` after slices 2 and 0 merged. Remediation
+slices change some of these facts; the slice that changes one updates this section.
 
-Commands live in `package.json` scripts. Docker and Cloudflare Tunnel host setup
-lives in [`README.md`](README.md) ("Where Data Is Stored", "Protect the Web APIs");
-do not copy it here.
+Commands live in `package.json` scripts. `npm run verify` is the full check: the
+typecheck, the server typecheck (`tsc --noEmit -p tsconfig.server.json`), `npm test`,
+`npm run build`, `npm run build:web` and `scripts/assert-electron-assets.mjs`.
+`.github/workflows/verify.yml` runs it on Node 22, then
+`node scripts/audit/recount-coverage.mjs --check`, on pushes to `main` and on pull
+requests. The `package:local` and `package:win` scripts also run the asset assertion
+before `electron-builder`. Docker and Cloudflare Tunnel host setup lives in
+[`README.md`](README.md) ("Where Data Is Stored", "Protect the Web APIs"); do not copy
+it here.
 
 ### Electron Desktop
 
@@ -129,10 +136,31 @@ do not copy it here.
     `./.pianohero-data`, then `./.lumakeys-data`. A checkout that only has
     `.pianohero-data` uses it. See [ADR 0002](docs/adr/0002-legacy-pianohero-compatibility-window.md).
   - The database is `<dataDir>/lumakeys.db` and imported MIDI is `<dataDir>/midi-files`.
-  - `/api/*` goes through `createApiAccessGate` (`src/server/webSecurity.ts`). It
-    checks `LUMAKEYS_WEB_ACCESS_TOKEN` (legacy `PIANOHERO_WEB_ACCESS_TOKEN`) and lets
-    every request through when no token is set. `GET /api/access` answers
-    `{ ok: true }`. Responses carry `Permissions-Policy: midi=(self)`.
+  - Web access gate (`src/server/webSecurity.ts`, installed by `installWebAccess` in
+    `src/server/index.ts`). `resolveWebAccessPolicy` runs first in `startServer`, before
+    the data directory, the database or the port is touched. A token in
+    `LUMAKEYS_WEB_ACCESS_TOKEN` (legacy `PIANOHERO_WEB_ACCESS_TOKEN`; blank counts as
+    unset) gates `/api/*`. With no token, the server refuses to start (exit 1) unless
+    `LUMAKEYS_TRUST_UPSTREAM_AUTH=1`, which starts it with no gate and a logged warning
+    (for a host that Cloudflare Access already protects). The placeholder
+    `change-this-long-random-token`, which `docker-compose.yml` supplies when `.env` has
+    no token, is refused in every mode.
+  - Sign-in: `GET /login` serves a static form (no script) that posts the token to
+    `POST /api/access` (body limit 4 KiB). A good token sets an HttpOnly,
+    `SameSite=Strict` cookie scoped to `Path=/api` (plus `Secure` on https) and redirects
+    to `/`. Scripts can post JSON `{"token":"..."}` or send the
+    `x-lumakeys-access-token` header. The gate reads the header or the cookie only; a
+    token in the query string is not accepted. An unsigned API call gets 401 with "Sign
+    in at /login." `GET /api/access` answers `{ ok: true }` once past the gate. Trust mode
+    installs no `/login` route. Responses carry `Permissions-Policy: midi=(self)`.
+  - HTML security headers: `htmlSecurityHeaders()` adds the
+    Content-Security-Policy (`src/shared/contentSecurityPolicy.ts`, plus
+    `frame-ancestors 'none'`), `X-Content-Type-Options: nosniff`,
+    `Referrer-Policy: no-referrer` and `X-Frame-Options: DENY` to every `text/html`
+    response (the app shell, the SPA fallback and `/login`). Both production builds
+    (`vite.web.config.ts` and `electron.vite.config.ts`) put the same policy, without
+    `frame-ancestors`, in the built `index.html` as a `<meta http-equiv>` tag through
+    the `contentSecurityPolicyMeta()` plugin. Dev servers get no policy.
   - `createStaticFileHandler` (`src/server/staticFiles.ts`) serves the built SPA from
     `dist/web` under the working directory, with explicit MIME types, cache headers
     and single byte ranges (the menu video needs them).
@@ -151,7 +179,8 @@ do not copy it here.
   and the sample-directory picker) resolve to `null`. It is installed from
   `src/renderer/main.tsx` when the build-time `IS_WEB` define is true
   (`vite.web.config.ts` sets `'true'`, `electron.vite.config.ts` sets `'false'`).
-  Use `IS_WEB` to branch between runtimes.
+  Use `IS_WEB` to branch between runtimes. The first 401 from the API sends the browser
+  to `/login`, once per page load (`src/renderer/loginRedirect.ts`).
 - **Second TypeScript project**: `tsconfig.server.json` type-checks `src/server`,
   `src/persistence`, `src/storage`, `src/shared`, and the `src/lib` modules the
   server imports (`achievements`, `game`, `recommendations`, `midiFileParser.ts` and
@@ -160,7 +189,8 @@ do not copy it here.
   requires amd64. It installs the MuseScore Studio version pinned in the
   Dockerfile from a checksummed AppImage and sets `LUMAKEYS_MUSESCORE_PATH`. It builds with `npm run build:web`, sets `PORT=3001`
   and `LUMAKEYS_DATA_DIR=/data`, and runs `npm run start:web`. `docker-compose.yml`
-  bind-mounts host `/media/storage/lumakeys` to `/data`.
+  bind-mounts host `/media/storage/lumakeys` to `/data` and reads
+  `LUMAKEYS_WEB_ACCESS_TOKEN` from a `.env` file next to it.
 
 ### Renderer
 
@@ -210,7 +240,8 @@ do not copy it here.
 | Web bridge | `src/renderer/webBridge.ts` | Browser implementation of `window.appBridge` |
 | MIDI storage | `src/storage/midiStorage.ts` | App-owned MIDI byte storage adapter |
 | Brand migration | `src/persistence/legacyBrandMigration.ts` | Startup carry-over of PianoHero names (ADR 0002) |
-| Web security | `src/server/webSecurity.ts` | API access gate and request body limits |
+| Web security | `src/server/webSecurity.ts` | Startup access policy, `/login` sign-in, API access gate, HTML security headers and request body limits |
+| Content Security Policy | `src/shared/contentSecurityPolicy.ts` | The one policy behind the web header and the built `index.html` meta tag |
 | Static files | `src/server/staticFiles.ts` | SPA files, MIME types, cache headers, byte ranges |
 | MuseScore import | `src/server/museScore.ts` | `.mscz` to MIDI conversion (web runtime only) |
 | Free-play visuals | `src/renderer/components/FreePlayCanvasScene.tsx`, `FreePlayVisualizer.tsx` | Canvas scene graph, visualizer and visual types |

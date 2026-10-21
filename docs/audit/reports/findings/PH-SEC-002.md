@@ -3,7 +3,7 @@
 - Lane: SEC
 - Severity: P2
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -89,7 +89,7 @@ only.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: branch `remediation/p11-s02-web-access`, `b6aaf47` (fix) and `aae47b5` (probe and browser driver), slice 2, with review repairs in `3d5d963` and `ed31acb`. Not merged or deployed.
+- Fix branch/commit/issue: branch `remediation/p11-s02-web-access`, `b6aaf47` (fix) and `aae47b5` (probe and browser driver), slice 2, with review repairs in `3d5d963` and `ed31acb`. Merged to `main` in `4b72c98` on 2026-10-21; not deployed.
   - What changed: the gate in `src/server/webSecurity.ts` reads the token from the `x-lumakeys-access-token` header or the cookie only. The `access_token` query parser is gone.
   - New sign-in: `GET /login` serves a static form (no script, `Cache-Control: no-store`) that posts `token` in the body to `POST /api/access`. A good token sets the same cookie as before (HttpOnly, SameSite=Strict, `Path=/api`, Secure on https) and redirects 303 to `/`. A wrong token gets the form back with 401 and no cookie. Scripts can post JSON `{"token":"..."}` (200 `{"ok":true}`) or keep sending the header. The sign-in route runs ahead of the gate, with a 4 KiB body limit. The cookie format is unchanged, so browsers that are already signed in stay signed in. The 401 message now says "Sign in at /login."
   - README section 5a documents `/login`, the script options, and that old `?access_token=` links stop working.

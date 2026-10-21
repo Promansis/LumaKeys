@@ -23,6 +23,7 @@
   proof-owed table.
 - Updated 2026-10-21, owner decision 5: slice 18 (PH-MUS-014) joins wave 1, after
   slice 0.
+- Updated 2026-10-21 after the wave 1 start: see [Remediation Progress](#remediation-progress-2026-10-21).
 
 ## Stage Decision
 
@@ -82,7 +83,7 @@ starts only when the owner says so.
 | Wave | Slices | Goal | Starts |
 |---|---|---|---|
 | Gate | sitting 0 item 4 | Settle PH-OPS-002. If the deployed `/api/*` is open, slice 2 moves to the front of wave 1. **Tripped 2026-10-20**: the live host answered `/` and `/api/*` with no login (from this host's own address; the owner's phone on mobile data confirmed it the same day, user tests A1) | done |
-| 1: carry-over release (proposed `0.2.0`) | 2, then 0, then 18, then 1 with 15, then 3; task D1 alongside | Close the open web surface, then CI, then audible volumes on a fresh profile, then the desktop and browser carry-over a safe desktop update needs, then a supported Electron. Slice 18 joined under owner decision 5 (2026-10-21) | on the owner's go-ahead |
+| 1: carry-over release (proposed `0.2.0`) | 2, then 0, then 18, then 1 with 15, then 3; task D1 alongside | Close the open web surface, then CI, then audible volumes on a fresh profile, then the desktop and browser carry-over a safe desktop update needs, then a supported Electron. Slice 18 joined under owner decision 5 (2026-10-21) | started 2026-10-21 on the owner's go-ahead; see [Remediation Progress](#remediation-progress-2026-10-21) |
 | 2 | 4, 5, 6, 7, 8, 9, 10, 11, 19, 20, then 12 after 4 | P2 practice correctness, the capstone change from decision 1, and the reopened destructive-operation failures and the fingering loss found by the agent proofs | after slice 0 is merged |
 | Deferred | 13, 14, 16, 17 | P3 polish | a later owner decision |
 
@@ -102,7 +103,9 @@ slice 7 after slice 5 when both edit the MIDI startup in `App.tsx`.
   immediate mitigation (Cloudflare Access or `LUMAKEYS_WEB_ACCESS_TOKEN` on the running
   container) is the owner's and does not wait for the slice.
 
-Task D1 (documentation from owner decision 3; not a finding):
+Task D1 (documentation from owner decision 3; not a finding). **Done 2026-10-21**:
+branch `remediation/p11-docs-governance`, documentation review passed, merged to `main`
+in `44024d0` (ADR 0002, `CONTEXT.md`, and the audit's citations):
 
 - Turn lane H's [draft ADR](phase-11-lane-h-documentation-2026-10-19.md) for the rename
   into a new ADR in `docs/adr/`, with the removal floor set to 2027-01-31.
@@ -110,6 +113,36 @@ Task D1 (documentation from owner decision 3; not a finding):
   the audit cites into tracked documents (`CONTEXT.md` or ADR 0001), correct lane H's
   stale statements on the way, and point the audit's citations there.
 - Proposed branch: `remediation/p11-docs-governance`. Verifier: documentation reviewer.
+
+## Remediation Progress, 2026-10-21
+
+- The owner gave the go-ahead for wave 1 on 2026-10-21.
+- Merged to `main`, each after an independent review:
+
+  | Merge | Work | Findings | State after the merge |
+  |---|---|---|---|
+  | `4b72c98` | Slice 2, web access | PH-OPS-002, PH-SEC-002, PH-SEC-003 | `fixed`; owner deploy and live checks owed (user tests A1) |
+  | `c66b25a` | Slice 0, CI and proof debt | PH-OPS-005; proof debt for PH-MUS-002, PH-PAR-001, PH-UI-003, PH-ARCH-001 | PH-OPS-005 `fixed` (GitHub runs owed); PH-ARCH-001 `verified`; the other three stay `fixed` |
+  | `b1a4742` | Slice 18, fresh-profile audio | PH-MUS-014 | `fixed`; the PulseAudio drivers and user tests B1 owed |
+  | `44024d0` | Task D1, documentation | none | done |
+
+- Slice 15 (browser rename carry-over) is implemented and verified. It is held, unmerged,
+  until slice 1 merges, because the two ship in the same release (owner decision 3).
+- Slice 1 (desktop startup migration) is in repair after its review. The blocker: an
+  orphan WAL file could overwrite the current library. Also open from the review:
+  sample-pack paths, learning progress treated as user data, and detection of an older
+  build.
+- Slice 3 (Electron upgrade and window-open guard) is in implementation. It merges after
+  slice 1.
+- A new finding, [PH-MUS-018](findings/PH-MUS-018.md) (P3, `reproduced`): on a fresh
+  profile the lead-in beats load as 0 while Settings shows 2, so the count-in after the
+  3-2-1 countdown is lost. It was found during slice 18's review. It awaits the owner's
+  decision on acceptance and placement. Proposed placement is slice 14 "Settings values"
+  (deferred wave); it is a one-line fix plus one `App` test, so the owner may prefer to
+  fold it into a wave 1 or wave 2 slice that edits the same effect in `App.tsx`.
+- Counts after these changes: 70 findings (11 verified, 11 fixed, 46 accepted,
+  1 reproduced, 1 accepted-risk). The planning record at the end of this document is
+  unchanged.
 
 ## Shared Rules For Every Slice
 
@@ -1278,23 +1311,32 @@ fingerings.
 
 ## Proof Owed By Fixed Findings
 
-These 7 findings are `fixed`, not `verified`. None needs new product code unless noted.
+These 11 findings are `fixed`, not `verified`. None needs new product code unless noted.
 The owner sittings run by the agent on 2026-10-20
 ([report](phase-11-owner-sittings-2026-10-20.md)) moved PH-PAR-002, PH-UI-001, PH-UI-002
 and PH-UI-004 to `verified`. The [agent proofs](phase-11-agent-proofs-2026-10-21.md) of
 2026-10-21 moved PH-PAR-003, PH-ARCH-002, PH-MUS-003 and PH-DATA-002 to `verified`, and
 removed them from this table. PH-DATA-001 failed its proof run and was reopened at P2; it
-is `accepted` again and moved to slice 19. The proof each of the 7 still owes:
+is `accepted` again and moved to slice 19. On 2026-10-21 slice 0 (`c66b25a`) added the
+GameScreen recovery test, the last proof PH-ARCH-001 owed, so it moved to `verified` and
+left this table. The same merge discharged the slice 0 parts of PH-MUS-002, PH-PAR-001
+and PH-UI-003. Slices 2, 0 and 18 moved five findings from `accepted` to `fixed` (PH-OPS-002,
+PH-SEC-002, PH-SEC-003, PH-OPS-005, PH-MUS-014), so they joined it. The proof each of the
+11 still owes:
 
 | Finding | Severity | Owed proof | Where |
 |---|---|---|---|
+| PH-OPS-002 | P0 | Deploy with the token (the untracked compose override already reads it from `.env`), then repeat user tests A1 from a phone on mobile data: `/` sends a signed-out browser to `/login`, signing in loads the app, `/api/*` answers 401 without the cookie. Not run: `docker compose config` and a container start. The agent proved the unit and process tests and the probe (0 WARN) on a built server | owner A1 |
 | PH-MUS-001 | P1 | Pause and resume on a real MIDI keyboard keeps judged state. A scripted Web MIDI device passed on both runtimes (sitting 4 item 4) | owner C3 |
-| PH-MUS-002 | P1 | Meter fixtures under `src/`; a musician's check of labels and loop bounds. The MuseScore meter map (sitting 0 item 3) and an Electron non-4/4 loop (sitting 4 item 7) passed | slice 0; owner C5 |
-| PH-PAR-001 | P1 | The asset assertion wired into `package:*`; a Windows package. The capstone, the main-menu video and a pack install passed in a packaged Linux profile (sitting 1 item 1) | slice 0; sitting 2 |
+| PH-MUS-002 | P1 | A musician's check of labels and loop bounds. The meter fixtures landed in slice 0 (`c66b25a`); the MuseScore meter map (sitting 0 item 3) and an Electron non-4/4 loop (sitting 4 item 7) passed | owner C5 |
+| PH-PAR-001 | P1 | A Windows package. It also exercises the asset assertion, now wired into `package:*` by slice 0 (`c66b25a`). The capstone, the main-menu video and a pack install passed in a packaged Linux profile (sitting 1 item 1) | sitting 2 |
+| PH-MUS-014 | P1 | The PulseAudio drivers `sitting1-audio-desktop.mjs` with `VOLUMES=fresh` and `sitting1-audio-web.mjs`, which the sandbox blocks (agent, outside the sandbox). A fresh install audible on speakers: the piano and metronome sound without touching a slider and Settings reads 80, 20 and 65. The unit and App tests passed | agent drivers; owner B1 |
 | PH-DATA-003 | P2 | The required proof says the restore error names the affected song and the retry path. The observed message names the song id only. Either accept the id or add the title in slice 13 | owner decision at slice 13 |
 | PH-MUS-004 | P2 | A held note stops when a real keyboard is unplugged. A scripted device released within 1 ms on both runtimes (sitting 4 item 2) | owner C2 |
-| PH-UI-003 | P2 | A canvas test; GNOME's own reduced-motion switch. The OS setting through GTK and XSETTINGS passed in Chrome and the packaged app on X11 (sitting 1 item 3) | slice 0; owner B3 |
-| PH-ARCH-001 | P2 | A GameScreen recovery test. The browser half is done: a forced-failure recovery run passed 78 of 78 checks in Edge, Firefox and Chromium (agent proofs, 2026-10-21) | slice 0 |
+| PH-UI-003 | P2 | GNOME's own reduced-motion switch. The canvas tests landed in slice 0 (`c66b25a`); the OS setting through GTK and XSETTINGS passed in Chrome and the packaged app on X11 (sitting 1 item 3) | owner B3 |
+| PH-SEC-002 | P2 | After the deploy, sign in once at `/login` in a private window; an old `?access_token=` link returns 401. The unit tests, the probe and the Chromium sign-in passed | owner A1 |
+| PH-SEC-003 | P3 | A play-through with sound and the console open: in a real browser on the deployed web build and in the built desktop app, play a song, Free Play, Soundboard and Install Better Sounds; expect no CSP error other than the known PH-PAR-006 `undefinedblob:` ones. The headless Chromium and Electron CSP checks passed | owner A1 |
+| PH-OPS-005 | P3 | Push `main`; a green `verify` workflow on GitHub; then a throwaway branch with one broken test that goes red, deleted afterwards. The clean-copy local CI runs and the wiring tests passed. The next `package:win` build runs the new asset assertion | owner push |
 
 ## Phase 11 Remediation Start Gate
 
@@ -1318,3 +1360,6 @@ Before a slice starts:
 - Product changes made: 0.
 - Remaining gate: the owner's go-ahead for wave 1. Selection and assignment are done
   (owner decision 4).
+- Progress, 2026-10-21: the go-ahead was given and wave 1 is under way. See
+  [Remediation Progress](#remediation-progress-2026-10-21). The counts above are the
+  planning record and stay as written.

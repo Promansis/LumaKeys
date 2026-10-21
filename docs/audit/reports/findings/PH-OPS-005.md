@@ -3,7 +3,7 @@
 - Lane: OPS
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -60,6 +60,7 @@ Two new files plus `package.json`.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
+- Fix branch/commit/issue: `remediation/p11-s00-ci`, slice 0, independently reviewed; merged to `main` in `c66b25a` on 2026-10-21. The finding is `fixed`, not `verified`: its required proof is a green workflow run on GitHub and a red run on a branch with a broken test, and nothing has been pushed.
 - Slice 0 (2026-10-21, `remediation/p11-s00-ci`, run by the agent): `package.json` gains `verify` (`npm run typecheck`, `tsc --noEmit -p tsconfig.server.json`, `npm test`, `npm run build`, `npm run build:web`, `node scripts/assert-electron-assets.mjs`, in that order). New `.github/workflows/verify.yml` runs on pushes to `main` and on pull requests (so a same-repo pull request branch runs once; `cancel-in-progress` is off on `main`): `npm ci`, `npm run verify`, then `node scripts/audit/recount-coverage.mjs --check`, with `LUMAKEYS_SKIP_ELECTRON_REBUILD=1` and `ELECTRON_SKIP_BINARY_DOWNLOAD=1`, `actions/checkout@v7` and `actions/setup-node@v7` (current majors on 2026-10-21; their release notes list no change to the inputs used here), Node 22 (the Dockerfile's version), read-only token and a 20 minute limit. `npm test` is `pretest` (`ensure-native-module node`, which rebuilds better-sqlite3 for Node if a local `npm install` left it on the Electron ABI) plus `vitest run`; `verify` uses it so it heals the same way. The second variable is an addition to the plan: with it `npm ci` does not download the Electron binary, which nothing in `verify` needs.
   - Test-first: `scripts/verifyWiring.test.mjs` (`PH-OPS-005 verify script`, `PH-OPS-005 workflow`) failed with no `verify` script and no workflow file, and passes now.
   - Local CI run (GitHub cannot be reached from here): a clean `git archive` of the branch in a private directory, a fresh `npm ci` with the two variables (605 packages, 27 s, no Electron binary), then `npm run verify` (80 s, exit 0: 69 test files and 381 tests passed, 1 file skipped; the asset inventory passed with 647 public files), then the recount check (matches the rows). `npm run verify` also passes in the worktree (108 s). `action-validator` (the GitHub workflow JSON schema) accepts the workflow and rejects a copy with `push` misspelled.

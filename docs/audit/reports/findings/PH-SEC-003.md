@@ -3,7 +3,7 @@
 - Lane: SEC
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -95,7 +95,7 @@ browser before merging.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: branch `remediation/p11-s02-web-access`, `b6aaf47` (fix) and `aae47b5` (CSP drivers), slice 2, with review repairs in `3d5d963` and `ed31acb`. Not merged or deployed.
+- Fix branch/commit/issue: branch `remediation/p11-s02-web-access`, `b6aaf47` (fix) and `aae47b5` (CSP drivers), slice 2, with review repairs in `3d5d963` and `ed31acb`. Merged to `main` in `4b72c98` on 2026-10-21; not deployed.
   - What changed: the new `src/shared/contentSecurityPolicy.ts` holds one policy: `default-src 'self'; script-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' blob:; style-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'`.
   - Web: `htmlSecurityHeaders()` in `src/server/webSecurity.ts`, installed for every route in `src/server/index.ts`, adds to each `text/html` response (the app shell, the SPA fallback and `/login`) the policy plus `frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` and `X-Frame-Options: DENY`.
   - Both builds: the Vite plugin `contentSecurityPolicyMeta()`, added in `vite.web.config.ts` and `electron.vite.config.ts`, puts `<meta http-equiv="Content-Security-Policy">` first in the built `index.html`.

@@ -3,7 +3,7 @@
 - Lane: MUS
 - Severity: P1
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-20
 - Verifier: TBD
@@ -104,8 +104,9 @@ for the same pattern. `src/renderer/App.tsx`.
 - Accepted/rejected rationale: accepted 2026-10-20. Owner decision 5 (2026-10-21): slice
   18 runs in wave 1, after slice 0
   ([Owner Selection](../phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20)).
-- Fix branch/commit/issue: `remediation/p11-s18-audio-defaults` (implemented 2026-10-21;
-  not yet reviewed).
+- Fix branch/commit/issue: `remediation/p11-s18-audio-defaults`, slice 18, implemented and
+  independently reviewed 2026-10-21; merged to `main` in `b1a4742` on 2026-10-21. The finding is
+  `fixed`, not `verified`: the two PulseAudio drivers and the speaker check are owed.
 - What changed: `parseStoredAudioNumber` in `src/renderer/App.tsx` now returns the
   fallback for a `null`, empty or blank value, so a fresh profile starts the engine at
   master 80, metronome 65 and reverb 20. A saved number, including a saved `0`, is kept.

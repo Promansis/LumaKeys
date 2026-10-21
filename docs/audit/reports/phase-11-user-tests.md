@@ -19,6 +19,11 @@ scripted MIDI device ([report](phase-11-owner-sittings-2026-10-20.md)). Their ta
 are now records with the agent's results. What still needs you is in the next section.
 Sitting 2 (Windows) is unchanged.
 
+Revised 2026-10-21. Wave 1 started: slices 2 (web access), 0 (CI) and 18 (fresh-profile
+audio) and task D1 are merged to `main` (`4b72c98`, `c66b25a`, `b1a4742`, `44024d0`). A1 now
+checks the fix after you deploy it, with new checks A2 to A4 beside it; B1 checks slice 18;
+group F is new and covers the GitHub runs for slice 0. Nothing is deployed or pushed yet.
+
 **Never point a test at your real data.** Every command below uses a throwaway data
 directory or container. Do not use `docker compose up` or your normal desktop profile
 for these tests. `~/.config/PianoHero` on this machine holds a copy of your old desktop
@@ -26,11 +31,19 @@ data, and a desktop build run without an isolated profile migrates it.
 
 ## Still Needs You — ready
 
-### A. The live site from another network (2 min, urgent)
+### A. The live site and the web security changes (~15 min, urgent)
 
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
-| A1 | OP-014, PH-OPS-002 | On a phone with Wi-Fi off (mobile data), open `https://<your hostname>/` in a private tab | Cloudflare's login page, not the app. On 2026-10-20 the app and its `/api` answered this machine with no login. If the phone also gets the app, the library is open to anyone who knows the hostname: put a Cloudflare Access application in front of it, or set `LUMAKEYS_WEB_ACCESS_TOKEN` and recreate the container ([PH-OPS-002](findings/PH-OPS-002.md)) | **fail**: the app opened over mobile data with no login. The owner said it looks like an old version; the image was built from `6e549b6`, the code this audit tested. Repeat after Access or the token is in place | owner, phone, 2026-10-20 |
+| A1 | OP-014, PH-OPS-002 | Deploy `main` with the token. Put `LUMAKEYS_WEB_ACCESS_TOKEN=<long random value>` (for example from `openssl rand -hex 32`) in the `.env` next to the compose file, which your untracked compose override already reads, then rebuild and recreate the container the way you normally deploy. On a phone with Wi-Fi off (mobile data), open `https://<your hostname>/` in a private tab. Then, from any machine, `curl -s -o /dev/null -w '%{http_code}\n' -X POST https://<your hostname>/api/bridge/getAllSongs` | The phone is sent to `/login` (not the app); signing in with the token loads the app; the `curl` prints 401, and `/api/*` answers 401 to anything without the cookie. If the container stops instead of starting, `docker compose logs` names the missing or placeholder token ([PH-OPS-002](findings/PH-OPS-002.md)) | 2026-10-20, before the fix: **fail**. The app opened over mobile data with no login. The owner said it looks like an old version; the image was built from `6e549b6`, the code this audit tested. Repeat after the deploy | owner, phone, 2026-10-20 (before the fix) |
+| A2 | OP-014, PH-SEC-002 | A private window on a computer. Open `https://<your hostname>/`, sign in at `/login` with the token. Close the whole browser, reopen it and visit the site again. Then, in a new private window, open the old style link `https://<your hostname>/api/access?access_token=<token>` | You land on `/login`; the token is not in the address bar; the app loads after sign-in. After the browser closes, the site sends you to `/login` again (the cookie ends with the browser session). The old link returns 401 and the next visit to `/` still goes to `/login` ([PH-SEC-002](findings/PH-SEC-002.md)) | | |
+| A3 | OP-016, PH-SEC-003, PH-OPS-002 | Still signed in, in the private window with the browser console open (F12): upload any `.mid`, play it; Free Play, press Z, X, C; Soundboard, press several keys; Settings, Audio, Instrument Flute, "Install Better Sounds" | Everything plays with sound. The console shows no Content-Security-Policy error, except the `undefinedblob:` ones that "Install Better Sounds" raises and the web pack never playing ([PH-PAR-006](findings/PH-PAR-006.md)). Write down any other CSP error with its blocked URL ([PH-SEC-003](findings/PH-SEC-003.md)) | | |
+| A4 | OP-016, PH-SEC-003, MOD-014 | The same play-through as A3 on the built desktop app, in the throwaway profile from section B (the package must be rebuilt from `main` first; ask the agent), with the console open where the build allows it | Song, Free Play, Soundboard and Install Better Sounds work with sound, and no Content-Security-Policy error appears beyond the one A3 allows | | |
+
+Cloudflare note for A2 and A3: if the zone injects scripts into your pages (Web Analytics or
+Rocket Loader), the new policy blocks them, and the console shows CSP errors that are about
+those scripts and not about the app. Note the blocked URL; turn the feature off in
+Cloudflare, or tell the agent if you want it allowed. The app itself must still work.
 
 ### B. This machine's desktop, with speakers (~20 min)
 
@@ -49,7 +62,7 @@ In both, choose "Skip for now" on the setup guide.
 
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
-| B1 | WF-015, PH-MUS-014 | Speakers at a normal level. Desktop app, Free Play, press Z, X, C. Then Settings, Audio, move Master Volume one step left and back, and do the same for Reverb and Metronome Volume. Free Play again, press Z, X, C | Today: the first three notes are close to silent ([PH-MUS-014](findings/PH-MUS-014.md)). After the sliders move, each key plays a clear piano note. Write whether the second set sounds right | | |
+| B1 | WF-015, WF-009, WF-018, PH-MUS-014 | Needs a build with slice 18 (`b1a4742`): the package under `/tmp` predates it, so ask the agent to rebuild from `main` first. Speakers at a normal level, a **fresh** throwaway profile (no saved audio settings). Desktop app, Free Play, press Z, X, C **without touching any slider**. Then Library, upload any `.mid`, Play mode, Start With Metronome, Space, listen for 5 s. Then Settings, Audio: read Master Volume, Reverb and Metronome Volume. Move Master Volume one step left and back, and do the same for Reverb and Metronome Volume; Free Play again, press Z, X, C. Repeat the first part in the web app at `http://127.0.0.1:3998` | The piano and the metronome are audible without touching a slider, and Settings, Audio reads **80, 20 and 65** (master, reverb, metronome). Moving the sliders and back changes nothing you can hear. Before the fix the first notes were close to silent, about 60 dB down ([PH-MUS-014](findings/PH-MUS-014.md), slice 18). Write whether the first and second sets sound the same | | |
 | B2 | WF-016, WF-019, PH-MUS-015 | Soundboard, press several keys quickly. Then Settings, Audio, Instrument Flute, "Install Better Sounds"; Free Play, hold C, D, E for a second each and release; Settings, "Use Built-in Sounds", and repeat | Soundboard sounds are clean. Today the pack's notes stop abruptly on release while the built-in Flute fades ([PH-MUS-015](findings/PH-MUS-015.md)). Write whether the pack sounds better apart from that | | |
 | B3 | RT-009, PH-UI-003 | `gsettings set org.gnome.desktop.interface enable-animations false`. Then quit and restart the desktop app, and open the web app in a **new** tab of a throwaway Chrome (`google-chrome --user-data-dir=$(mktemp -d) http://127.0.0.1:3998`). In each, look at the main menu and Free Play. Afterwards `gsettings set org.gnome.desktop.interface enable-animations true` | No video on the main menu; the Free Play background is still until a key is pressed, and pressed keys light up. A running app or a reloaded tab keeps the old setting, so restart or open a new tab. The agent proved this on X11; this checks your real GNOME session | | |
 | B4 | L-11-015 | Desktop app on the main menu: open the system monitor, note the app's CPU, minimise it for 30 s, note the CPU again, restore | CPU drops while minimised and the video resumes. Record the two numbers (the agent's software-rendered numbers are not representative) | | |
@@ -83,6 +96,21 @@ and web server from B. Write the keyboard's make and model in C1's Seen column.
 
 Sitting 2 below. The agent has cross-built the `.exe`; copy it off this machine before
 a reboot.
+
+### F. GitHub, after you push (~10 min)
+
+Slice 0 added `.github/workflows/verify.yml`. It runs on pushes to `main` and on pull
+requests. The agent ran the same steps in a clean copy on this machine; GitHub is
+unreachable from here and nothing is pushed yet, so only you can show the hosted runs.
+
+| # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
+|---|---|---|---|---|---|
+| F1 | MOD-012, PH-OPS-005 | Push `main`. On GitHub, open the repository's Actions tab and the latest `verify` run | A green run: `npm ci`, `npm run verify` (typecheck, server typecheck, tests, both builds, the asset assertion), then the coverage recount | | |
+| F2 | MOD-012, PH-OPS-005 | Make a throwaway branch, change one expectation in any test so it fails, push it, open a pull request from it, and watch the `verify` run. Afterwards close the pull request and delete the branch | The run goes red at the test step, and the builds do not run. A branch pushed without a pull request does not start the workflow | | |
+
+`package:win` needs no separate step: the next build through it runs the asset
+assertion before electron-builder ([PH-PAR-001](findings/PH-PAR-001.md)). The `.exe` kept
+for sitting 2 predates that script, so it is not a test of it.
 
 ## Sitting 0: Host terminal on this machine — done (agent)
 
@@ -182,7 +210,8 @@ device, "Audit Keys 61". The real keyboard continues as C1 to C5.
 | 2 | PH-OPS-004: the database in git history | Decided 2026-10-20: accept the risk; no history rewrite. The agent read all six blobs and none holds personal data |
 | 3 | Lane H: end date for the legacy-name fallback (suggested 2027-01-31), and whether `CLAUDE.md` and `AGENTS.md` are tracked | Decided 2026-10-20: removal no earlier than 2027-01-31, and only in a release after the carry-over release. `CLAUDE.md` and `AGENTS.md` stay gitignored; what the audit relies on moves into tracked docs (task D1) |
 | 4 | Which findings enter remediation | Decided 2026-10-20: waves, owners and branches as in the plan's [Owner Selection](phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20). Nothing starts until you say go |
-| 5 | Slice 18 (PH-MUS-014, fresh-profile volume): which wave | Decided 2026-10-21: wave 1, after slice 0. B1 stays as the speaker check once it is fixed |
+| 5 | Slice 18 (PH-MUS-014, fresh-profile volume): which wave | Decided 2026-10-21: wave 1, after slice 0. Merged to `main` in `b1a4742` the same day; B1 is the speaker check of the fix |
+| 6 | PH-MUS-018 (lead-in beats read as 0 on a fresh profile, P3): accept it, and in which slice | Open. Raised 2026-10-21; proposed slice 14 "Settings values" (deferred wave), or fold the one-line fix and one `App` test into a wave 1 or wave 2 slice. See [PH-MUS-018](findings/PH-MUS-018.md) |
 
 ## Moved To The Agent (headless Electron)
 
@@ -218,7 +247,12 @@ They need no person, so the agent ran them with throwaway profiles. The
   OP-017 limits residual, as P1 to P7 above
   ([report](phase-11-agent-proofs-2026-10-21.md)). Nothing in them needs the owner. A
   Windows `.exe` cross-build ran too and is held pending the owner's decision.
-- Date the batch was run: sittings 0, 1, 3 and 4 by the agent on 2026-10-20; A to E not yet.
+- 2026-10-21: after the wave 1 merges the agent staged A2 to A4 and F1 and F2, and
+  re-staged A1 and B1. Two proofs for PH-MUS-014 stay with the agent and are not on your
+  list: `sitting1-audio-desktop.mjs` with `VOLUMES=fresh` and `sitting1-audio-web.mjs`
+  need a PulseAudio null sink, which this session's sandbox blocks, so they run outside
+  it. B1 is the human half.
+- Date the batch was run: sittings 0, 1, 3 and 4 by the agent on 2026-10-20; A to F not yet.
 - Items the agent re-staged: sitting 1 item 1 (the capstone is locked on a fresh profile;
   the pause overlay's way out is "Back to Learn Hub"), item 3 (a reload does not pick up
   the OS setting), item 5 (the Soundboard opens on Classic), and sitting 4 item 6 (the

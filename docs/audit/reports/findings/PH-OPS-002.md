@@ -3,7 +3,7 @@
 - Lane: OPS
 - Severity: P0 (raised from P2 on 2026-10-20 by sitting 0 item 4; see the challenge record)
 - Confidence: high that the default is open; high that the live host serves the app with no login to another network (the owner's phone on mobile data, 2026-10-20) and answers unauthenticated `/api/*` calls from this host's address
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -106,7 +106,7 @@ with a placeholder that the server rejects until changed. `src/server/index.ts`,
 
 - Accepted/rejected rationale: kept `suspected` at the Phase 11 consolidation on 2026-10-20; accepted at P0 the same day after sitting 0 item 4. Under owner decision 4's gate, slice 2 moves to the front of wave 1 ([Owner Selection](../phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20)).
 - Immediate mitigation, outside any slice and the owner's to make (production infrastructure): put a Cloudflare Access application in front of the hostname, or set `LUMAKEYS_WEB_ACCESS_TOKEN` and recreate the container. The live build (`6e549b6`) already reads the token, so the token needs no rebuild; README section 5a gives the one-time `/api/access?access_token=` sign-in for each device. The agent changed nothing in production.
-- Fix branch/commit/issue: branch `remediation/p11-s02-web-access`, `b6aaf47` (fix) and `aae47b5` (audit drivers), slice 2, with review repairs in `3d5d963` and `ed31acb`. Not merged or deployed.
+- Fix branch/commit/issue: branch `remediation/p11-s02-web-access`, `b6aaf47` (fix) and `aae47b5` (audit drivers), slice 2, with review repairs in `3d5d963` and `ed31acb`. Merged to `main` in `4b72c98` on 2026-10-21; not deployed.
   - What changed: `resolveWebAccessPolicy` in `src/server/webSecurity.ts` reads the gate from the environment. A token (`LUMAKEYS_WEB_ACCESS_TOKEN`, or the legacy `PIANOHERO_WEB_ACCESS_TOKEN`) gates `/api/*`. A blank or whitespace-only value counts as unset for each token variable, so a blank new variable does not hide a set legacy one (`3d5d963`). With no token, only `LUMAKEYS_TRUST_UPSTREAM_AUTH=1` starts the server without a gate (the value is trimmed, so `1 ` counts as `1`; `true` or `0` do not), and the server logs a warning. Anything else throws. `startServer` in `src/server/index.ts` checks this first, so the process exits 1 before it creates the data dir, opens the database or binds the port. The placeholder `change-this-long-random-token` is refused in every mode.
   - `docker-compose.yml` now sets `LUMAKEYS_WEB_ACCESS_TOKEN: "${LUMAKEYS_WEB_ACCESS_TOKEN:-change-this-long-random-token}"`, so the token comes from a `.env` file next to the compose file, and a deployment without one stops at start instead of running open. The trust line is there, commented out. README sections 3 and 5a say this, and the troubleshooting section names the two startup errors.
   - Of the two options in the boundary, this takes "refuse to bind". A server that serves the app but no API looks broken in confusing ways. With `restart: unless-stopped`, a refused start becomes a restart loop with growing delays, and each attempt logs the error that names the fix in `docker compose logs`.
