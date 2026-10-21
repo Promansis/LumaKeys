@@ -24,6 +24,14 @@ audio) and task D1 are merged to `main` (`4b72c98`, `c66b25a`, `b1a4742`, `44024
 checks the fix after you deploy it, with new checks A2 to A4 beside it; B1 checks slice 18;
 group F is new and covers the GitHub runs for slice 0. Nothing is deployed or pushed yet.
 
+Revised again 2026-10-21, later. The rest of wave 1 is merged: slice 1 (`9e249ae`, desktop
+profile migration), slice 15 (`7c9ec01`, browser rename carry-over), slice 3 (`ed40fa6`,
+Electron 44 and the window-open guard) and the slice 0 follow-up (`04f0ef9`). Group B gains
+B7 to B15 for them, B6 is updated, group G is new (housekeeping and one run outside the
+sandbox), and sitting 2 needs a new Windows build. Every B row below that starts the desktop
+app uses the post-merge Linux build (path given in the agent report). Decisions 7 to 9 are
+new.
+
 **Never point a test at your real data.** Every command below uses a throwaway data
 directory or container. Do not use `docker compose up` or your normal desktop profile
 for these tests. `~/.config/PianoHero` on this machine holds a copy of your old desktop
@@ -49,25 +57,39 @@ Cloudflare, or tell the agent if you want it allowed. The app itself must still 
 
 Log in to the desktop session and open a terminal at the repository root. Use the package the agent built from the current source in
 a throwaway copy, so nothing in the repository is rebuilt. It lives under `/tmp` and is gone
-after a reboot; if so, ask the agent to rebuild it.
+after a reboot; if so, ask the agent to rebuild it. For B1 to B15 use the post-merge Linux
+build (path given in the agent report): it holds slices 18, 1, 15 and 3, which the older
+package under `/tmp/claude-1000/p11/S1V/` does not.
 
 ```bash
-APP=/tmp/claude-1000/p11/S1V/build/dist/linux-unpacked/lumakeys
-P=$(mktemp -d); mkdir -p "$P/.config"; ln -s ~/.config/dconf "$P/.config/dconf"
-XDG_CONFIG_HOME="$P/.config" "$APP" --no-sandbox &                              # desktop app, throwaway profile
-D=$(mktemp -d); LUMAKEYS_DATA_DIR="$D" PORT=3998 node dist/server/index.cjs &   # web app, throwaway data
+APP="<the post-merge Linux build, path given in the agent report>/lumakeys"
+newp() { local p; p=$(mktemp -d); mkdir -p "$p/.config"; ln -s ~/.config/dconf "$p/.config/dconf"; echo "$p"; }
+run()  { XDG_CONFIG_HOME="$1/.config" "$APP" --no-sandbox; }                 # run "$P": desktop app on a throwaway profile
+P=$(newp); run "$P" &                                                        # desktop app, throwaway profile
+D=$(mktemp -d); LUMAKEYS_DATA_DIR="$D" LUMAKEYS_TRUST_UPSTREAM_AUTH=1 PORT=3998 node dist/server/index.cjs &   # web app, throwaway data, no login (loopback only)
 ```
 
-In both, choose "Skip for now" on the setup guide.
+In both, choose "Skip for now" on the setup guide. Since slice 2 the web server refuses to
+start with no access gate, which is why the web line sets `LUMAKEYS_TRUST_UPSTREAM_AUTH=1`
+(use it on loopback only).
 
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
-| B1 | WF-015, WF-009, WF-018, PH-MUS-014 | Needs a build with slice 18 (`b1a4742`): the package under `/tmp` predates it, so ask the agent to rebuild from `main` first. Speakers at a normal level, a **fresh** throwaway profile (no saved audio settings). Desktop app, Free Play, press Z, X, C **without touching any slider**. Then Library, upload any `.mid`, Play mode, Start With Metronome, Space, listen for 5 s. Then Settings, Audio: read Master Volume, Reverb and Metronome Volume. Move Master Volume one step left and back, and do the same for Reverb and Metronome Volume; Free Play again, press Z, X, C. Repeat the first part in the web app at `http://127.0.0.1:3998` | The piano and the metronome are audible without touching a slider, and Settings, Audio reads **80, 20 and 65** (master, reverb, metronome). Moving the sliders and back changes nothing you can hear. Before the fix the first notes were close to silent, about 60 dB down ([PH-MUS-014](findings/PH-MUS-014.md), slice 18). Write whether the first and second sets sound the same | | |
+| B1 | WF-015, WF-009, WF-018, PH-MUS-014 | Needs a build with slice 18 (`b1a4742`): the post-merge Linux build has it (the older package under `/tmp` predates it). Speakers at a normal level, a **fresh** throwaway profile (no saved audio settings). Desktop app, Free Play, press Z, X, C **without touching any slider**. Then Library, upload any `.mid`, Play mode, Start With Metronome, Space, listen for 5 s. Then Settings, Audio: read Master Volume, Reverb and Metronome Volume. Move Master Volume one step left and back, and do the same for Reverb and Metronome Volume; Free Play again, press Z, X, C. Repeat the first part in the web app at `http://127.0.0.1:3998` | The piano and the metronome are audible without touching a slider, and Settings, Audio reads **80, 20 and 65** (master, reverb, metronome). Moving the sliders and back changes nothing you can hear. Before the fix the first notes were close to silent, about 60 dB down ([PH-MUS-014](findings/PH-MUS-014.md), slice 18). Write whether the first and second sets sound the same | | |
 | B2 | WF-016, WF-019, PH-MUS-015 | Soundboard, press several keys quickly. Then Settings, Audio, Instrument Flute, "Install Better Sounds"; Free Play, hold C, D, E for a second each and release; Settings, "Use Built-in Sounds", and repeat | Soundboard sounds are clean. Today the pack's notes stop abruptly on release while the built-in Flute fades ([PH-MUS-015](findings/PH-MUS-015.md)). Write whether the pack sounds better apart from that | | |
 | B3 | RT-009, PH-UI-003 | `gsettings set org.gnome.desktop.interface enable-animations false`. Then quit and restart the desktop app, and open the web app in a **new** tab of a throwaway Chrome (`google-chrome --user-data-dir=$(mktemp -d) http://127.0.0.1:3998`). In each, look at the main menu and Free Play. Afterwards `gsettings set org.gnome.desktop.interface enable-animations true` | No video on the main menu; the Free Play background is still until a key is pressed, and pressed keys light up. A running app or a reloaded tab keeps the old setting, so restart or open a new tab. The agent proved this on X11; this checks your real GNOME session | | |
 | B4 | L-11-015 | Desktop app on the main menu: open the system monitor, note the app's CPU, minimise it for 30 s, note the CPU again, restore | CPU drops while minimised and the video resumes. Record the two numbers (the agent's software-rendered numbers are not representative) | | |
 | B5 | RT-010, PH-UI-015, PH-UI-016 (needs another person) | Needs a person with a colour-vision deficiency, or a colleague with a calibrated display. Web app: upload `scripts/audit/fixtures/midi/pmus-16.mid`, play it in Play mode missing some notes on purpose, once with Settings, Visual, Colour-blind mode off and once on, then read the results screen. Can they tell a missed note from an upcoming right-hand note, and a good hit from an upcoming left-hand note, without the MISS popup? Is the grade letter legible? | Today: in colour-blind mode a missed note and a pending right-hand note are the same pink-red; a low grade letter is barely visible against its badge. Record their answers | | |
-| B6 | PH-DATA-004 (optional) | Only if your normal Chrome profile installed an instrument pack before the LumaKeys rename: open your own deployment in it, Settings, Audio, and read the pack status | Expected today: the pack shows "not installed". Skip if you never installed one on the old build | | |
+| B6 | PH-DATA-004, PH-DATA-007 (optional) | Only if your normal Chrome profile installed an instrument pack, or saved a library filter preset, before the LumaKeys rename. Needs your deployment rebuilt from `main` at `7c9ec01` or later (after the access token is set, A1). Open it in that profile: Settings, Audio, read the pack status; Library, look for your saved filter presets; F12, Application, IndexedDB and Local Storage | Expected after slice 15: the pack shows installed and your presets are listed; `pianohero-instrument-sample-packs` is gone from IndexedDB and `pianohero-filter-presets` from Local Storage (the carry-over copies, then deletes). Before the fix the pack showed "not installed". Skip if you never installed one on the old build | | |
+| B7 | WF-023, MOD-012, PH-OPS-003 | Slice 3. `P=$(newp); run "$P"`. Choose "Skip for now", upload any `.mid` in Library, play it for a few seconds. Settings, change one setting (for example Lead-in Beats), quit, `run "$P"` again, read the setting back | The packaged app (Electron 44.9.2) launches, shows the main menu with the moving background, plays the song with sound, and the setting reads back after the relaunch ([PH-OPS-003](findings/PH-OPS-003.md)) | | |
+| B8 | MOD-014, OP-013, PH-SEC-005 | Slice 3, the same profile. Soundboard, Show Credits, click a source link that starts with `https://`. Then click one that starts with `local://` | The page opens in your system browser and no LumaKeys window appears; the LumaKeys window stays on the Soundboard. A `local://` link opens nothing; that is a known lead (24 of 61 credit links), not a failure of this row ([PH-SEC-005](findings/PH-SEC-005.md)) | | |
+| B9 | DATA-017, MOD-008, PH-OPS-003 | Slice 3. Only if you have a normal LumaKeys profile from the older build: `P=$(newp); cp -a ~/.config/lumakeys "$P/.config/lumakeys"` (a copy; never launch the new build on the real folder), then `run "$P"`. Skip it if you have none; B10 covers an old library | The app opens with your songs, results, settings and installed packs, shows no dialog, and an installed pack plays | | |
+| B10 | DATA-017, OP-015, PH-DATA-005, PH-DATA-006 | Slice 1, a carried-over library. `P=$(newp); cp -a ~/.config/PianoHero "$P/.config/luma-keys"` (your old data copy; any folder holding a `pianohero.db` will do, and it is only copied), then `run "$P"`. Open Library, quit. `ls "$P/.config/luma-keys" "$P/.config/lumakeys"` | No dialog; the library shows the old songs and results; `lumakeys.db` is in `$P/.config/lumakeys`; `luma-keys` no longer holds `pianohero.db`; nothing was deleted ([PH-DATA-005](findings/PH-DATA-005.md)) | | |
+| B11 | OP-015, PH-DATA-005 | Slice 1, the question dialog. `P=$(newp); run "$P"`, skip the guide, upload one `.mid`, quit. Then `cp -a ~/.config/PianoHero "$P/.config/luma-keys"` and `run "$P"`. First press Quit (or Enter or Escape, which also quit); run it again and press "Keep current library"; run it a third time | A question dialog titled "Earlier library found" names both folders and offers "Use earlier library", "Keep current library" and "Quit", with Quit as the default. Quit leaves everything as it was. "Keep current library" opens your one uploaded song. The third launch asks nothing | | |
+| B12 | OP-015, PH-DATA-005 | Slice 1, the other answer. A new profile set up as in B11 (one uploaded song, then the old data copied into `luma-keys`); this time press "Use earlier library" | The old songs and results appear; your one-song library is kept in a `before-legacy-migration-<time>` folder inside `$P/.config/lumakeys`; the next launch asks nothing | | |
+| B13 | OP-015, PH-OPS-006 | Slice 1, the error dialog. `P=$(newp); mkdir -p "$P/.config/luma-keys" "$P/.config/piano-hero"; cp ~/.config/PianoHero/pianohero.db "$P/.config/luma-keys/"; cp ~/.config/PianoHero/pianohero.db "$P/.config/piano-hero/"; sha256sum "$P"/.config/*/pianohero.db`, then `run "$P"; echo exit=$?`. Press OK. Repeat the `sha256sum` and `ls "$P/.config/lumakeys"` | A dialog titled "LumaKeys could not start" names both folders and says nothing was moved; no main window appears. After OK the app exits with `exit=1`, both folders and their hashes are unchanged, and no `lumakeys.db` is created ([PH-OPS-006](findings/PH-OPS-006.md)) | | |
+| B14 | OP-015, PH-OPS-006 | Slice 1, the single-instance lock. With the app from B7 still open on `$P`, run `run "$P"` again in a second terminal; repeat with the first window minimised | No second window opens and the second process exits; the first window comes to the front, restored if it was minimised. This is the real lock, which the agent's harness stubs | | |
+| B15 | WF-004, WF-005, WF-020, PH-UI-021 | The Electron 43 dialog change. In the desktop app: Library, Upload MIDI, pick a `.mid` from a folder that is not Downloads (for example `~/Documents`); open Upload MIDI again; then Library, export a backup | Expected from the release notes and not yet seen: each dialog opens in Downloads, not where you last picked, and the backup save dialog starts in an unknown folder. Write down the folder each dialog starts in and your desktop environment ([PH-UI-021](findings/PH-UI-021.md)) | | |
 
 Afterwards: stop both apps (`kill %1 %2`), and turn the OS animation setting back on if
 B3 left it off.
@@ -112,6 +134,13 @@ unreachable from here and nothing is pushed yet, so only you can show the hosted
 assertion before electron-builder ([PH-PAR-001](findings/PH-PAR-001.md)). The `.exe` kept
 for sitting 2 predates that script, so it is not a test of it.
 
+### G. Housekeeping, and one run outside the sandbox (~10 min)
+
+| # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
+|---|---|---|---|---|---|
+| G1 | MOD-012, PH-OPS-003 | The main checkout's installed `node_modules` still holds Electron 30.5.1 and better-sqlite3 12.8.0. Before `npm run dev` or a desktop build there: `cd /media/storage/LumaKeys && npm ci`. It needs Python 3, `make`, a C++ compiler and access to nodejs.org, because better-sqlite3 13 runs node-gyp at install; without them use `npm ci --ignore-scripts` and then `node scripts/postinstall.cjs` (`BUILD_PORTABLE.md`). Then `node_modules/.bin/electron --version` | `npm ci` exits 0 and Electron prints `v44.9.2`. `npm run dev` opens your normal profile, so use `XDG_CONFIG_HOME=$(mktemp -d) npm run dev` for anything that is a test | | |
+| G2 | OP-015, PH-DATA-005, PH-DATA-006, PH-OPS-006 | The packaged binary with the real single-instance lock, which the agent sandbox blocks (`process_singleton_posix.cc: socket() failed: Operation not permitted`). Either allow the agent to run `node scripts/audit/electron-userdata-probe.mjs --packaged` against the post-merge build outside the sandbox (`/sandbox`), or treat B10 to B14, which run the same binary and lock on your display, as covering it | Case P1 shows the legacy song count in `lumakeys/lumakeys.db` and no `pianohero.db` left in the earlier folder; the two-profile case exits with code 1. If B10 to B14 pass, record "covered by B10 to B14" here | | |
+
 ## Sitting 0: Host terminal on this machine — done (agent)
 
 Run by the agent on 2026-10-20 with the image `lumakeys-audit:p11`, built from the working
@@ -149,8 +178,16 @@ person's eyes and ears continues as B1 to B6.
 
 ## Sitting 2: Windows machine (~25 min) — ready
 
-Use the portable `.exe` the agent cross-built on 2026-10-21 from the current source
-(`f8bacb1`, product source `6e549b6`) in a throwaway copy. The owner kept it the same day.
+**Slices 1 and 3 need a new Windows build.** The kept exe below
+(`LumaKeys-0.1.0-portable.exe`, SHA-256 `bbe3604b…f6f372`) was built before slices 1 and 3,
+so items 1, 6, 7, 8 and 9 need a new Windows build from `main` at `ed40fa6` or later; ask the
+agent to cross-build it (its path, size and SHA-256 will be in the agent report). Items 2 to 5
+can use either exe, but prefer the new one, since that is what will ship. Building on Windows
+now needs Python plus the Visual Studio Build Tools ("Desktop development with C++"), or the
+`npm ci --ignore-scripts` then `node scripts/postinstall.cjs` route in `BUILD_PORTABLE.md`.
+
+The kept exe: the portable `.exe` the agent cross-built on 2026-10-21 from the source
+at `f8bacb1` (product source `6e549b6`) in a throwaway copy. The owner kept it the same day.
 
 - Path on this machine: `/tmp/claude-1000/p11/PF/winbuild/src/dist/LumaKeys-0.1.0-portable.exe`.
   It is gone after a reboot, so copy it somewhere permanent first. If it is gone, ask the
@@ -167,12 +204,15 @@ names, so do not use it.
 
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
-| 1 | DATA-017, PH-DATA-005 | Before launching anything: `dir "%APPDATA%\piano-hero" "%APPDATA%\luma-keys" "%APPDATA%\PianoHero" "%APPDATA%\lumakeys"`. If `luma-keys` or `piano-hero` exists, back it up: `robocopy "%APPDATA%\luma-keys" "%USERPROFILE%\lumakeys-profile-backup" /E` (same for `piano-hero`). Launch the new exe, open the library, close the app, run the `dir` again | Today: the library is empty; `%APPDATA%\lumakeys\lumakeys.db` is new; `%APPDATA%\luma-keys\pianohero.db` is unchanged. If no old folder exists, write "no pre-rename profile" | | |
+| 1 | DATA-017, PH-DATA-005, PH-DATA-007 | Needs the new build. Before launching anything: `dir "%APPDATA%\piano-hero" "%APPDATA%\luma-keys" "%APPDATA%\PianoHero" "%APPDATA%\lumakeys"`. If `luma-keys` or `piano-hero` exists, back it up: `robocopy "%APPDATA%\luma-keys" "%USERPROFILE%\lumakeys-profile-backup" /E` (same for `piano-hero`). Launch the new exe, open the library, close the app, run the `dir` again | After slice 1: the library opens with your old songs, results, streak and settings, and an installed pack still plays; `%APPDATA%\lumakeys\lumakeys.db` now holds them and `%APPDATA%\luma-keys\pianohero.db` has moved there (the folder is not deleted). If `%APPDATA%\lumakeys` already held a library with songs, a question dialog "Earlier library found" appears instead and Quit is its default. Saved library filter presets are listed (PH-DATA-007). If no old folder exists, write "no pre-rename profile". Before the fix (the kept exe) the library is empty and `luma-keys\pianohero.db` is unchanged | | |
 | 2 | WF-023, RT-001, WF-026 | Launch the exe again; watch the main-menu background for 5 s; close the app | The main menu renders, the background moves, the app closes cleanly | | |
 | 3 | WF-001 | Reopen the setup guide from the main-menu card, set a 20-minute reminder and Large hands, Start Practice, restart the app, open Settings | The reminder and hand size are kept | | |
-| 4 | WF-004 | Import one `.mid` from Downloads; start it | The song appears in the library and starts | | |
-| 5 | WF-019 | Settings, Audio, Instrument Flute, "Install Better Sounds"; Free Play, press a few keys | "Flute Enhanced Pack ready." and the Flute plays. This is the first run of the pack's `file:///C:/…` path | | |
-| 6 | OP-015, PH-OPS-006 (optional) | Only if item 1 found `%APPDATA%\luma-keys\pianohero.db`: copy it into `%APPDATA%\lumakeys\`, launch the exe, wait 15 s, check Task Manager, end the LumaKeys process, then delete the copied `%APPDATA%\lumakeys\pianohero.db` | Today: no window and no message, while a LumaKeys process keeps running | | |
+| 4 | WF-004, PH-UI-021 | Import one `.mid` from Downloads; start it. Note which folder the file dialog opens in, then open it again and note the folder again | The song appears in the library and starts. On the new build the dialog opens in Downloads both times (PH-UI-021); write down what you see | | |
+| 5 | WF-019 | Settings, Audio, Instrument Flute, "Install Better Sounds"; Free Play, press a few keys. If item 1 carried over a profile that already had a pack installed, check that pack too | "Flute Enhanced Pack ready." and the Flute plays. This is the first run of the pack's `file:///C:/…` path. After slice 1 the desktop builds the pack address from the current profile (`%APPDATA%\lumakeys\instrument-sample-packs`) on every read, so a pack carried over from `luma-keys` plays too | | |
+| 6 | OP-015, PH-OPS-006 | Do this last, on the new build. Before launching the portable build, make sure the profile has two earlier profile folders, for example `%APPDATA%\luma-keys` and `%APPDATA%\piano-hero`, each holding a `pianohero.db` (and no `%APPDATA%\lumakeys`). Launch LumaKeys. Setup note: item 1 will have moved your database, so restore the folders from the item 1 backup (`robocopy` it back), copy one `pianohero.db` into each, and rename `%APPDATA%\lumakeys` to `lumakeys-parked` for this item; rename it back and restore your real folders afterwards | Expected: a "LumaKeys could not start" dialog names both folders and says nothing was moved, and the app exits after OK. Both folders are unchanged. Before slice 1 (the kept exe) there is no window and no message while a LumaKeys process keeps running | | |
+| 7 | DATA-017, PH-DATA-006 | After item 1 and after item 2, with the app closed, wait 5 s and run `dir /a "%APPDATA%\lumakeys"`. Watch whether Windows deletes the sidecars on close | Neither `lumakeys.db-wal` nor `lumakeys.db-shm` is left once the app has closed. Write down if either remains, and whether it is gone after a minute (the migration refuses to move a library while its sidecar files are left) | | |
+| 8 | MOD-014, OP-013, PH-SEC-005 | Needs the new build. Soundboard, Show Credits, click a source link that starts with `https://` | The page opens in your default browser and no LumaKeys window appears | | |
+| 9 | OP-015, PH-OPS-006 | Needs the new build. With LumaKeys running, start the exe a second time | No second window; the first window comes to the front (restored if minimised) | | |
 
 ## Sitting 3: Edge and Firefox — done (agent)
 
@@ -212,6 +252,9 @@ device, "Audit Keys 61". The real keyboard continues as C1 to C5.
 | 4 | Which findings enter remediation | Decided 2026-10-20: waves, owners and branches as in the plan's [Owner Selection](phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20). Nothing starts until you say go |
 | 5 | Slice 18 (PH-MUS-014, fresh-profile volume): which wave | Decided 2026-10-21: wave 1, after slice 0. Merged to `main` in `b1a4742` the same day; B1 is the speaker check of the fix |
 | 6 | PH-MUS-018 (lead-in beats read as 0 on a fresh profile, P3): accept it, and in which slice | Open. Raised 2026-10-21; proposed slice 14 "Settings values" (deferred wave), or fold the one-line fix and one `App` test into a wave 1 or wave 2 slice. See [PH-MUS-018](findings/PH-MUS-018.md) |
+| 7 | PH-UI-021 (desktop file dialogs open in Downloads and forget the last folder since Electron 43, P3): accept it, remember the folders in memory or persist them, and in which slice | Open. Raised 2026-10-21 in the slice 3 review; proposed a small follow-up to slice 3 (in memory), or slice 14 "Settings values" if persisted. See [PH-UI-021](findings/PH-UI-021.md) |
+| 8 | ADR 0002 items 3, 4, 6 and 7 (a startup line naming the data location, uniform blank-environment handling, the `legacy-brand:` markers, the README upgrade note): must the carry-over release (proposed `0.2.0`) ship them, or do they gate only the removal release (`0.3.0`)? | Open. The ADR says they are obligations of the carry-over release or earlier and that the removal release is blocked until they are done; the plan does not schedule them. The ADR stays `accepted` meanwhile. See [ADR 0002](../../adr/0002-legacy-pianohero-compatibility-window.md) |
+| 9 | ADR 0002 as a whole: confirm it | Open. Its `accepted` status rests on decision 3's wording "as in lane H's draft ADR"; you settled items 1 and 2 (the order and the 2027-01-31 floor) and have not individually settled items 3 to 7. Confirm the rest, or change it |
 
 ## Moved To The Agent (headless Electron)
 
@@ -252,7 +295,13 @@ They need no person, so the agent ran them with throwaway profiles. The
   list: `sitting1-audio-desktop.mjs` with `VOLUMES=fresh` and `sitting1-audio-web.mjs`
   need a PulseAudio null sink, which this session's sandbox blocks, so they run outside
   it. B1 is the human half.
-- Date the batch was run: sittings 0, 1, 3 and 4 by the agent on 2026-10-20; A to F not yet.
+- 2026-10-21, later: after the second half of wave 1 the agent staged B7 to B15, G1 and G2,
+  updated B6, and re-staged sitting 2 for a new build. Left with the agent, not on your
+  list: the Electron 44 proof runs on the merged tree (being re-run by a separate agent;
+  the audit lead records the results), a headless Electron run of the PH-DATA-007 filter
+  preset carry-over on a carried-over profile, and the packaged `--packaged` userdata run,
+  which needs the sandbox off (G2).
+- Date the batch was run: sittings 0, 1, 3 and 4 by the agent on 2026-10-20; A to G not yet.
 - Items the agent re-staged: sitting 1 item 1 (the capstone is locked on a fresh profile;
   the pause overlay's way out is "Back to Learn Hub"), item 3 (a reload does not pick up
   the OS setting), item 5 (the Soundboard opens on Classic), and sitting 4 item 6 (the

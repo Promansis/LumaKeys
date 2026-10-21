@@ -3,7 +3,7 @@
 - Lane: DATA
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -67,7 +67,8 @@ Node-side boundary.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: branch `remediation/p11-s15-browser-legacy`, commit 4708ad0 (slice 15; ships in the carry-over release with slice 1). No issue.
+- Fix branch/commit/issue: branch `remediation/p11-s15-browser-legacy` (slice 15; ships in the carry-over release with slice 1): `4708ad0` (fix), `7bdd671` (Resolutions), then the slice 15 review repairs `c526de5` (abort the pack copy on a failed put, and test the failure path; this finding), `ec47dea` (filter-preset carry-over in one deletable file; [PH-DATA-007](PH-DATA-007.md)) and `46487db` (Resolutions of both after the review). The review passed after the repairs. Merged to `main` in `7c9ec01` on 2026-10-21, held until slice 1 merged (`9e249ae`). No issue.
+- Status: `fixed`, not `verified` (audit lead, 2026-10-21). Rows that have passed: the unit/integration row (the fake-IndexedDB cases, including the failed-copy case added at review), the headless Chromium driver `legacy-sample-packs.mjs` (cases P, E, B, N, R) and the broader command. Still owed: the web row as written, a browser profile that really installed a pack on the pre-rename release (the owner may have none; if so, record it as not reproducible at runtime), which is the optional user test B6 against a build of `main` from `7c9ec01` or later; and the release gate, which asks for slices 1 and 15 verified in both runtimes before the carry-over release ships.
 - Verification evidence:
 
   What changed: `src/renderer/webBridge.ts` carries packs over once per page, before the pack store is first opened. If the current `lumakeys-instrument-sample-packs` store holds no packs and `pianohero-instrument-sample-packs` exists, its records are copied in one read-write transaction. The legacy database is deleted only after that transaction commits. If both hold packs the current ones win and the legacy database is left untouched until reset. Probing for a missing legacy database aborts its upgrade, so none is created. The copy is atomic: a synchronous `put` error (for example a malformed legacy record) aborts the transaction, so no partial set is committed. A failed carry-over logs a warning, keeps the legacy data and does not block the pack store. `resetUserData` now deletes the legacy name first, then the current one. The carry-over is marked for removal no earlier than 2027-01-31 (owner decision 3).

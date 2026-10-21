@@ -44,24 +44,24 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-SEC-002 | Access token accepted in the URL query string and documented as the login path | SEC | P2 | high | web | fixed | OP-014, OP-018, MOD-010 | [PH-SEC-002](reports/findings/PH-SEC-002.md) | Claude Code (acting) |
 | PH-SEC-003 | Web HTML responses carry no Content-Security-Policy or related security headers, and the desktop renderer has no CSP either | SEC | P3 | high | both | fixed | OP-016, MOD-010, MOD-013, MOD-014 | [PH-SEC-003](reports/findings/PH-SEC-003.md) | Claude Code (acting) |
 | PH-SEC-004 | One MuseScore conversion blocks every other import for up to 45 seconds | SEC | P3 | high | web | accepted | OP-017, WF-025, MOD-013 | [PH-SEC-004](reports/findings/PH-SEC-004.md) | Claude Code (acting) |
-| PH-SEC-005 | Soundboard source links open remote sites inside an Electron window with no navigation guard | SEC | P3 | high | Electron | accepted | MOD-014, OP-013, MOD-008 | [PH-SEC-005](reports/findings/PH-SEC-005.md) | Claude Code (acting) |
+| PH-SEC-005 | Soundboard source links open remote sites inside an Electron window with no navigation guard | SEC | P3 | high | Electron | fixed | MOD-014, OP-013, MOD-008 | [PH-SEC-005](reports/findings/PH-SEC-005.md) | Claude Code (acting) |
 | PH-OPS-002 | Default web deployment exposes `/api/*` with no app-level gate | OPS | P0 | high | web | fixed | OP-014 | [PH-OPS-002](reports/findings/PH-OPS-002.md) | Claude Code (acting) |
-| PH-OPS-003 | Shipped desktop runtime Electron 30.5.1 is past end of life | OPS | P2 | high | Electron | accepted | MOD-012, MOD-008, OP-013 | [PH-OPS-003](reports/findings/PH-OPS-003.md) | Claude Code (acting) |
+| PH-OPS-003 | Shipped desktop runtime Electron 30.5.1 is past end of life | OPS | P2 | high | Electron | fixed | MOD-012, MOD-008, OP-013 | [PH-OPS-003](reports/findings/PH-OPS-003.md) | Claude Code (acting) |
 | PH-OPS-004 | A default-state SQLite database remains in git history | OPS | P3 | high | runtime-independent | accepted-risk | MOD-012, DATA-003, DATA-004 | [PH-OPS-004](reports/findings/PH-OPS-004.md) | Claude Code (acting) |
 | PH-OPS-005 | No continuous integration enforces the typecheck, test, or asset baseline | OPS | P3 | high | runtime-independent | fixed | MOD-012 | [PH-OPS-005](reports/findings/PH-OPS-005.md) | Claude Code (acting) |
-| PH-DATA-004 | Web sample packs installed before the rename are orphaned in the browser | DATA | P3 | high | web | accepted | DATA-015, DATA-017, OP-006, OP-009, MOD-009 | [PH-DATA-004](reports/findings/PH-DATA-004.md) | Claude Code (acting) |
+| PH-DATA-004 | Web sample packs installed before the rename are orphaned in the browser | DATA | P3 | high | web | fixed | DATA-015, DATA-017, OP-006, OP-009, MOD-009 | [PH-DATA-004](reports/findings/PH-DATA-004.md) | Claude Code (acting) |
 | PH-MUS-005 | Computer-keyboard notes are ignored whenever an on-screen button has focus | MUS | P2 | high | both | accepted | WF-003, WF-009, WF-014, WF-015, RT-008 | [PH-MUS-005](reports/findings/PH-MUS-005.md) | Claude Code (acting) |
 | PH-PAR-004 | A corrupt MIDI upload reports "undefined" instead of the parser's reason | PAR | P3 | high | both | accepted | WF-004, WF-005 | [PH-PAR-004](reports/findings/PH-PAR-004.md) | Claude Code (acting) |
 | PH-UI-005 | Progress dashboard shows trouble-spot measures one lower than every other screen | UI | P3 | high | both | accepted | WF-017 | [PH-UI-005](reports/findings/PH-UI-005.md) | Claude Code (acting) |
 | PH-ARCH-003 | First-run setup stores "off" in an integer setting | ARCH | P3 | high | both | accepted | WF-001, WF-018 | [PH-ARCH-003](reports/findings/PH-ARCH-003.md) | Claude Code (acting) |
-| PH-DATA-005 | Desktop update opens an empty library because the legacy profile lookup misses every real pre-rename `userData` directory | DATA | P1 | high | Electron | accepted | DATA-017, OP-015 | [PH-DATA-005](reports/findings/PH-DATA-005.md) | Claude Code (acting) |
-| PH-DATA-006 | An interrupted legacy database rename is not finished on restart; WAL-only commits are dropped or startup is refused | DATA | P3 | high | both | accepted | DATA-017, OP-015 | [PH-DATA-006](reports/findings/PH-DATA-006.md) | Claude Code (acting) |
-| PH-DATA-007 | Library filter presets saved before the rename are no longer offered | DATA | P3 | high | both | accepted | DATA-016, DATA-017 | [PH-DATA-007](reports/findings/PH-DATA-007.md) | Claude Code (acting) |
+| PH-DATA-005 | Desktop update opens an empty library because the legacy profile lookup misses every real pre-rename `userData` directory | DATA | P1 | high | Electron | fixed | DATA-017, OP-015 | [PH-DATA-005](reports/findings/PH-DATA-005.md) | Claude Code (acting) |
+| PH-DATA-006 | An interrupted legacy database rename is not finished on restart; WAL-only commits are dropped or startup is refused | DATA | P3 | high | both | fixed | DATA-017, OP-015 | [PH-DATA-006](reports/findings/PH-DATA-006.md) | Claude Code (acting) |
+| PH-DATA-007 | Library filter presets saved before the rename are no longer offered | DATA | P3 | high | both | fixed | DATA-016, DATA-017 | [PH-DATA-007](reports/findings/PH-DATA-007.md) | Claude Code (acting) |
 | PH-MUS-006 | In-game metronome applies the practice tempo twice and ignores meter and tempo changes | MUS | P2 | high | both | accepted | WF-009, MOD-011 | [PH-MUS-006](reports/findings/PH-MUS-006.md) | Claude Code (acting) |
 | PH-MUS-007 | Free Play WAV export renders silence because it schedules on the live Transport inside `Tone.Offline` | MUS | P2 | high | Electron | accepted | WF-015 | [PH-MUS-007](reports/findings/PH-MUS-007.md) | Claude Code (acting) |
 | PH-MUS-008 | A MIDI file whose first tempo event comes after tick 0 is timed with a jump at that event | MUS | P3 | high | runtime-independent | accepted | WF-004, WF-008, MOD-011 | [PH-MUS-008](reports/findings/PH-MUS-008.md) | Claude Code (acting) |
 | PH-MUS-009 | Theory quiz and interval trainer place the correct answer first or last more often than chance | MUS | P3 | high | both | accepted | WF-012, WF-013 | [PH-MUS-009](reports/findings/PH-MUS-009.md) | Claude Code (acting) |
-| PH-OPS-006 | A desktop startup failure leaves a running process with no window and the error only on stderr | OPS | P2 | high | Electron | accepted | OP-015, DATA-017 | [PH-OPS-006](reports/findings/PH-OPS-006.md) | Claude Code (acting) |
+| PH-OPS-006 | A desktop startup failure leaves a running process with no window and the error only on stderr | OPS | P2 | high | Electron | fixed | OP-015, DATA-017 | [PH-OPS-006](reports/findings/PH-OPS-006.md) | Claude Code (acting) |
 | PH-UI-006 | Deleting songs has no confirmation and silently removes their practice history | UI | P2 | high | both | accepted | WF-007 | [PH-UI-006](reports/findings/PH-UI-006.md) | Claude Code (acting) |
 | PH-UI-007 | The library "Date Added" filter mixes UTC and local time and misplaces songs by up to a day | UI | P3 | high | both | accepted | WF-007 | [PH-UI-007](reports/findings/PH-UI-007.md) | Claude Code (acting) |
 | PH-UI-008 | Playlist order can only be changed by dragging | UI | P3 | high | both | accepted | WF-007 | [PH-UI-008](reports/findings/PH-UI-008.md) | Claude Code (acting) |
@@ -93,6 +93,7 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-DATA-010 | The reset confirmation does not name packs, practice history or fingerings, and on the web says "from this device" for server-side data | DATA | P3 | high | both | accepted | DATA-014, OP-009, WF-022 | [PH-DATA-010](reports/findings/PH-DATA-010.md) | Claude Code (acting) |
 | PH-UI-020 | The song-load error panel does not take focus, and Retry is about 54 Tab presses away | UI | P3 | high | both | accepted | WF-009, RT-008, MOD-003 | [PH-UI-020](reports/findings/PH-UI-020.md) | Claude Code (acting) |
 | PH-MUS-018 | On a fresh profile the count-in after the 3-2-1 countdown is lost while Settings shows 2 lead-in beats | MUS | P3 | high | both | reproduced | WF-009, WF-018, MOD-002, MOD-003 | [PH-MUS-018](reports/findings/PH-MUS-018.md) | Claude Code (acting) |
+| PH-UI-021 | Since the Electron 44 upgrade every desktop file dialog opens in Downloads and forgets the last folder | UI | P3 | high | Electron | reproduced | WF-004, WF-005, WF-006, WF-020, MOD-008 | [PH-UI-021](reports/findings/PH-UI-021.md) | Claude Code (acting) |
 
 ## Status Notes
 
@@ -171,6 +172,20 @@ in the detailed report.
   PH-MUS-018 (P3), found during slice 18's review, `reproduced` and awaiting the owner's
   decision. Counts: 70 findings (11 verified, 11 fixed, 46 accepted, 1 reproduced,
   1 accepted-risk). See [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#remediation-progress-2026-10-21).
+- Phase 11 wave 1 merges, 2026-10-21, second half: slice 0's follow-up `04f0ef9` (a
+  `TheoryHubScreen` test race that failed one in three full `verify` runs), slice 1 (`9e249ae`),
+  slice 15 (`7c9ec01`) and slice 3 (`ed40fa6`) merged after independent review; slice 1 passed
+  its re-review after repairs for a blocker (an orphan WAL could overwrite the current
+  library with no backup). PH-DATA-005, PH-DATA-006, PH-OPS-006, PH-DATA-004, PH-DATA-007,
+  PH-OPS-003 and PH-SEC-005 moved from `accepted` to `fixed`. None is `verified`: each still
+  owes a packaged-binary run with the real single-instance lock, the owner's real display,
+  Windows sitting 2 on a new build, or (PH-DATA-004) a browser profile that installed a pack
+  before the rename. All of wave 1's code is on `main`; the owner proofs remain. One
+  finding was raised: PH-UI-021 (P3), found in the slice 3 implementation and review, a
+  desktop regression from the Electron 43 dialog change, `reproduced` from the release notes
+  and the code and awaiting the owner's decision. Counts: 71 findings (11 verified, 18 fixed,
+  39 accepted, 2 reproduced, 1 accepted-risk). See
+  [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#remediation-progress-2026-10-21).
 
 - PH-DATA-001 is the canonical cross-store atomicity finding for backup restore,
   song deletion, and full reset. Do not create separate findings for the same
@@ -217,3 +232,6 @@ in the detailed report.
 - PH-MUS-018 owns the lead-in count read as `0` on a profile that never saved it. Do not
   merge it with PH-MUS-014, which owns the audio levels read the same way, or with
   PH-ARCH-003, which owns the integer setting that first-run setup writes as "off".
+- PH-UI-021 owns the desktop file dialogs' start folder (Downloads, no remembered folder)
+  since Electron 43. Do not merge it with PH-OPS-003, whose fix is the upgrade itself, or
+  with PH-PAR-004 and PH-UI-009, which own what an import reports after a file is picked.

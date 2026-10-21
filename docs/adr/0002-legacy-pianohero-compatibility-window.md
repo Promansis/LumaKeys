@@ -46,6 +46,15 @@ The Phase 11 audit found, on `main` at `5017b8e`:
   ([PH-DATA-004](../audit/reports/findings/PH-DATA-004.md),
   [PH-DATA-007](../audit/reports/findings/PH-DATA-007.md)).
 
+Slice 1 (merge `9e249ae`) and slice 15 (merge `7c9ec01`) fixed these five on `main` on
+2026-10-21. The desktop lookup now covers `luma-keys`, `piano-hero` and `PianoHero`,
+finishes an interrupted move, asks before replacing a library that holds data and shows a
+startup failure in a dialog; the browser stores are carried over. The findings are `fixed`,
+not `verified`: a packaged run with the real single-instance lock, the owner's real-display
+checks and the Windows sitting are still owed (see the
+[remediation plan](../audit/reports/phase-11-remediation-plan-2026-10-20.md#proof-owed-by-fixed-findings)),
+so decision 2's first condition is not met yet.
+
 Directory names are never migrated. Removing the fallback while a deployment still
 runs from `.pianohero-data` or `PIANOHERO_DATA_DIR` would start it with an empty
 library and no message.

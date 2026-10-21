@@ -24,6 +24,7 @@
 - Updated 2026-10-21, owner decision 5: slice 18 (PH-MUS-014) joins wave 1, after
   slice 0.
 - Updated 2026-10-21 after the wave 1 start: see [Remediation Progress](#remediation-progress-2026-10-21).
+- Updated 2026-10-21 after the rest of wave 1 merged: see [Remediation Progress](#remediation-progress-2026-10-21); PH-UI-021 is new and unplaced.
 
 ## Stage Decision
 
@@ -116,7 +117,10 @@ in `44024d0` (ADR 0002, `CONTEXT.md`, and the audit's citations):
 
 ## Remediation Progress, 2026-10-21
 
-- The owner gave the go-ahead for wave 1 on 2026-10-21.
+- The owner gave the go-ahead for wave 1 on 2026-10-21. All of wave 1's code is now on
+  `main` (at `ed40fa6`): slices 2, 0, 18, 1, 15 and 3, the slice 0 follow-up, and task D1.
+  Owner proofs remain; they are in the Proof Owed table below and in the
+  [user tests](phase-11-user-tests.md).
 - Merged to `main`, each after an independent review:
 
   | Merge | Work | Findings | State after the merge |
@@ -125,24 +129,74 @@ in `44024d0` (ADR 0002, `CONTEXT.md`, and the audit's citations):
   | `c66b25a` | Slice 0, CI and proof debt | PH-OPS-005; proof debt for PH-MUS-002, PH-PAR-001, PH-UI-003, PH-ARCH-001 | PH-OPS-005 `fixed` (GitHub runs owed); PH-ARCH-001 `verified`; the other three stay `fixed` |
   | `b1a4742` | Slice 18, fresh-profile audio | PH-MUS-014 | `fixed`; the PulseAudio drivers and user tests B1 owed |
   | `44024d0` | Task D1, documentation | none | done |
+  | `04f0ef9` | Slice 0 follow-up (`f4efa2e`) | PH-OPS-005 (CI reliability) | A `TheoryHubScreen.test.tsx` race that failed one in three full `verify` runs, found in the slice 3 review. With the mock delayed 30 ms the old assertions fail every time and the new ones pass; 15 of 15 runs pass |
+  | `9e249ae` | Slice 1, desktop migration | PH-DATA-005, PH-DATA-006, PH-OPS-006 | `fixed`. The first review gave REPAIR NEEDED (blocker: an orphan WAL could overwrite the current library with no backup); the re-review passed after repairs, and a follow-up fixed three small items. Packaged run with the real lock, real-display dialogs and Windows owed |
+  | `7c9ec01` | Slice 15, browser rename carry-over | PH-DATA-004, PH-DATA-007 | `fixed`; held until slice 1 merged, as the two ship together. Review passed after repairs. Optional pack profile (B6) and the Electron half of PH-DATA-007 owed |
+  | `ed40fa6` | Slice 3, Electron upgrade and window-open guard | PH-OPS-003, PH-SEC-005 | `fixed`. Electron 30.5.1 to 44.9.2 and better-sqlite3 12.8.0 to 13.0.3 (N-API). The review passed; a follow-up added a file-host check, passes the normalised URL to `openExternal`, tightened the test and documented the install-time node-gyp step. Merge check: a clean `npm ci` on Node 22.23.3 with the workflow's variables, then `npm run verify`, exits 0 (73 files, 471 tests, asset inventory 647). Real-display and Windows checks owed |
 
-- Slice 15 (browser rename carry-over) is implemented and verified. It is held, unmerged,
-  until slice 1 merges, because the two ship in the same release (owner decision 3).
-- Slice 1 (desktop startup migration) is in repair after its review. The blocker: an
-  orphan WAL file could overwrite the current library. Also open from the review:
-  sample-pack paths, learning progress treated as user data, and detection of an older
-  build.
-- Slice 3 (Electron upgrade and window-open guard) is in implementation. It merges after
-  slice 1.
-- A new finding, [PH-MUS-018](findings/PH-MUS-018.md) (P3, `reproduced`): on a fresh
-  profile the lead-in beats load as 0 while Settings shows 2, so the count-in after the
-  3-2-1 countdown is lost. It was found during slice 18's review. It awaits the owner's
+- The main checkout's installed `node_modules` still holds Electron 30.5.1 and
+  better-sqlite3 12.8.0. The owner should run `npm ci` in `/media/storage/LumaKeys` before
+  using `npm run dev` or building the desktop app there. Since better-sqlite3 13, `npm ci`
+  runs node-gyp at install, which needs Python, `make`, a C++ compiler and access to
+  nodejs.org (see `BUILD_PORTABLE.md`).
+- The Electron 44 proofs on the merged tree are being re-run by a separate agent; the
+  audit lead records their results afterwards. Nothing here cites them.
+- A new finding from the slice 3 implementation and review:
+  [PH-UI-021](findings/PH-UI-021.md) (P3, `reproduced` from the Electron 43 release notes
+  and the code, not yet seen on a display): all 8 `showOpenDialog` calls in
+  `src/main/index.ts`, including MIDI import, open in Downloads and forget the last
+  folder, and the save dialogs pass a bare file name. It awaits the owner's decision on
+  acceptance, design (in memory or persisted) and placement: a small follow-up to slice 3,
+  or slice 14 "Settings values" if persisted.
+- An earlier new finding, [PH-MUS-018](findings/PH-MUS-018.md) (P3, `reproduced`): on a
+  fresh profile the lead-in beats load as 0 while Settings shows 2, so the count-in after
+  the 3-2-1 countdown is lost. It was found during slice 18's review. It awaits the owner's
   decision on acceptance and placement. Proposed placement is slice 14 "Settings values"
   (deferred wave); it is a one-line fix plus one `App` test, so the owner may prefer to
   fold it into a wave 1 or wave 2 slice that edits the same effect in `App.tsx`.
-- Counts after these changes: 70 findings (11 verified, 11 fixed, 46 accepted,
-  1 reproduced, 1 accepted-risk). The planning record at the end of this document is
+- Counts after these changes: 71 findings (11 verified, 18 fixed, 39 accepted,
+  2 reproduced, 1 accepted-risk). The planning record at the end of this document is
   unchanged.
+
+### Leads From Wave 1 Reviews (Not Yet Findings)
+
+Out-of-scope observations from the slice reviews. None has been reproduced as a finding;
+the owner or the audit lead decides which become one.
+
+- (a) `npm run rebuild`, the `electron-rebuild` devDependency and the Electron fallback in
+  `scripts/ensure-native-module.cjs` are dead with N-API better-sqlite3. `electron-rebuild`
+  3.2.9 fails on Electron 44 (it cannot map the version to an ABI).
+- (b) `package.json` has no `engines` field, although better-sqlite3 13 needs Node 22.14 or
+  later in practice.
+- (c) The packaged app carries all 8 better-sqlite3 prebuilds, about 16 MB.
+- (d) `will-frame-navigate` and `will-redirect` are not guarded. Optional defence in depth
+  beside the `will-navigate` handler in `src/main/windowGuard.ts`.
+- (e) 24 of the 61 Soundboard credit links (`sourcePage` in
+  `src/lib/audio/animalSoundboardManifest.json`) use `local://` and open nothing.
+- (f) `Dockerfile:27` (`npm rebuild better-sqlite3`) is now a no-op. The [PH-OPS-003](findings/PH-OPS-003.md)
+  Resolution infers (not traced in npm) that `npm rebuild` reads the package's real
+  `package.json`, which declares no install script, and does nothing for it.
+- (g) Since slice 2, an audit driver that starts the web server needs
+  `LUMAKEYS_TRUST_UPSTREAM_AUTH=1` or an access token. These start it without either
+  and need the variable (checked against `scripts/audit/` on `ed40fa6`):
+  `scripts/audit/browser/proof-data-common.mjs`,
+  `scripts/audit/browser/proof-ph-arch-001-recovery.mjs`,
+  `scripts/audit/browser/sitting1-audio-web.mjs`,
+  `scripts/audit/legacy-brand-server-probe.mjs` (cases that set no token),
+  `scripts/audit/proof-op017-musescore-limits.mjs`,
+  `scripts/audit/proof-par003-unplayable-legacy.mjs`,
+  `scripts/audit/electron-renderer-asset-probe.mjs`, and the two container checks
+  `scripts/audit/musescore-measure-check.sh` and
+  `scripts/audit/musescore-crafted-archive-check.sh`. `scripts/audit/browser/harness.mjs`
+  and `csp-check.mjs` already set it.
+- (h) From Electron 44, `scripts/audit/electron/keyboard-walk.mjs` shows Chromium focus
+  changes: Escape returns focus to the trigger, and Free Play has 77 Tab stops instead of
+  83. PH-UI findings reproduced on 30.5.1 must be judged against the web runtime, not
+  closed by this upgrade.
+- (i) A stray `pianohero.db-wal` of the same page size that is newer than `lumakeys.db`,
+  in the data folder or in `PianoHero`, is still attached. The original is kept in
+  `before-legacy-migration-*`, but only the console says so. Recorded in the residual risk
+  of [PH-DATA-006](findings/PH-DATA-006.md).
 
 ## Shared Rules For Every Slice
 
@@ -1311,7 +1365,7 @@ fingerings.
 
 ## Proof Owed By Fixed Findings
 
-These 11 findings are `fixed`, not `verified`. None needs new product code unless noted.
+These 18 findings are `fixed`, not `verified`. None needs new product code unless noted.
 The owner sittings run by the agent on 2026-10-20
 ([report](phase-11-owner-sittings-2026-10-20.md)) moved PH-PAR-002, PH-UI-001, PH-UI-002
 and PH-UI-004 to `verified`. The [agent proofs](phase-11-agent-proofs-2026-10-21.md) of
@@ -1321,8 +1375,12 @@ is `accepted` again and moved to slice 19. On 2026-10-21 slice 0 (`c66b25a`) add
 GameScreen recovery test, the last proof PH-ARCH-001 owed, so it moved to `verified` and
 left this table. The same merge discharged the slice 0 parts of PH-MUS-002, PH-PAR-001
 and PH-UI-003. Slices 2, 0 and 18 moved five findings from `accepted` to `fixed` (PH-OPS-002,
-PH-SEC-002, PH-SEC-003, PH-OPS-005, PH-MUS-014), so they joined it. The proof each of the
-11 still owes:
+PH-SEC-002, PH-SEC-003, PH-OPS-005, PH-MUS-014), so they joined it. On the same day slices
+1, 15 and 3 added seven more (PH-DATA-005, PH-DATA-006, PH-OPS-006, PH-DATA-004,
+PH-DATA-007, PH-OPS-003, PH-SEC-005). The proof each of the 18 still owes follows. The
+packaged runs "with the real lock" cannot run in the agent sandbox (the single-instance
+lock needs a Unix socket); they run outside it, if the owner allows that through
+`/sandbox`, or the real-display checks cover them:
 
 | Finding | Severity | Owed proof | Where |
 |---|---|---|---|
@@ -1337,6 +1395,13 @@ PH-SEC-002, PH-SEC-003, PH-OPS-005, PH-MUS-014), so they joined it. The proof ea
 | PH-SEC-002 | P2 | After the deploy, sign in once at `/login` in a private window; an old `?access_token=` link returns 401. The unit tests, the probe and the Chromium sign-in passed | owner A1 |
 | PH-SEC-003 | P3 | A play-through with sound and the console open: in a real browser on the deployed web build and in the built desktop app, play a song, Free Play, Soundboard and Install Better Sounds; expect no CSP error other than the known PH-PAR-006 `undefinedblob:` ones. The headless Chromium and Electron CSP checks passed | owner A1 |
 | PH-OPS-005 | P3 | Push `main`; a green `verify` workflow on GitHub; then a throwaway branch with one broken test that goes red, deleted afterwards. The clean-copy local CI runs and the wiring tests passed. The next `package:win` build runs the new asset assertion | owner push |
+| PH-DATA-005 | P1 | The packaged Linux binary with the real single-instance lock over a carried-over profile (`electron-userdata-probe.mjs --packaged`), outside the sandbox. The question dialog and the carried-over library seen on a real display. Windows portable build over a real `%APPDATA%\luma-keys` profile, on a new build from `main` at `ed40fa6` or later. Unit tests, the throwaway-app probe and the harness runs on the built `out/` passed | agent outside the sandbox; owner B10 to B12; sitting 2 item 1 |
+| PH-DATA-006 | P3 | The same packaged rerun with the real lock. Whether Windows deletes `lumakeys.db-wal` and `-shm` on close, since the migration refuses while either is left. Unit, function-level and web cases passed | agent outside the sandbox; sitting 2 item 7 |
+| PH-OPS-006 | P2 | The packaged exit code and the error dialog with the real lock, on a real display. Windows with two earlier profiles that both hold `pianohero.db`. The harness run (exit 1, dialog called once, both folders named) passed | owner B13, B14; sitting 2 item 6 |
+| PH-DATA-004 | P3 | A browser profile that really installed a pack on the pre-rename release (optional; the owner may have none, then record it as not reproducible at runtime). The unit tests and the headless Chromium driver passed. Release gate: slices 1 and 15 verified in both runtimes | owner B6 (optional) |
+| PH-DATA-007 | P3 | A headless Electron run of the filter-preset carry-over on a carried-over profile (PH-DATA-005 is fixed now, so the agent can run it), and the Windows profile. The `LibraryScreen` test and the web driver passed | agent; sitting 2 item 1 |
+| PH-OPS-003 | P2 | The packaged Linux app on a real display: launch, main menu, one song, a setting read back; an existing profile still opens. The Windows portable build. The post-merge Electron 44 proof runs on the merged tree (the audit lead records them). The clean `npm ci` and `npm run verify` on the merged tree passed | owner B7, B9; sitting 2; audit lead |
+| PH-SEC-005 | P3 | A real click on a Soundboard credit link in the packaged app: the system browser opens and no LumaKeys window does. The post-merge `window-open.mjs` run. The unit tests and the driver on Electron 30.5.1 and 44.9.2 passed | owner B8; sitting 2 item 8; audit lead |
 
 ## Phase 11 Remediation Start Gate
 

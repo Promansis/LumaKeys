@@ -102,8 +102,10 @@ LumaKeys ships two runtimes from one source tree. Both share `src/lib/` (game,
 theory, audio, input), the React screens under `src/renderer/`, and the single
 `AppDatabase` class. Only the transport between renderer and database differs. The
 facts below were checked against `main` at `5017b8e`; the web access, security
-header and CI facts were updated for `44024d0` after slices 2 and 0 merged. Remediation
-slices change some of these facts; the slice that changes one updates this section.
+header and CI facts were updated for `44024d0` after slices 2 and 0 merged, and the
+Electron desktop and browser carry-over facts for `ed40fa6` after slices 1, 15 and 3
+merged. Remediation slices change some of these facts; the slice that changes one
+updates this section.
 
 Commands live in `package.json` scripts. `npm run verify` is the full check: the
 typecheck, the server typecheck (`tsc --noEmit -p tsconfig.server.json`), `npm test`,
@@ -117,15 +119,58 @@ it here.
 
 ### Electron Desktop
 
+- **Runtime**: Electron 44.9.2 with `better-sqlite3` 13.0.3 (`package.json`). better-sqlite3
+  13 is an N-API build: one prebuilt binary per platform loads in Node and in Electron, so
+  there is no per-Electron-version rebuild and `electron-builder` runs with
+  `npmRebuild: false` (`packaging/electron-builder.yml`). `npm ci` still runs `node-gyp`
+  for it at install, which needs Python 3, `make` and a C++ compiler (Visual Studio Build
+  Tools on Windows) and access to nodejs.org; `BUILD_PORTABLE.md` gives the
+  `npm ci --ignore-scripts` then `node scripts/postinstall.cjs` route for a machine
+  without them.
 - **Main** (`src/main/index.ts`): window creation (minimum 1180x780), file dialogs,
   startup migration, and the IPC handlers (68 `ipcMain.handle` registrations).
-  Desktop import accepts MIDI only.
+  Desktop import accepts MIDI only. The file dialogs pass no `defaultPath` for the 8 open
+  dialogs, so since Electron 43 they open in Downloads ([PH-UI-021](docs/audit/reports/findings/PH-UI-021.md)).
+- **Profile**: `userData` is pinned at module top level, before `ready`, to
+  `<appData>/lumakeys` (`desktopProfileDir` in `src/main/desktopStartup.ts`; `~/.config`
+  on Linux, `%APPDATA%` on Windows), and `app.setName('LumaKeys')` runs there too.
+  Electron's own default (`package.json` `name`) is not used. `AppDatabase` runs in the
+  main process at `<userData>/lumakeys.db`, with `midi-files/` and
+  `instrument-sample-packs/` beside it. An installed pack's address is derived from the
+  current profile on each read, not from the folder stored at install time.
+- **Startup** (`runDesktopStartup` in `src/main/desktopStartup.ts`): the former `whenReady`
+  body is `startDesktopApp()`. Any error is logged, shown with `dialog.showErrorBox`
+  (title "LumaKeys could not start") and the process exits with code 1; the app never
+  keeps running with no window.
+- **Single instance**: `app.requestSingleInstanceLock()` is taken before startup. A second
+  launch quits, and the first one restores (if minimised) and focuses its window.
+- **Legacy profile migration** (`migrateLegacyBrand` in `src/persistence/legacyBrandMigration.ts`,
+  ADR 0002), run before the database opens, from `<appData>/luma-keys`, `piano-hero` and
+  `PianoHero` (`legacyProfileDirs`, newest first):
+  - It takes the one candidate that holds `pianohero.db`. If two or more do, startup is
+    refused with the error dialog above, naming each folder and saying nothing was moved.
+  - A current `lumakeys.db` with no user rows (songs, results, practice days, unlocked
+    achievements, folders, playlists, lesson progress) is set aside in a
+    `before-legacy-migration-<time>` folder inside the profile and replaced. One with user
+    rows opens a question dialog ("Earlier library found": Use earlier library, Keep
+    current library, Quit; Quit is the default). Using the earlier library keeps the
+    current one in the backup folder; keeping the current one is stored in
+    `legacy-library-choice.json` and the question is not asked again; Quit leaves
+    everything as it was.
+  - It folds the earlier database's WAL in first so the database moves as one file, refuses
+    (with the safe next step in the message) while a database is open elsewhere, damaged,
+    unreadable or on another drive, and finishes a move an earlier build left half done.
+    Nothing is deleted.
+- **Window security**: `createMainWindow` sets `contextIsolation: true`,
+  `nodeIntegration: false` and an explicit `sandbox: true`, and calls `installWindowGuard`
+  (`src/main/windowGuard.ts`). No window other than the main one ever opens
+  (`setWindowOpenHandler` denies every request); an `https:` link is passed, normalised, to
+  `shell.openExternal` and opens in the system browser, and any other scheme opens
+  nothing. A `will-navigate` handler cancels navigation away from the packaged
+  `index.html` (same host and path; any hash or query) or the dev-server origin.
+  `will-frame-navigate` and `will-redirect` are not guarded.
 - **Preload** (`src/main/preload.ts`): context-isolated bridge that exposes
   `window.appBridge`, typed by `src/shared/ipc.ts`.
-- **Database**: `AppDatabase` runs in the main process at `<userData>/lumakeys.db`,
-  with `midi-files/` and `instrument-sample-packs/` beside it. `userData` is named
-  after `package.json` `name`, so it is `<appData>/lumakeys` (`~/.config` on Linux,
-  `%APPDATA%` on Windows).
 
 ### Web Runtime
 
@@ -181,6 +226,14 @@ it here.
   (`vite.web.config.ts` sets `'true'`, `electron.vite.config.ts` sets `'false'`).
   Use `IS_WEB` to branch between runtimes. The first 401 from the API sends the browser
   to `/login`, once per page load (`src/renderer/loginRedirect.ts`).
+  - Browser carry-over of pre-rename stores (ADR 0002, removal no earlier than
+    2027-01-31): `webBridge.ts` copies the packs in the IndexedDB database
+    `pianohero-instrument-sample-packs` into `lumakeys-instrument-sample-packs` once per
+    page, only while the current one holds no packs, and deletes the old database after the
+    copy commits (a failed copy keeps it); `src/renderer/legacyFilterPresets.ts` does the
+    same for `localStorage` `pianohero-filter-presets` when the library opens. When both
+    names hold data the current one wins and the old one stays until a user-data reset,
+    which clears both.
 - **Second TypeScript project**: `tsconfig.server.json` type-checks `src/server`,
   `src/persistence`, `src/storage`, `src/shared`, and the `src/lib` modules the
   server imports (`achievements`, `game`, `recommendations`, `midiFileParser.ts` and
@@ -239,7 +292,10 @@ it here.
 | Bridge contract | `src/shared/ipc.ts`, `src/shared/bridgeMethods.ts` | `AppBridge` type; RPC, special and stub method categories |
 | Web bridge | `src/renderer/webBridge.ts` | Browser implementation of `window.appBridge` |
 | MIDI storage | `src/storage/midiStorage.ts` | App-owned MIDI byte storage adapter |
-| Brand migration | `src/persistence/legacyBrandMigration.ts` | Startup carry-over of PianoHero names (ADR 0002) |
+| Brand migration | `src/persistence/legacyBrandMigration.ts` | Startup carry-over of PianoHero names: desktop profile lookup, backups and choice, web same-directory rename (ADR 0002) |
+| Desktop startup | `src/main/desktopStartup.ts` | Pinned profile directory, the startup error boundary, the earlier-library question |
+| Window guard | `src/main/windowGuard.ts` | Window-open and navigation policy for the main window |
+| Browser carry-over | `src/renderer/webBridge.ts`, `src/renderer/legacyFilterPresets.ts` | Pre-rename IndexedDB packs and filter presets (ADR 0002) |
 | Web security | `src/server/webSecurity.ts` | Startup access policy, `/login` sign-in, API access gate, HTML security headers and request body limits |
 | Content Security Policy | `src/shared/contentSecurityPolicy.ts` | The one policy behind the web header and the built `index.html` meta tag |
 | Static files | `src/server/staticFiles.ts` | SPA files, MIME types, cache headers, byte ranges |

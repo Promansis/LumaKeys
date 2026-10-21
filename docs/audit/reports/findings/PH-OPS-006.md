@@ -3,7 +3,7 @@
 - Lane: OPS
 - Severity: P2
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -125,7 +125,8 @@ stacking processes.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: branch `remediation/p11-s01-desktop-migration` (Phase 11 remediation slice 1, with [PH-DATA-005](PH-DATA-005.md), [PH-DATA-006](PH-DATA-006.md) and [PH-OPS-006](PH-OPS-006.md)): `3ee10c2` (fix), `8c9e038` and `cabb613` (review repairs), `fd4cc87` and `330dbcd` (audit tooling), `c380f95` (re-review follow-up). Not yet merged.
+- Fix branch/commit/issue: branch `remediation/p11-s01-desktop-migration` (Phase 11 remediation slice 1, with [PH-DATA-005](PH-DATA-005.md), [PH-DATA-006](PH-DATA-006.md) and [PH-OPS-006](PH-OPS-006.md)): `3ee10c2` (fix), `bfde1f3` (Resolutions), `8c9e038` and `cabb613` (review repairs), `fd4cc87` and `330dbcd` (audit tooling), `cb39f4a` (Resolutions for the repairs), `c380f95` (re-review follow-up), `da231a0` (Resolutions for the follow-up). The first independent review gave REPAIR NEEDED (blocker: an orphan WAL could overwrite the current library with no backup); the re-review passed after the repairs and the follow-up fixed three small items. Merged to `main` in `9e249ae` on 2026-10-21.
+- Status: `fixed`, not `verified` (audit lead, 2026-10-21). Rows that have passed: the unit/integration row and the Electron harness run (case P2 on the built `out/`: exit code 1, the error dialog called once, both folders named). Still owed: the Electron row on a packaged binary with the real single-instance lock (outside the agent sandbox, or the real-display checks B13 and B14 in the [user tests](../phase-11-user-tests.md)) and the manual row, Windows portable build with two earlier profiles that both hold `pianohero.db` (sitting 2 item 6, rewritten for this). The dialog has not been seen on a real display.
 - Verification evidence:
   - Change: the `whenReady` body in `src/main/index.ts` is now `startDesktopApp()`, run through `runDesktopStartup` in the new `src/main/desktopStartup.ts`. A startup error is logged, shown with `dialog.showErrorBox` (title "LumaKeys could not start", the error message as the body), and the process exits with code 1. If the dialog itself fails, the process still exits. `app.requestSingleInstanceLock()` is taken before startup: a second launch quits and the first one restores and focuses its window.
   - Tests in the new `src/main/desktopStartup.test.ts` (before the fix the file failed to load because the module did not exist): `shows a migration refusal in a dialog and exits with code 1` (a real two-profile refusal reaches the error callback before the exit), `still exits when the dialog itself fails`, `reports a thrown non-Error value`, `neither reports nor exits when startup succeeds`.
