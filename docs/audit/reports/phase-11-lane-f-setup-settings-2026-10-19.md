@@ -88,8 +88,8 @@ Raw output and screenshots stay in `$TMPDIR/p11/FA/`.
 - **Lesson drills do not write game results.** No `game_results` row is written for
   a lesson drill, so drills never appear in Progress.
 - **The project docs name the wrong store for lesson progress.** Progress lives in the
-  settings table (`learningProgress.ts:61-73`), not in localStorage as `CLAUDE.md`
-  says. Lane H already records this (row 109).
+  settings table (`learningProgress.ts:61-73`), not in localStorage as the old local
+  CLAUDE.md said (corrected in `CONTEXT.md`, task D1). Lane H already records this (row 109).
 
 ## Challenge Summary
 

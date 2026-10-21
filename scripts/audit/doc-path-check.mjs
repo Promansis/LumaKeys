@@ -42,7 +42,6 @@ const flags = new Set(args.filter((a) => a.startsWith('--')));
 const explicitDocs = args.filter((a) => !a.startsWith('--'));
 
 const DEFAULT_DOC_GLOBS = [
-  'CLAUDE.md',
   'CONTEXT.md',
   'README.md',
   'docs/agents/*.md',

@@ -27,7 +27,7 @@ audit's own lesson driver hit it).
 
 ## Expected Behavior Or Oracle
 
-- The game's timing model (`CLAUDE.md`, "Time-based gameplay"; `GameSession` owns
+- The game's timing model (`CONTEXT.md`, "Design Patterns", "Time-based gameplay"; `GameSession` owns
   "timing, scoring, combo, note matching (hit window)"): a judgement measures a press
   against the moving song clock. While the session is not playing, that clock is
   frozen (`GameSession.getCurrentTimeSec`, `src/lib/game/GameSession.ts:143-147`), so
