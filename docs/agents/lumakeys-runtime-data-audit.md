@@ -45,7 +45,8 @@ For every assigned entity, bridge method, or privileged operation record:
 | Regression | Targeted test plus required runtime/build proof |
 
 Use fresh isolated data roots per destructive scenario. Never reuse production or the
-owner's normal `.lumakeys-data`.
+owner's normal `.lumakeys-data` or `.pianohero-data`. A checkout that only has
+`.pianohero-data` uses it when `LUMAKEYS_DATA_DIR` is blank.
 
 ## High-Risk Sequences
 

@@ -95,7 +95,7 @@ The mutation run proves the script catches drift. Renaming one handler channel, 
 
 `src/main/preload.ts` and `src/shared/*` are not in the delta.
 
-`webBridge.ts` has no `desktopStubNames`. Stubs come from `WEB_STUB_BRIDGE_METHODS`: `pickMidiFile`, `importMidiFolder`, `saveMidiFile`, `saveWavFile`, `pickAudioFile` and `pickSampleDirectory`. `CLAUDE.md` line 60 still names `desktopStubNames` (lane H).
+`webBridge.ts` has no `desktopStubNames`. Stubs come from `WEB_STUB_BRIDGE_METHODS`: `pickMidiFile`, `importMidiFolder`, `saveMidiFile`, `saveWavFile`, `pickAudioFile` and `pickSampleDirectory`. The old local CLAUDE.md line 60 named `desktopStubNames` (lane H; corrected in `CONTEXT.md`, task D1).
 
 ## Method-By-Method Re-Run
 
@@ -232,7 +232,7 @@ These are not findings: no named oracle is violated, or another lane owns the it
 5. **Stale packages and untracked files.**
    - The packages in `dist/` are stale (2026-08-07); see the PH-PAR-001 section.
    - Untracked `public/assets/main-menu/bck.jpg`, a long-named `.jpeg`, and an empty `.claude/.cc-writes/` directory are copied into `out/renderer` and `dist/web`. Lane G already lists the two images; the empty directory is the only addition.
-6. **Stale `CLAUDE.md` reference.** `CLAUDE.md` names a `desktopStubNames` list that no longer exists (lane H).
+6. **Stale CLAUDE.md reference.** The old local CLAUDE.md named a `desktopStubNames` list that no longer exists (lane H; `CONTEXT.md` now names `WEB_STUB_BRIDGE_METHODS`, task D1).
 7. **Legacy-profile migration (lane B).** A real Electron 30.5.1 probe here confirmed that `app.setName('LumaKeys')` inside `whenReady` does not move `userData`: before and after, it is `<XDG_CONFIG_HOME>/lumakeys`, the package `name`. `migrateLegacyBrand` looks only in `appData/PianoHero`, and earlier builds used `appData/piano-hero` and then `appData/luma-keys`. Lane B's `electron-userdata-probe.mjs` already shows this with seeded profiles (cases E1 and E2, `migrated: false`). Lane B raised this as candidate [PH-DATA-005](findings/PH-DATA-005.md); lane D's probe is corroborating evidence only.
 8. **Headless Electron is usable (note for the lead).** An offscreen `BrowserWindow` renders headless in this sandbox, but a normal window crashes. Lane A's staged MOD-014 probe uses a normal child window, so it would need adapting; this lane did not attempt that, as the brief directs.
 

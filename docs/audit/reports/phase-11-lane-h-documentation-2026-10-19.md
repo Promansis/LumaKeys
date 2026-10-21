@@ -6,6 +6,7 @@
 - Started: 2026-10-19
 - Last updated: 2026-10-19
 - Status: challenged. Document edits are proposed, not made; the lead or the owner applies them.
+- Applied 2026-10-21 (remediation task D1): the draft ADR is now [ADR 0002](../../adr/0002-legacy-pianohero-compatibility-window.md) with the removal floor set to 2027-01-31, and the architecture and runtime content of the local, gitignored CLAUDE.md is in [CONTEXT.md](../../../CONTEXT.md) ("Runtime Architecture") and [ADR 0001](../../adr/0001-supported-runtimes-and-desktop-ui.md). The tables below are the audit-time record and are not rewritten.
 
 ## Scope
 

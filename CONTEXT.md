@@ -5,7 +5,8 @@
 This document defines the stable language and system boundaries used when planning,
 auditing, and changing LumaKeys. `PRODUCT.md` defines the product intent and
 `DESIGN.md` defines the visual system. Architecture decisions belong in
-`docs/adr/`.
+`docs/adr/`. The audit and its agent playbooks cite this file for architecture and
+runtime facts; the local, untracked agent instruction files are not a source.
 
 ## Product Boundary
 
@@ -95,6 +96,127 @@ Renderer code must not import Electron, server, SQLite, or privileged filesystem
 implementations. Domain modules must remain testable without a host runtime.
 Runtime-specific differences must be explicit in bridge categories or UI gating.
 
+## Runtime Architecture
+
+LumaKeys ships two runtimes from one source tree. Both share `src/lib/` (game,
+theory, audio, input), the React screens under `src/renderer/`, and the single
+`AppDatabase` class. Only the transport between renderer and database differs. The
+facts below were checked against `main` at `5017b8e`. Remediation slices change some
+of these facts; the slice that changes one updates this section.
+
+Commands live in `package.json` scripts. Docker and Cloudflare Tunnel host setup
+lives in [`README.md`](README.md) ("Where Data Is Stored", "Protect the Web APIs");
+do not copy it here.
+
+### Electron Desktop
+
+- **Main** (`src/main/index.ts`): window creation (minimum 1180x780), file dialogs,
+  startup migration, and the IPC handlers (68 `ipcMain.handle` registrations).
+  Desktop import accepts MIDI only.
+- **Preload** (`src/main/preload.ts`): context-isolated bridge that exposes
+  `window.appBridge`, typed by `src/shared/ipc.ts`.
+- **Database**: `AppDatabase` runs in the main process at `<userData>/lumakeys.db`,
+  with `midi-files/` and `instrument-sample-packs/` beside it. `userData` is named
+  after `package.json` `name`, so it is `<appData>/lumakeys` (`~/.config` on Linux,
+  `%APPDATA%` on Windows).
+
+### Web Runtime
+
+- **Server** (`src/server/index.ts`): Hono on `@hono/node-server`.
+  - `PORT` defaults to `3100`. The Docker image and `docker-compose.yml` set `3001`.
+  - Data directory, first match wins: `LUMAKEYS_DATA_DIR` (non-blank),
+    `PIANOHERO_DATA_DIR` (non-blank), an existing `./.lumakeys-data`, an existing
+    `./.pianohero-data`, then `./.lumakeys-data`. A checkout that only has
+    `.pianohero-data` uses it. See [ADR 0002](docs/adr/0002-legacy-pianohero-compatibility-window.md).
+  - The database is `<dataDir>/lumakeys.db` and imported MIDI is `<dataDir>/midi-files`.
+  - `/api/*` goes through `createApiAccessGate` (`src/server/webSecurity.ts`). It
+    checks `LUMAKEYS_WEB_ACCESS_TOKEN` (legacy `PIANOHERO_WEB_ACCESS_TOKEN`) and lets
+    every request through when no token is set. `GET /api/access` answers
+    `{ ok: true }`. Responses carry `Permissions-Policy: midi=(self)`.
+  - `createStaticFileHandler` (`src/server/staticFiles.ts`) serves the built SPA from
+    `dist/web` under the working directory, with explicit MIME types, cache headers
+    and single byte ranges (the menu video needs them).
+- **Routers**:
+  - `bridgeRouter.ts`: `POST /api/bridge/:method`, dispatching to the same
+    `AppDatabase` methods the IPC handlers call.
+  - `libraryRouter.ts`: `GET /api/library/export` and `POST /api/library/import`.
+  - `midiRouter.ts`: `POST /api/midi/upload` (`.mid`, `.midi` and `.mscz`),
+    `POST /api/midi/:songId/reattach`, and `GET /api/midi/:songId` to stream bytes.
+- **MuseScore**: `src/server/museScore.ts` converts `.mscz` to MIDI one score at a
+  time, through the executable named by `LUMAKEYS_MUSESCORE_PATH`. It works on Linux
+  only and needs `prlimit`; on any other platform the import fails.
+- **Client shim** (`src/renderer/webBridge.ts`): installs a `window.appBridge` proxy.
+  RPC methods `fetch` `/api/bridge/{method}` with `{ args }`. Desktop-only methods
+  (`WEB_STUB_BRIDGE_METHODS` in `src/shared/bridgeMethods.ts`: native file dialogs
+  and the sample-directory picker) resolve to `null`. It is installed from
+  `src/renderer/main.tsx` when the build-time `IS_WEB` define is true
+  (`vite.web.config.ts` sets `'true'`, `electron.vite.config.ts` sets `'false'`).
+  Use `IS_WEB` to branch between runtimes.
+- **Second TypeScript project**: `tsconfig.server.json` type-checks `src/server`,
+  `src/persistence`, `src/storage`, `src/shared`, and the `src/lib` modules the
+  server imports (`achievements`, `game`, `recommendations`, `midiFileParser.ts` and
+  `importMetadata.ts`).
+- **Docker**: `Dockerfile` starts from `node:22-bookworm`. The image build
+  requires amd64. It installs the MuseScore Studio version pinned in the
+  Dockerfile from a checksummed AppImage and sets `LUMAKEYS_MUSESCORE_PATH`. It builds with `npm run build:web`, sets `PORT=3001`
+  and `LUMAKEYS_DATA_DIR=/data`, and runs `npm run start:web`. `docker-compose.yml`
+  bind-mounts host `/media/storage/lumakeys` to `/data`.
+
+### Renderer
+
+- `src/renderer/App.tsx` routes with a `currentScreen: AppScreen` discriminated
+  union in `useState`. There is no router library and no Redux. Each variant carries
+  the data its screen needs (selected song, session config, playlist queue, results).
+- Renderer code always goes through `window.appBridge`. It never imports
+  `src/persistence/database.ts` and never assumes Electron-only APIs.
+- Screens are `src/renderer/components/*Screen.tsx`: main menu, library, game,
+  results, free play, novelty soundboard, scale practice, interval trainer, theory
+  hub and quiz, learn hub and lesson, progress dashboard, settings, keyboard setup,
+  and setup guide. The main menu plays a looping video background
+  (`/assets/main-menu/mainmenu-neonbackground.webm`).
+
+### Design Patterns
+
+- **Ref-based services**: `AudioEngine`, `MidiInputService` and
+  `ComputerKeyboardInputService` are held as `useRef` in `App.tsx` and passed down as
+  props. `GameSession` is created per run inside `GameScreen.tsx`.
+- **Canvas for visuals**: gameplay and free-play visuals use Canvas 2D, not DOM. A
+  `requestAnimationFrame` loop (once per display frame) drives canvas updates and session ticks.
+- **Time-based gameplay**: callers pass a `performance.now()` timestamp to
+  `GameSession`, which derives song time from it. While the session is not playing the
+  song clock is frozen (`GameSession.getCurrentTimeSec`).
+- **Settings round trip**: settings changes go through an `appBridge` round trip (IPC
+  in Electron, HTTP in web). Song and track changes return new objects.
+- **Learning progress** is stored through bridge settings
+  (`src/lib/learning/learningProgress.ts`), not `localStorage`.
+
+### Key Modules
+
+| Area | Path | Purpose |
+|---|---|---|
+| Game engine | `src/lib/game/GameSession.ts` | Timing, scoring, combo, note matching (hit window), visible-note windowing |
+| Game types | `src/lib/game/types.ts` | `ParsedSong`, `ParsedNote`, `PlaybackSnapshot`, session config |
+| Song utils | `src/lib/game/songUtils.ts` | MIDI to game conversion, hand assignment (split at MIDI 60, C4), track assignment |
+| Audio | `src/lib/audio/audioEngine.ts` | Tone.js `Sampler` with `PolySynth` fallback; note on and off, sustain, tempo |
+| MIDI parsing | `src/lib/midi/midiFileParser.ts` | `@tonejs/midi` wrapper to `ParsedSong` |
+| MIDI input | `src/lib/midi/midiInputService.ts` | Web MIDI API, real-time input, device hot-swap |
+| Computer-keyboard input | `src/lib/input/computerKeyboardInputService.ts` | Fallback keyboard-as-piano input |
+| Piano layout | `src/lib/piano/pianoLayout.ts` | 88-key geometry shared by canvas and keyboard view |
+| Theory | `src/lib/theory/*` | Scales, chords, intervals, key detection, per-song analysis |
+| Achievements | `src/lib/achievements/*` | Unlock rules evaluated after sessions |
+| Recommendations | `src/lib/recommendations/recommendationEngine.ts` | Next-song suggestions from history and stats |
+| Learning | `src/lib/learning/*` | Five-tier curriculum (novice to expert), drill generation, progress, developer unlocks |
+| Bridge contract | `src/shared/ipc.ts`, `src/shared/bridgeMethods.ts` | `AppBridge` type; RPC, special and stub method categories |
+| Web bridge | `src/renderer/webBridge.ts` | Browser implementation of `window.appBridge` |
+| MIDI storage | `src/storage/midiStorage.ts` | App-owned MIDI byte storage adapter |
+| Brand migration | `src/persistence/legacyBrandMigration.ts` | Startup carry-over of PianoHero names (ADR 0002) |
+| Web security | `src/server/webSecurity.ts` | API access gate and request body limits |
+| Static files | `src/server/staticFiles.ts` | SPA files, MIME types, cache headers, byte ranges |
+| MuseScore import | `src/server/museScore.ts` | `.mscz` to MIDI conversion (web runtime only) |
+| Free-play visuals | `src/renderer/components/FreePlayCanvasScene.tsx`, `FreePlayVisualizer.tsx` | Canvas scene graph, visualizer and visual types |
+| Canvas gameplay | `src/renderer/components/FallingNotesCanvas.tsx` | Falling notes, hit line, hand coloring |
+| Piano view | `src/renderer/components/PianoKeyboard.tsx` | 88-key view with active and cue highlighting |
+
 ## Durable State
 
 SQLite currently owns songs, user stats, game results, theory results, settings,
@@ -104,8 +226,10 @@ have a durable lifecycle outside SQLite. Browser-local state and IndexedDB-backe
 sample assets must be included when tracing reset, backup, restore, and parity.
 
 No audit or test may use the owner's production database or data directory. Runtime
-proof must use an isolated absolute directory under `/tmp` through
-`LUMAKEYS_DATA_DIR` or the equivalent Electron test profile.
+proof must use an isolated absolute directory under `/tmp` through a non-blank
+`LUMAKEYS_DATA_DIR` or the equivalent Electron test profile. A blank value falls
+back to the working directory's `.lumakeys-data` or `.pianohero-data`, which may be
+the owner's development data.
 
 ## Quality Priorities
 
