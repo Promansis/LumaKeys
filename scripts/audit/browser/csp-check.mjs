@@ -1,9 +1,9 @@
-// PH-SEC-002 and PH-SEC-003 (web): sign in through /login, then walk each source the
-// Content-Security-Policy must allow (main-menu video, audio engine start with the reverb
-// AudioWorklet and the Tone.js clock worker, a built-in sampler, a blob: fetch as a web
-// sample pack makes, the Soundboard) and report every CSP violation. Last, check that the
-// policy is enforced: string eval, an injected inline script, a cross-origin fetch and
-// framing are all refused.
+// PH-SEC-002 and PH-SEC-003 (web): open the app unsigned and follow it to /login, sign in
+// there, then walk each source the Content-Security-Policy must allow (main-menu video,
+// audio engine start with the reverb AudioWorklet and the Tone.js clock worker, a built-in
+// sampler, a blob: fetch as a web sample pack makes, the Soundboard) and report every CSP
+// violation. Last, check that the policy is enforced: string eval, an injected inline
+// script, a cross-origin fetch and framing are all refused.
 //
 // The web "Install Better Sounds" pack requests `undefinedblob:` URLs and fails with or
 // without a policy (PH-PAR-006); those requests are listed apart and not counted.
@@ -62,10 +62,17 @@ try {
     console.log(`${label}: violations so far ${JSON.stringify(own)} (+${violations.length - own.length} PH-PAR-006 undefinedblob:)`);
   };
 
-  // ---- sign in through the form; the token travels only in the POST body ----
+  // ---- an unsigned browser opening the app is sent to /login, once ----
   const before = await fetch(base + '/api/access');
   check('API refuses an unsigned browser', before.status === 401, String(before.status));
-  await page.goto(base + '/login');
+  const loginLoads = [];
+  page.on('framenavigated', (f) => { if (f === page.mainFrame() && f.url() === base + '/login') loginLoads.push(f.url()); });
+  await page.goto(base + '/');
+  await page.waitForURL(base + '/login');
+  await page.waitForTimeout(1500);
+  check('unsigned browser opening / lands on /login once', page.url() === base + '/login' && loginLoads.length === 1, `${page.url()} loads=${loginLoads.length}`);
+
+  // ---- sign in through the form; the token travels only in the POST body ----
   await page.getByLabel('Access token').fill(token);
   await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', { name: 'Sign in' }).click()]);
   check('sign-in form lands on the app', page.url() === base + '/', page.url());
