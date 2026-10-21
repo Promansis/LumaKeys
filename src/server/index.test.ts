@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { createServer, type AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -14,7 +15,6 @@ const SERVER_ENTRY = fileURLToPath(new URL('./index.ts', import.meta.url));
 const TSX_LOADER = pathToFileURL(createRequire(import.meta.url).resolve('tsx')).href;
 const GATE_VARIABLES = ['LUMAKEYS_WEB_ACCESS_TOKEN', 'PIANOHERO_WEB_ACCESS_TOKEN', 'LUMAKEYS_TRUST_UPSTREAM_AUTH'];
 const GIVE_UP_AFTER_MS = 15000;
-const TEST_PORT = 3227;
 const tempDirs: string[] = [];
 
 async function makeTempDir(): Promise<string> {
@@ -49,6 +49,18 @@ function spawnServer(env: Record<string, string>, cwd?: string) {
   });
 
   return { child, exited, output: () => output };
+}
+
+/** Asks the OS for a free port, so the test never polls some other process. */
+function findFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const probe = createServer();
+    probe.once('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
+      const { port } = probe.address() as AddressInfo;
+      probe.close(() => resolve(port));
+    });
+  });
 }
 
 async function waitForServer(base: string): Promise<void> {
@@ -94,12 +106,13 @@ describe('web server startup', () => {
     const root = await makeTempDir();
     await mkdir(join(root, 'dist', 'web'), { recursive: true });
     await writeFile(join(root, 'dist', 'web', 'index.html'), '<!doctype html><title>LumaKeys</title>');
+    const port = await findFreePort();
     const server = spawnServer({
-      PORT: String(TEST_PORT),
+      PORT: String(port),
       LUMAKEYS_DATA_DIR: join(root, 'data'),
       LUMAKEYS_WEB_ACCESS_TOKEN: 'startup-test-token',
     }, root);
-    const base = `http://127.0.0.1:${TEST_PORT}`;
+    const base = `http://127.0.0.1:${port}`;
 
     try {
       await waitForServer(base);

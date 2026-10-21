@@ -80,6 +80,21 @@ describe('webBridge', () => {
     expect(navigateToLogin).not.toHaveBeenCalled();
   });
 
+  // Without the server's token gate (trust mode), /login is the app itself; a proxy that
+  // answers 401 must not send it to /login again and again.
+  it('does not redirect when the app is already on /login', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ error: 'Unauthorized.' }, { status: 401 }));
+    vi.stubGlobal('fetch', fetchMock);
+    window.history.pushState({}, '', '/login');
+
+    try {
+      await expect(webBridge.getAllSongs()).rejects.toThrow('Unauthorized.');
+      expect(navigateToLogin).not.toHaveBeenCalled();
+    } finally {
+      window.history.pushState({}, '', '/');
+    }
+  });
+
   // PH-SEC-002: with the token gate on, a browser without the session cookie gets 401
   // from every /api call; it should land on the sign-in form, and only once.
   it('sends an unsigned browser to /login once when the API answers 401', async () => {

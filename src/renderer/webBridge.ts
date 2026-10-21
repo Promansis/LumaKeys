@@ -43,10 +43,12 @@ let loginRedirectStarted = false;
 /**
  * fetch for /api/* routes. With the server's token gate on, a browser without the
  * session cookie gets 401 from every call; the first one sends it to the sign-in page.
+ * Not from /login itself: without the gate that path is the app, and a 401 from a proxy
+ * would otherwise loop.
  */
 async function apiFetch(...args: Parameters<typeof fetch>): Promise<Response> {
   const response = await fetch(...args);
-  if (response.status === 401 && !loginRedirectStarted) {
+  if (response.status === 401 && !loginRedirectStarted && window.location.pathname !== '/login') {
     loginRedirectStarted = true;
     navigateToLogin();
   }
