@@ -119,6 +119,8 @@ in `64a8160` (ADR 0002, `CONTEXT.md`, and the audit's citations):
 
 - The owner gave the go-ahead for wave 1 on 2026-10-21. All of wave 1's code is now on
   `main` (at `a84acb0`): slices 2, 0, 18, 1, 15 and 3, the slice 0 follow-up, and task D1.
+  The three follow-ups the owner then chose (decisions 6, 7 and 11) are merged too, at
+  `93ac583`.
   Owner proofs remain; they are in the Proof Owed table below and in the
   [user tests](phase-11-user-tests.md).
 - Merged to `main`, each after an independent review:
@@ -133,6 +135,9 @@ in `64a8160` (ADR 0002, `CONTEXT.md`, and the audit's citations):
   | `c95586b` | Slice 1, desktop migration | PH-DATA-005, PH-DATA-006, PH-OPS-006 | `fixed`. The first review gave REPAIR NEEDED (blocker: an orphan WAL could overwrite the current library with no backup); the re-review passed after repairs, and a follow-up fixed three small items. Packaged run with the real lock, real-display dialogs and Windows owed |
   | `8d73767` | Slice 15, browser rename carry-over | PH-DATA-004, PH-DATA-007 | PH-DATA-004 `fixed`, optional pack profile (B6) owed; PH-DATA-007 `verified` after the headless Electron run. Held until slice 1 merged, as the two ship together. Review passed after repairs |
   | `a84acb0` | Slice 3, Electron upgrade and window-open guard | PH-OPS-003, PH-SEC-005 | `fixed`. Electron 30.5.1 to 44.9.2 and better-sqlite3 12.8.0 to 13.0.3 (N-API). The review passed; a follow-up added a file-host check, passes the normalised URL to `openExternal`, tightened the test and documented the install-time node-gyp step. Merge check: a clean `npm ci` on Node 22.23.3 with the workflow's variables, then `npm run verify`, exits 0 (73 files, 471 tests, asset inventory 647). Real-display and Windows checks owed |
+  | `8a0a764` | Follow-up f1, lead-in beats (owner decision 6) | PH-MUS-018 | `verified`. A missing or blank `leadInBeats` setting keeps the default of 2; a saved `0` stays 0. Two `App` tests; the reviewer reproduced the failure before the fix; the post-merge desktop and web runs below passed |
+  | `d5507a6` | Follow-up f2, desktop file dialogs (owner decision 7) | PH-UI-021 | `fixed`. `src/main/dialogDefaults.ts` remembers the last folder per dialog kind until the app closes, wired into the 11 dialog calls in `src/main/index.ts`; 15 tests, and all 7 of the reviewer's mutations were caught. Real-display checks owed (B15, sitting 2 item 4) |
+  | `93ac583` | Follow-up f3, slices 2 and 3 (owner decision 11) | PH-SEC-006; leads (a), (b), (f), (k) | PH-SEC-006 `fixed`: the cookie gets `Secure` behind a proxy that reports https. hono 4.13.13, `engines.node` `>=22.14.0`, the dead native rebuild path removed. `npm run verify` passed on Node 22.23.3 and 24.15.0; a test image passed the container checks. Redeploy and A2 owed |
 
 - The owner ran `npm ci` in the main checkout on 2026-10-21, so its `node_modules` now holds
   Electron 44.9.2 and better-sqlite3 13.0.3 (user tests G1, pass). Since better-sqlite3 13,
@@ -167,6 +172,33 @@ in `64a8160` (ADR 0002, `CONTEXT.md`, and the audit's citations):
     Electron 44.9.2 and opens and writes a database through the unpacked better-sqlite3.
   - The owner's Linux build for group B is that package, in
     `/tmp/claude-1000/p11-owner-build`.
+- Post-merge proofs at `93ac583` (audit lead, 2026-10-21), after the three follow-ups. A
+  separate agent made a clean copy (`git archive`, `npm ci` on Node 22.23.3), all runs on
+  throwaway profiles, one Electron process at a time. Evidence in
+  `/tmp/claude-1000/p11-pm2/ev/`:
+  - `npm run verify` exits 0: 74 test files passed and 1 skipped, 495 tests passed and
+    1 skipped, both typechecks, both builds, asset inventory 647. Installed: hono 4.13.13,
+    @hono/node-server 2.1.5, Electron 44.9.2, better-sqlite3 13.0.3.
+  - The Electron 44 repeats match the `a84acb0` results: `electron-userdata-probe.mjs
+    --harness-only` (P1 to P4), `window-open.mjs` (four PASS lines), `workflows.mjs` and
+    `backup-reset-restore.mjs` (exit 0, `ERRORS []`, `integrity_check` ok). Only the timed
+    Learn and Play scores differ, which is headless key-timing jitter.
+  - PH-UI-021: `scripts/audit/electron/dialog-defaults.mjs` passes all 19 checks; a build of
+    `8a0a764` fails the 9 second-use checks (see the finding).
+  - PH-MUS-018: `scripts/audit/electron/leadin.mjs` and `scripts/audit/browser/leadin-web.mjs`
+    time the count-in at about 4000 ms on a fresh profile and 3000 ms after saving None, in
+    the desktop and the web build; a build of `6b57537` (before the fix) gives 3000 ms on a
+    fresh profile. It moved to `verified`.
+  - `npm run build:web` and `npm run package:local` built `dist/LumaKeys-0.1.0.AppImage`
+    (SHA-256 `42b7a5f2…16a30`). The packaged window again aborts on the single-instance lock
+    in the sandbox (G2, B7). The owner's copy is `/tmp/claude-1000/p11-owner-build-2`; its web
+    server answered `GET /` and the bridge with 200.
+  - Windows: the audit lead cross-built `LumaKeys-0.1.0-portable.exe` from a second clean
+    copy of `93ac583` (SHA-256 `d27c97a5…ae0cfa70`, 179,720,909 bytes, path in user tests
+    sitting 2). Only electron-builder ran outside the sandbox, as the owner allowed; it was
+    built without wine, so it has no embedded version details.
+  - Counts after these changes: 72 findings (13 verified, 19 fixed, 39 accepted,
+    1 accepted-risk).
 - A new finding from the slice 3 implementation and review:
   [PH-UI-021](findings/PH-UI-021.md) (P3, `reproduced` from the Electron 43 release notes
   and the code, not yet seen on a display): all 8 `showOpenDialog` calls in
@@ -201,17 +233,20 @@ in `64a8160` (ADR 0002, `CONTEXT.md`, and the audit's citations):
 Out-of-scope observations from the slice reviews. None has been reproduced as a finding;
 the owner or the audit lead decides which become one.
 
-- (a) `npm run rebuild`, the `electron-rebuild` devDependency and the Electron fallback in
-  `scripts/ensure-native-module.cjs` are dead with N-API better-sqlite3. `electron-rebuild`
-  3.2.9 fails on Electron 44 (it cannot map the version to an ABI).
-- (b) `package.json` has no `engines` field, although better-sqlite3 13 needs Node 22.14 or
-  later in practice.
+- (a) Closed in `93ac583`: `npm run rebuild`, the `electron-rebuild` devDependency and both
+  fallbacks in `scripts/ensure-native-module.cjs` are removed; a binary that does not load
+  now stops the install with a message naming the fix. Was: they are dead with N-API
+  better-sqlite3, and `electron-rebuild` 3.2.9 fails on Electron 44 (it cannot map the
+  version to an ABI).
+- (b) Closed in `93ac583`: `package.json` declares `engines.node` `>=22.14.0` (Node-API 10),
+  and `BUILD_PORTABLE.md` names it. Was: no `engines` field, although better-sqlite3 13
+  needs Node 22.14 or later in practice.
 - (c) The packaged app carries all 8 better-sqlite3 prebuilds, about 16 MB.
 - (d) `will-frame-navigate` and `will-redirect` are not guarded. Optional defence in depth
   beside the `will-navigate` handler in `src/main/windowGuard.ts`.
 - (e) 24 of the 61 Soundboard credit links (`sourcePage` in
   `src/lib/audio/animalSoundboardManifest.json`) use `local://` and open nothing.
-- (f) `Dockerfile:27` (`npm rebuild better-sqlite3`) is now a no-op. The [PH-OPS-003](findings/PH-OPS-003.md)
+- (f) Closed in `93ac583`: the line is removed. Was: `Dockerfile:27` (`npm rebuild better-sqlite3`) is now a no-op. The [PH-OPS-003](findings/PH-OPS-003.md)
   Resolution infers (not traced in npm) that `npm rebuild` reads the package's real
   `package.json`, which declares no install script, and does nothing for it.
 - (g) Since slice 2, an audit driver that starts the web server needs
@@ -235,7 +270,7 @@ the owner or the audit lead decides which become one.
   in the data folder or in `PianoHero`, is still attached. The original is kept in
   `before-legacy-migration-*`, but only the console says so. Recorded in the residual risk
   of [PH-DATA-006](findings/PH-DATA-006.md).
-- (j) The web access cookie never gets `Secure` behind the Cloudflare Tunnel.
+- (j) Became [PH-SEC-006](findings/PH-SEC-006.md), fixed in `93ac583`. Was: the web access cookie never gets `Secure` behind the Cloudflare Tunnel.
   `setAccessCookie` in `src/server/webSecurity.ts` adds it only when
   `new URL(c.req.url).protocol` is `https:`, and the tunnel reaches the container over plain
   HTTP. Seen on 2026-10-21 in throwaway containers of the deployed image (`8c3a0bf9…`): no
@@ -245,7 +280,9 @@ the owner or the audit lead decides which become one.
   on a plain-HTTP request to `/api` that the user opens directly. A fix that cannot weaken
   anything: also add `Secure` when `X-Forwarded-Proto` is `https`, since a forged header
   only adds the flag. The live behaviour is the owner's check (user tests A2).
-- (k) `npm ci` warns about advisories. `npm audit --omit=dev` finds only two shipped
+- (k) Closed in `93ac583`: `hono` ^4.13.13 and `@hono/node-server` ^2.1.5 (locked at those
+  versions); `npm audit --omit=dev` finds no advisories, and OP-011's row is updated. Was:
+  `npm ci` warns about advisories. `npm audit --omit=dev` finds only two shipped
   packages, `hono` 4.13.0 and `@hono/node-server` 2.1.0 (five moderate `hono` advisories);
   the rest are build and test tools (electron-builder, vite, vitest, jsdom, concurrently,
   electron-rebuild) that never run in the app or the server. Wave 1 lowered the full
@@ -1427,7 +1464,7 @@ fingerings.
 
 ## Proof Owed By Fixed Findings
 
-These 17 findings are `fixed`, not `verified`. None needs new product code unless noted.
+These 19 findings are `fixed`, not `verified`. None needs new product code unless noted.
 The owner sittings run by the agent on 2026-10-20
 ([report](phase-11-owner-sittings-2026-10-20.md)) moved PH-PAR-002, PH-UI-001, PH-UI-002
 and PH-UI-004 to `verified`. The [agent proofs](phase-11-agent-proofs-2026-10-21.md) of
@@ -1440,7 +1477,9 @@ and PH-UI-003. Slices 2, 0 and 18 moved five findings from `accepted` to `fixed`
 PH-SEC-002, PH-SEC-003, PH-OPS-005, PH-MUS-014), so they joined it. On the same day slices
 1, 15 and 3 added seven more (PH-DATA-005, PH-DATA-006, PH-OPS-006, PH-DATA-004,
 PH-DATA-007, PH-OPS-003, PH-SEC-005); PH-DATA-007 then passed its headless Electron run, moved
-to `verified` and left this table. The proof each of the 17 still owes follows. The
+to `verified` and left this table. The follow-ups merged at `93ac583` fixed three more:
+PH-SEC-006 and PH-UI-021 joined, and PH-MUS-018 passed its desktop and web runs and went
+straight to `verified`. The proof each of the 19 still owes follows. The
 packaged runs "with the real lock" cannot run in the agent sandbox (the single-instance
 lock needs a Unix socket); they run outside it, if the owner allows that through
 `/sandbox`, or the real-display checks cover them:
@@ -1464,6 +1503,8 @@ lock needs a Unix socket); they run outside it, if the owner allows that through
 | PH-DATA-004 | P3 | A browser profile that really installed a pack on the pre-rename release (optional; the owner may have none, then record it as not reproducible at runtime). The unit tests and the headless Chromium driver passed. Release gate: slices 1 and 15 verified in both runtimes | owner B6 (optional) |
 | PH-OPS-003 | P2 | The packaged Linux app on a real display: launch, main menu, one song, a setting read back; an existing profile still opens. The Windows portable build. The clean `npm ci` and `npm run verify` on the merged tree, and the post-merge Electron 44 driver runs and Linux package build (Remediation Progress), passed | owner B7, B9; sitting 2 |
 | PH-SEC-005 | P3 | A real click on a Soundboard credit link in the packaged app: the system browser opens and no LumaKeys window does. The unit tests, the driver on Electron 30.5.1 and 44.9.2, and the post-merge `window-open.mjs` run passed | owner B8; sitting 2 item 8 |
+| PH-UI-021 | P3 | The system file dialog on a real display starts in the folder the app passes, on Linux (GNOME portal) and Windows. The unit tests and the headless `dialog-defaults.mjs` run (19 of 19, with a failing control) passed | owner B15; sitting 2 item 4 |
+| PH-SEC-006 | P3 | After a redeploy from `93ac583` or later, the live site's `lumakeys_web_access` cookie shows `Secure`. The unit tests and the throwaway-container check of a `93ac583` image passed | owner A2 |
 
 ## Phase 11 Remediation Start Gate
 

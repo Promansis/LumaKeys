@@ -45,7 +45,7 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-SEC-003 | Web HTML responses carry no Content-Security-Policy or related security headers, and the desktop renderer has no CSP either | SEC | P3 | high | both | fixed | OP-016, MOD-010, MOD-013, MOD-014 | [PH-SEC-003](reports/findings/PH-SEC-003.md) | Claude Code (acting) |
 | PH-SEC-004 | One MuseScore conversion blocks every other import for up to 45 seconds | SEC | P3 | high | web | accepted | OP-017, WF-025, MOD-013 | [PH-SEC-004](reports/findings/PH-SEC-004.md) | Claude Code (acting) |
 | PH-SEC-005 | Soundboard source links open remote sites inside an Electron window with no navigation guard | SEC | P3 | high | Electron | fixed | MOD-014, OP-013, MOD-008 | [PH-SEC-005](reports/findings/PH-SEC-005.md) | Claude Code (acting) |
-| PH-SEC-006 | The web access cookie is never marked Secure behind the Cloudflare Tunnel | SEC | P3 | high | web | accepted | OP-014, MOD-010 | [PH-SEC-006](reports/findings/PH-SEC-006.md) | Claude Code (acting) |
+| PH-SEC-006 | The web access cookie is never marked Secure behind the Cloudflare Tunnel | SEC | P3 | high | web | fixed | OP-014, MOD-010 | [PH-SEC-006](reports/findings/PH-SEC-006.md) | Claude Code (acting) |
 | PH-OPS-002 | Default web deployment exposes `/api/*` with no app-level gate | OPS | P0 | high | web | fixed | OP-014 | [PH-OPS-002](reports/findings/PH-OPS-002.md) | Claude Code (acting) |
 | PH-OPS-003 | Shipped desktop runtime Electron 30.5.1 is past end of life | OPS | P2 | high | Electron | fixed | MOD-012, MOD-008, OP-013 | [PH-OPS-003](reports/findings/PH-OPS-003.md) | Claude Code (acting) |
 | PH-OPS-004 | A default-state SQLite database remains in git history | OPS | P3 | high | runtime-independent | accepted-risk | MOD-012, DATA-003, DATA-004 | [PH-OPS-004](reports/findings/PH-OPS-004.md) | Claude Code (acting) |
@@ -93,8 +93,8 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-MUS-017 | Changing a track assignment silently deletes every saved fingering for the song | MUS | P2 | high | both | accepted | WF-008, DATA-007, BR-034, MOD-003 | [PH-MUS-017](reports/findings/PH-MUS-017.md) | Claude Code (acting) |
 | PH-DATA-010 | The reset confirmation does not name packs, practice history or fingerings, and on the web says "from this device" for server-side data | DATA | P3 | high | both | accepted | DATA-014, OP-009, WF-022 | [PH-DATA-010](reports/findings/PH-DATA-010.md) | Claude Code (acting) |
 | PH-UI-020 | The song-load error panel does not take focus, and Retry is about 54 Tab presses away | UI | P3 | high | both | accepted | WF-009, RT-008, MOD-003 | [PH-UI-020](reports/findings/PH-UI-020.md) | Claude Code (acting) |
-| PH-MUS-018 | On a fresh profile the count-in after the 3-2-1 countdown is lost while Settings shows 2 lead-in beats | MUS | P3 | high | both | accepted | WF-009, WF-018, MOD-002, MOD-003 | [PH-MUS-018](reports/findings/PH-MUS-018.md) | Claude Code (acting) |
-| PH-UI-021 | Since the Electron 44 upgrade every desktop file dialog opens in Downloads and forgets the last folder | UI | P3 | high | Electron | accepted | WF-004, WF-005, WF-006, WF-020, MOD-008 | [PH-UI-021](reports/findings/PH-UI-021.md) | Claude Code (acting) |
+| PH-MUS-018 | On a fresh profile the count-in after the 3-2-1 countdown is lost while Settings shows 2 lead-in beats | MUS | P3 | high | both | verified | WF-009, WF-018, MOD-002, MOD-003 | [PH-MUS-018](reports/findings/PH-MUS-018.md) | Claude Code (acting) |
+| PH-UI-021 | Since the Electron 44 upgrade every desktop file dialog opens in Downloads and forgets the last folder | UI | P3 | high | Electron | fixed | WF-004, WF-005, WF-006, WF-020, MOD-008 | [PH-UI-021](reports/findings/PH-UI-021.md) | Claude Code (acting) |
 
 ## Status Notes
 
@@ -197,6 +197,15 @@ in the detailed report.
   personal author address were rewritten to the GitHub noreply address, which gave all 78
   unpushed commits new hashes; tracked files cite the new ones
   ([lookup table](reports/commit-hash-rewrite-2026-10-21.md)).
+- Phase 11 wave 1 follow-ups, 2026-10-21: three merged to `main` after independent review,
+  `8a0a764` (PH-MUS-018), `d5507a6` (PH-UI-021) and `93ac583` (PH-SEC-006, plus plan leads
+  (a), (b), (f) and (k): hono 4.13.13, `engines.node`, and the dead native rebuild path
+  removed). PH-SEC-006 and PH-UI-021 moved from `accepted` to `fixed`; they owe the owner's
+  redeploy and A2, and B15 and sitting 2 item 4. PH-MUS-018 moved from `accepted` to
+  `verified` after the post-merge desktop and web runs on a clean copy of `93ac583`, with a
+  pre-fix control. Counts: 72 findings (13 verified, 19 fixed, 39 accepted,
+  1 accepted-risk). See
+  [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#remediation-progress-2026-10-21).
 
 - PH-DATA-001 is the canonical cross-store atomicity finding for backup restore,
   song deletion, and full reset. Do not create separate findings for the same

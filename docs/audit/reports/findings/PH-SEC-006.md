@@ -3,7 +3,7 @@
 - Lane: SEC
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-21
 - Verifier: TBD
@@ -106,7 +106,7 @@ headers keeps working.
 
 - Accepted/rejected rationale: accepted by the owner on 2026-10-21 ("sure"), to be fixed in
   the follow-up to slices 2 and 3 (user tests decision 11).
-- Fix branch/commit/issue: branch `remediation/p11-f3-web-deps`, commit `c706ad5` (the `hono` bump that follows is lead (k), a separate commit on the same branch).
-- Verification evidence (2026-10-21, worktree `p11-f3`): `setAccessCookie` now calls `isSecureRequest`, which adds `Secure` when the request URL is `https:`, when the first comma-separated `X-Forwarded-Proto` value is `https` (trimmed, case-insensitive), or when `Cf-Visitor` JSON has `scheme` `https` (malformed JSON or another scheme is ignored). `src/server/webSecurity.test.ts` gained 7 cases in "access cookie Secure flag": no `Secure` without headers, with `X-Forwarded-Proto: http` or `http, https`, or with a malformed or `http` `Cf-Visitor`; `Secure` with `X-Forwarded-Proto: https`, with ` HTTPS , http`, with `Cf-Visitor: {"scheme":"https"}`, on an `https://` request URL, and on the header sign-in path. Before the fix 4 of the 21 tests failed (the header cases); after it all 22 pass. `npm run verify` passed on Node 22.23.3 and on Node 24.15.0 (73 test files passed, 1 skipped; 478 tests passed, 1 skipped). The throwaway-container check against a built image and the owner's A2 check on the live site are still owed.
+- Fix branch/commit/issue: branch `remediation/p11-f3-web-deps`, commit `c706ad5` (the `hono` bump that follows is lead (k), a separate commit on the same branch); merged to `main` in `93ac583` after independent review (not pushed).
+- Verification evidence (2026-10-21, worktree `p11-f3`): `setAccessCookie` now calls `isSecureRequest`, which adds `Secure` when the request URL is `https:`, when the first comma-separated `X-Forwarded-Proto` value is `https` (trimmed, case-insensitive), or when `Cf-Visitor` JSON has `scheme` `https` (malformed JSON or another scheme is ignored). `src/server/webSecurity.test.ts` gained 7 cases in "access cookie Secure flag": no `Secure` without headers, with `X-Forwarded-Proto: http` or `http, https`, or with a malformed or `http` `Cf-Visitor`; `Secure` with `X-Forwarded-Proto: https`, with ` HTTPS , http`, with `Cf-Visitor: {"scheme":"https"}`, on an `https://` request URL, and on the header sign-in path. Before the fix 4 of the 22 tests failed (the header cases); after it all 22 pass. `npm run verify` passed on Node 22.23.3 and on Node 24.15.0 (73 test files passed, 1 skipped; 478 tests passed, 1 skipped). Throwaway-container check (audit lead, 2026-10-21) of an image built from `93ac583` (`lumakeys-p11-check:f3`, `sha256:acf3fc05…`): sign-in with no forwarding header sets `Path=/api; HttpOnly; SameSite=Strict`; with `X-Forwarded-Proto: https`, and with `Cf-Visitor: {"scheme":"https"}`, the same plus `Secure`. The refusals and the gate are unchanged, and the image holds hono 4.13.13. Evidence: `/tmp/claude-1000/p11-docker-check/check-f3.out` (SHA-256 `c115fa4c…826d8`), script `check-image.sh` beside it. The owner's A2 check on the live site, after a redeploy, is still owed.
 - Residual risk: a client that reaches the origin directly over plain HTTP and forges neither header still gets a non-Secure cookie, which is the documented loopback behaviour. A forged header only adds the flag, so the worst case is a cookie the browser will not store over plain HTTP. Cloudflare could still strip or rewrite the headers; the owner's A2 check shows what the live site sends.
 - Revisit trigger, if accepted-risk:

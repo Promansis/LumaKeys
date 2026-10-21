@@ -36,6 +36,12 @@ Revised again 2026-10-21, after your `npm ci` and redeploy. G1 passed. The agent
 the image you deployed in throwaway containers (note under section A's table); A2 gains a
 cookie check; A4 and section E no longer point at builds that are out of date.
 
+Revised again 2026-10-21, after the three follow-ups you chose (decisions 6, 7 and 11)
+merged at `93ac583`. Redeploy before A1 to A3 (section A's note); A2 now expects `Secure`.
+Group B uses a new build, `/tmp/claude-1000/p11-owner-build-2`; B7 also listens for the
+count-in and B15 now checks the fix. Sitting 2 has the new Windows build. G1 asks you to run
+`npm ci` once more. Decisions 10 and 11 are done.
+
 **Never point a test at your real data.** Every command below uses a throwaway data
 directory or container. Do not use `docker compose up` or your normal desktop profile
 for these tests. `~/.config/PianoHero` on this machine holds a copy of your old desktop
@@ -48,7 +54,7 @@ data, and a desktop build run without an isolated profile migrates it.
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
 | A1 | OP-014, PH-OPS-002 | Deploy `main` with the token. Put `LUMAKEYS_WEB_ACCESS_TOKEN=<long random value>` (for example from `openssl rand -hex 32`) in the `.env` next to the compose file, which your untracked compose override already reads, then rebuild and recreate the container the way you normally deploy. On a phone with Wi-Fi off (mobile data), open `https://<your hostname>/` in a private tab. Then, from any machine, `curl -s -o /dev/null -w '%{http_code}\n' -X POST https://<your hostname>/api/bridge/getAllSongs` | The phone is sent to `/login` (not the app); signing in with the token loads the app; the `curl` prints 401, and `/api/*` answers 401 to anything without the cookie. If the container stops instead of starting, `docker compose logs` names the missing or placeholder token ([PH-OPS-002](findings/PH-OPS-002.md)) | 2026-10-20, before the fix: **fail**. The app opened over mobile data with no login. The owner said it looks like an old version; the image was built from `4466626`, the code this audit tested. Repeat after the deploy | owner, phone, 2026-10-20 (before the fix) |
-| A2 | OP-014, PH-SEC-002 | A private window on a computer. Open `https://<your hostname>/`, sign in at `/login` with the token. Close the whole browser, reopen it and visit the site again. Then, in a new private window, open the old style link `https://<your hostname>/api/access?access_token=<token>` | You land on `/login`; the token is not in the address bar; the app loads after sign-in. After the browser closes, the site sends you to `/login` again (the cookie ends with the browser session). The old link returns 401 and the next visit to `/` still goes to `/login` ([PH-SEC-002](findings/PH-SEC-002.md)). While signed in, F12, Application, Cookies: write down whether `lumakeys_web_access` has Secure ticked (the agent expects it unticked behind the tunnel, plan lead (j)) | | |
+| A2 | OP-014, PH-SEC-002 | A private window on a computer. Open `https://<your hostname>/`, sign in at `/login` with the token. Close the whole browser, reopen it and visit the site again. Then, in a new private window, open the old style link `https://<your hostname>/api/access?access_token=<token>` | You land on `/login`; the token is not in the address bar; the app loads after sign-in. After the browser closes, the site sends you to `/login` again (the cookie ends with the browser session). The old link returns 401 and the next visit to `/` still goes to `/login` ([PH-SEC-002](findings/PH-SEC-002.md)). While signed in, F12, Application, Cookies: write down whether `lumakeys_web_access` has Secure ticked. After you redeploy from `main` at `93ac583` or later it should be ticked ([PH-SEC-006](findings/PH-SEC-006.md)); the 12:34 deploy leaves it unticked | | |
 | A3 | OP-016, PH-SEC-003, PH-OPS-002 | Still signed in, in the private window with the browser console open (F12): upload any `.mid`, play it; Free Play, press Z, X, C; Soundboard, press several keys; Settings, Audio, Instrument Flute, "Install Better Sounds" | Everything plays with sound. The console shows no Content-Security-Policy error, except the `undefinedblob:` ones that "Install Better Sounds" raises and the web pack never playing ([PH-PAR-006](findings/PH-PAR-006.md)). Write down any other CSP error with its blocked URL ([PH-SEC-003](findings/PH-SEC-003.md)) | | |
 | A4 | OP-016, PH-SEC-003, MOD-014 | The same play-through as A3 on the built desktop app, in the throwaway profile from section B (its post-merge build holds all of wave 1), with the console open where the build allows it | Song, Free Play, Soundboard and Install Better Sounds work with sound, and no Content-Security-Policy error appears beyond the one A3 allows | | |
 
@@ -68,6 +74,14 @@ loopback port 3297; your container and `/media/storage/lumakeys` were not touche
 - The image holds better-sqlite3 13.0.3 and hono 4.13.0. Evidence:
   `/tmp/claude-1000/p11-docker-check/check2.out` (SHA-256 `4559b106…b4a59108`).
 
+**Redeploy once more before A1 to A3.** The follow-up merged in `93ac583` adds `Secure`
+behind the tunnel (PH-SEC-006) and moves to hono 4.13.13 and @hono/node-server 2.1.5
+(`npm audit --omit=dev` finds nothing). The agent built a test image from `93ac583`
+(`lumakeys-p11-check:f3`) and ran the same throwaway-container checks: the refusals and the
+sign-in gate behave as above; the cookie gets `Secure` with `X-Forwarded-Proto: https` and
+with `Cf-Visitor: {"scheme":"https"}`, and not without them; the image holds hono 4.13.13.
+Evidence: `/tmp/claude-1000/p11-docker-check/check-f3.out` (SHA-256 `c115fa4c…826d8`).
+
 Cloudflare note for A2 and A3: if the zone injects scripts into your pages (Web Analytics or
 Rocket Loader), the new policy blocks them, and the console shows CSP errors that are about
 those scripts and not about the app. Note the blocked URL; turn the feature off in
@@ -76,22 +90,28 @@ Cloudflare, or tell the agent if you want it allowed. The app itself must still 
 ### B. This machine's desktop, with speakers (~20 min)
 
 Log in to the desktop session and open a terminal in the agent's post-merge build copy,
-`cd /tmp/claude-1000/p11-owner-build`, so nothing in the repository is rebuilt (the web
+`cd /tmp/claude-1000/p11-owner-build-2`, so nothing in the repository is rebuilt (the web
 server serves `dist/web` from the current folder, and the copy holds the whole tree). The
-agent built it on 2026-10-21 from `main` at `a84acb0` with `npm run package:local`; it
-holds slices 18, 1, 15 and 3, which the older package under `/tmp/claude-1000/p11/S1V/` does
-not. It lives under `/tmp` and is gone after a reboot; if so, ask the agent to rebuild it.
+agent built it on 2026-10-21 from `main` at `93ac583` with `npm run build:web` and
+`npm run package:local`; it holds all of wave 1 and the three follow-ups (lead-in beats,
+dialog folders, the web and build clean-up). The earlier copy,
+`/tmp/claude-1000/p11-owner-build` from `a84acb0`, lacks the follow-ups, so do not use it
+for B7 or B15. Both live under `/tmp` and are gone after a reboot; if so, ask the agent to
+rebuild.
 
-- Unpacked app: `/tmp/claude-1000/p11-owner-build/dist/linux-unpacked/lumakeys` (SHA-256
-  `84fa94067d7122fbc52adbbe9d0f89c2decb95da1e94cfac0ce79274b2d3aec5`).
-- AppImage: `/tmp/claude-1000/p11-owner-build/dist/LumaKeys-0.1.0.AppImage` (214,048,515
-  bytes, SHA-256 `bc06be4273286a09fd79ab0deb9c0ef91d116c4a9988652df8641158f94193e2`).
+- Unpacked app: `/tmp/claude-1000/p11-owner-build-2/dist/linux-unpacked/lumakeys` (SHA-256
+  `84fa94067d7122fbc52adbbe9d0f89c2decb95da1e94cfac0ce79274b2d3aec5`, the Electron 44.9.2
+  executable itself, so it is the same in every build; the app code is in
+  `resources/app.asar`).
+- AppImage: `/tmp/claude-1000/p11-owner-build-2/dist/LumaKeys-0.1.0.AppImage` (211,222,883
+  bytes, SHA-256 `42b7a5f23dc3e390f1b86454ad74c7b4caf9410e7c8afc013509f2ebdd616a30`).
 - The agent could not open its window: the single-instance lock aborts it inside the agent
-  sandbox (G2). Run as Node, the packaged binary reports Electron 44.9.2 and opens and writes
-  a database.
+  sandbox (G2). Run as Node, the packaged binary reports Electron 44.9.2 and opens and
+  queries a database through the packaged better-sqlite3. The web server in the copy
+  answered `GET /` and the bridge with 200.
 
 ```bash
-APP="/tmp/claude-1000/p11-owner-build/dist/linux-unpacked/lumakeys"
+APP="/tmp/claude-1000/p11-owner-build-2/dist/linux-unpacked/lumakeys"
 newp() { local p; p=$(mktemp -d); mkdir -p "$p/.config"; ln -s ~/.config/dconf "$p/.config/dconf"; echo "$p"; }
 run()  { XDG_CONFIG_HOME="$1/.config" "$APP" --no-sandbox; }                 # run "$P": desktop app on a throwaway profile
 P=$(newp); run "$P" &                                                        # desktop app, throwaway profile
@@ -110,7 +130,7 @@ start with no access gate, which is why the web line sets `LUMAKEYS_TRUST_UPSTRE
 | B4 | L-11-015 | Desktop app on the main menu: open the system monitor, note the app's CPU, minimise it for 30 s, note the CPU again, restore | CPU drops while minimised and the video resumes. Record the two numbers (the agent's software-rendered numbers are not representative) | | |
 | B5 | RT-010, PH-UI-015, PH-UI-016 (needs another person) | Needs a person with a colour-vision deficiency, or a colleague with a calibrated display. Web app: upload `scripts/audit/fixtures/midi/pmus-16.mid`, play it in Play mode missing some notes on purpose, once with Settings, Visual, Colour-blind mode off and once on, then read the results screen. Can they tell a missed note from an upcoming right-hand note, and a good hit from an upcoming left-hand note, without the MISS popup? Is the grade letter legible? | Today: in colour-blind mode a missed note and a pending right-hand note are the same pink-red; a low grade letter is barely visible against its badge. Record their answers | | |
 | B6 | PH-DATA-004, PH-DATA-007 (optional) | Only if your normal Chrome profile installed an instrument pack, or saved a library filter preset, before the LumaKeys rename. Needs your deployment rebuilt from `main` at `8d73767` or later (after the access token is set, A1). Open it in that profile: Settings, Audio, read the pack status; Library, look for your saved filter presets; F12, Application, IndexedDB and Local Storage | Expected after slice 15: the pack shows installed and your presets are listed; `pianohero-instrument-sample-packs` is gone from IndexedDB and `pianohero-filter-presets` from Local Storage (the carry-over copies, then deletes). Before the fix the pack showed "not installed". Skip if you never installed one on the old build | | |
-| B7 | WF-023, MOD-012, PH-OPS-003 | Slice 3. `P=$(newp); run "$P"`. Choose "Skip for now", upload any `.mid` in Library, play it for a few seconds. Settings, change one setting (for example Lead-in Beats), quit, `run "$P"` again, read the setting back | The packaged app (Electron 44.9.2) launches, shows the main menu with the moving background, plays the song with sound, and the setting reads back after the relaunch ([PH-OPS-003](findings/PH-OPS-003.md)) | | |
+| B7 | WF-023, MOD-012, PH-OPS-003, PH-MUS-018 | Slice 3. `P=$(newp); run "$P"`. Choose "Skip for now", upload any `.mid` in Library, Play mode, press Space and listen, then play it for a few seconds. Settings, Gameplay, change one setting (for example Count-in Before Start), quit, `run "$P"` again, read the setting back | The packaged app (Electron 44.9.2) launches, shows the main menu with the moving background, plays the song with sound, and the setting reads back after the relaunch ([PH-OPS-003](findings/PH-OPS-003.md)). After the 3-2-1 you hear two more count-in beats before the song ([PH-MUS-018](findings/PH-MUS-018.md), verified by the agent; this is a listen, not an owed proof) | | |
 | B8 | MOD-014, OP-013, PH-SEC-005 | Slice 3, the same profile. Soundboard, Show Credits, click a source link that starts with `https://`. Then click one that starts with `local://` | The page opens in your system browser and no LumaKeys window appears; the LumaKeys window stays on the Soundboard. A `local://` link opens nothing; that is a known lead (24 of 61 credit links), not a failure of this row ([PH-SEC-005](findings/PH-SEC-005.md)) | | |
 | B9 | DATA-017, MOD-008, PH-OPS-003 | Slice 3. Only if you have a normal LumaKeys profile from the older build: `P=$(newp); cp -a ~/.config/lumakeys "$P/.config/lumakeys"` (a copy; never launch the new build on the real folder), then `run "$P"`. Skip it if you have none; B10 covers an old library | The app opens with your songs, results, settings and installed packs, shows no dialog, and an installed pack plays | | |
 | B10 | DATA-017, OP-015, PH-DATA-005, PH-DATA-006 | Slice 1, a carried-over library. `P=$(newp); cp -a ~/.config/PianoHero "$P/.config/luma-keys"` (your old data copy; any folder holding a `pianohero.db` will do, and it is only copied), then `run "$P"`. Open Library, quit. `ls "$P/.config/luma-keys" "$P/.config/lumakeys"` | No dialog; the library shows the old songs and results; `lumakeys.db` is in `$P/.config/lumakeys`; `luma-keys` no longer holds `pianohero.db`; nothing was deleted ([PH-DATA-005](findings/PH-DATA-005.md)) | | |
@@ -118,7 +138,7 @@ start with no access gate, which is why the web line sets `LUMAKEYS_TRUST_UPSTRE
 | B12 | OP-015, PH-DATA-005 | Slice 1, the other answer. A new profile set up as in B11 (one uploaded song, then the old data copied into `luma-keys`); this time press "Use earlier library" | The old songs and results appear; your one-song library is kept in a `before-legacy-migration-<time>` folder inside `$P/.config/lumakeys`; the next launch asks nothing | | |
 | B13 | OP-015, PH-OPS-006 | Slice 1, the error dialog. `P=$(newp); mkdir -p "$P/.config/luma-keys" "$P/.config/piano-hero"; cp ~/.config/PianoHero/pianohero.db "$P/.config/luma-keys/"; cp ~/.config/PianoHero/pianohero.db "$P/.config/piano-hero/"; sha256sum "$P"/.config/*/pianohero.db`, then `run "$P"; echo exit=$?`. Press OK. Repeat the `sha256sum` and `ls "$P/.config/lumakeys"` | A dialog titled "LumaKeys could not start" names both folders and says nothing was moved; no main window appears. After OK the app exits with `exit=1`, both folders and their hashes are unchanged, and no `lumakeys.db` is created ([PH-OPS-006](findings/PH-OPS-006.md)) | | |
 | B14 | OP-015, PH-OPS-006 | Slice 1, the single-instance lock. With the app from B7 still open on `$P`, run `run "$P"` again in a second terminal; repeat with the first window minimised | No second window opens and the second process exits; the first window comes to the front, restored if it was minimised. This is the real lock, which the agent's harness stubs | | |
-| B15 | WF-004, WF-005, WF-020, PH-UI-021 | The Electron 43 dialog change. In the desktop app: Library, Upload MIDI, pick a `.mid` from a folder that is not Downloads (for example `~/Documents`); open Upload MIDI again; then Library, export a backup | Expected from the release notes and not yet seen: each dialog opens in Downloads, not where you last picked, and the backup save dialog starts in an unknown folder. Write down the folder each dialog starts in and your desktop environment ([PH-UI-021](findings/PH-UI-021.md)) | | |
+| B15 | WF-004, WF-005, WF-020, PH-UI-021 | The fix for the Electron 43 dialog change. In the desktop app: Library, Upload MIDI, pick a `.mid` from a folder that is not Downloads (for example `~/Documents`); open Upload MIDI again; then Export Library twice, saving the first one into a folder that is not Downloads. Quit, start again on the same profile, open Upload MIDI | The second Upload MIDI opens in the folder you picked from; the second Export Library opens in the folder you saved to, with the file name filled in. After the restart, Upload MIDI opens in the system's default folder again (folders are kept only while the app runs). The agent proved what the app passes to the dialog ([PH-UI-021](findings/PH-UI-021.md), `d5507a6`); this checks what your desktop's file dialog does with it. If it still opens in Downloads, write down your desktop environment: the GNOME portal may ignore the folder (see the finding's residual risk) | | |
 
 Afterwards: stop both apps (`kill %1 %2`), and turn the OS animation setting back on if
 B3 left it off.
@@ -145,8 +165,8 @@ and web server from B. Write the keyboard's make and model in C1's Seen column.
 
 ### E. Windows
 
-Sitting 2 below. It needs a new Windows build from `main` (see its first paragraph): the
-kept `.exe` predates slices 1 and 3.
+Sitting 2 below, on the new Windows build from `main` at `93ac583` (its first paragraph
+gives the path and SHA-256).
 
 ### F. GitHub, after you push (~10 min)
 
@@ -159,15 +179,15 @@ unreachable from here and nothing is pushed yet, so only you can show the hosted
 | F1 | MOD-012, PH-OPS-005 | Push `main`. On GitHub, open the repository's Actions tab and the latest `verify` run | A green run: `npm ci`, `npm run verify` (typecheck, server typecheck, tests, both builds, the asset assertion), then the coverage recount | | |
 | F2 | MOD-012, PH-OPS-005 | Make a throwaway branch, change one expectation in any test so it fails, push it, open a pull request from it, and watch the `verify` run. Afterwards close the pull request and delete the branch | The run goes red at the test step, and the builds do not run. A branch pushed without a pull request does not start the workflow | | |
 
-`package:win` needs no separate step: the next build through it runs the asset
-assertion before electron-builder ([PH-PAR-001](findings/PH-PAR-001.md)). The `.exe` kept
-for sitting 2 predates that script, so it is not a test of it.
+`package:win` needs no separate step: it runs the asset assertion before electron-builder
+([PH-PAR-001](findings/PH-PAR-001.md)). The new sitting 2 exe went through the same steps,
+and the assertion passed (647 public files in `out/renderer`).
 
 ### G. Housekeeping, and one run outside the sandbox (~10 min)
 
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
-| G1 | MOD-012, PH-OPS-003 | The main checkout's installed `node_modules` still holds Electron 30.5.1 and better-sqlite3 12.8.0. Before `npm run dev` or a desktop build there: `cd /media/storage/LumaKeys && npm ci`. It needs Python 3, `make`, a C++ compiler and access to nodejs.org, because better-sqlite3 13 runs node-gyp at install; without them use `npm ci --ignore-scripts` and then `node scripts/postinstall.cjs` (`BUILD_PORTABLE.md`). Then `node_modules/.bin/electron --version` | `npm ci` exits 0 and Electron prints `v44.9.2`. `npm run dev` opens your normal profile, so use `XDG_CONFIG_HOME=$(mktemp -d) npm run dev` for anything that is a test | pass | Owner ran `npm ci` in the main checkout, 2026-10-21; the postinstall printed "better-sqlite3 is ready for electron". The agent then read Electron 44.9.2 and better-sqlite3 13.0.3 from `node_modules` (it loads in the host's Node 24.15.0); both typechecks pass; vitest 73 files, 471 tests pass. npm's deprecation and advisory warnings: plan lead (k) |
+| G1 | MOD-012, PH-OPS-003 | The main checkout's installed `node_modules` still holds Electron 30.5.1 and better-sqlite3 12.8.0. Before `npm run dev` or a desktop build there: `cd /media/storage/LumaKeys && npm ci`. It needs Python 3, `make`, a C++ compiler and access to nodejs.org, because better-sqlite3 13 runs node-gyp at install; without them use `npm ci --ignore-scripts` and then `node scripts/postinstall.cjs` (`BUILD_PORTABLE.md`). Then `node_modules/.bin/electron --version` | `npm ci` exits 0 and Electron prints `v44.9.2`. `npm run dev` opens your normal profile, so use `XDG_CONFIG_HOME=$(mktemp -d) npm run dev` for anything that is a test | pass | Owner ran `npm ci` in the main checkout, 2026-10-21; the postinstall printed "better-sqlite3 is ready for electron". The agent then read Electron 44.9.2 and better-sqlite3 13.0.3 from `node_modules` (it loads in the host's Node 24.15.0); both typechecks pass; vitest 73 files, 471 tests pass. npm's deprecation and advisory warnings: plan lead (k). **Run `npm ci` in the main checkout once more**: `93ac583` changed the lockfile (hono 4.13.13; `electron-rebuild` and its dependencies gone, 700 entries down to 578), and the installed `node_modules` still has the old set |
 | G2 | OP-015, PH-DATA-005, PH-DATA-006, PH-OPS-006 | The packaged binary with the real single-instance lock, which the agent sandbox blocks (`process_singleton_posix.cc: socket() failed: Operation not permitted`). Either allow the agent to run `node scripts/audit/electron-userdata-probe.mjs --packaged` against the post-merge build outside the sandbox (`/sandbox`), or treat B10 to B14, which run the same binary and lock on your display, as covering it | Case P1 shows the legacy song count in `lumakeys/lumakeys.db` and no `pianohero.db` left in the earlier folder; the two-profile case exits with code 1. If B10 to B14 pass, record "covered by B10 to B14" here | | |
 
 ## Sitting 0: Host terminal on this machine — done (agent)
@@ -207,38 +227,34 @@ person's eyes and ears continues as B1 to B6.
 
 ## Sitting 2: Windows machine (~25 min) — ready
 
-**Slices 1 and 3 need a new Windows build.** The kept exe below
-(`LumaKeys-0.1.0-portable.exe`, SHA-256 `bbe3604b…f6f372`) was built before slices 1 and 3,
-so items 1, 6, 7, 8 and 9 need a new Windows build from `main` at `a84acb0` or later. Either
-build it on Windows with `BUILD_PORTABLE.md`, or ask the agent to cross-build it. The last
-cross-build needed a workaround for a sandbox limit, so tell the agent whether it may run
-that step outside the sandbox (`/sandbox`); it records the path, size and SHA-256 here. Items 2 to 5
-can use either exe, but prefer the new one, since that is what will ship. Building on Windows
-now needs Python plus the Visual Studio Build Tools ("Desktop development with C++"), or the
-`npm ci --ignore-scripts` then `node scripts/postinstall.cjs` route in `BUILD_PORTABLE.md`.
+**Use the new Windows build for every item.** The agent cross-built it on 2026-10-21 from
+`main` at `93ac583`, which holds all of wave 1 and its three follow-ups, in a clean copy
+(`git archive`, `npm ci` on Node 22.23.3). As you allowed (decision 11), only the
+electron-builder step ran outside the sandbox; no workaround was needed.
 
-The kept exe: the portable `.exe` the agent cross-built on 2026-10-21 from the source
-at `b73787f` (product source `4466626`) in a throwaway copy. The owner kept it the same day.
-
-- Path on this machine: `/tmp/claude-1000/p11/PF/winbuild/src/dist/LumaKeys-0.1.0-portable.exe`.
+- Path on this machine: `/tmp/claude-1000/p11-win2/src/dist/LumaKeys-0.1.0-portable.exe`.
   It is gone after a reboot, so copy it somewhere permanent first. If it is gone, ask the
   agent to rebuild it.
-- Size 395,125,212 bytes; SHA-256
-  `bbe3604bd01cb4923eec7ccc4ca4783de7a8b1a7904b4b0859f9f45eafa6f372`. On Windows, check it
+- Size 179,720,909 bytes; SHA-256
+  `d27c97a501450f48043c235d62f2157df1b118a7864d2454246a3c82ae0cfa70`. On Windows, check it
   with `certutil -hashfile LumaKeys-0.1.0-portable.exe SHA256`.
+- Electron 44.9.2. It packs better-sqlite3's own win32-x64 N-API binary (SHA-256
+  `e21e5efd…8d240a`, identical to the npm package's), which has not yet been loaded on
+  Windows: item 2 is its first run.
 - It is unsigned and has no embedded version details (built without wine), so Windows
-  SmartScreen warns on first launch: More info, Run anyway. It is stored uncompressed, so
-  it is larger than a release build.
+  SmartScreen warns on first launch: More info, Run anyway.
 
-The executable in `dist/win-unpacked` dated 2026-08-07 is stale and still uses the old
-names, so do not use it.
+The earlier exe (SHA-256 `bbe3604b…f6f372`, built from `4466626` before slices 1 and 3, at
+`/tmp/claude-1000/p11/PF/winbuild/src/dist/`) is superseded. Keep it only if you want a
+"before" run for items 1 and 6. The executable in the main checkout's `dist/win-unpacked`,
+dated 2026-08-07, is stale and still uses the old names, so do not use it.
 
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
 | 1 | DATA-017, PH-DATA-005, PH-DATA-007 | Needs the new build. Before launching anything: `dir "%APPDATA%\piano-hero" "%APPDATA%\luma-keys" "%APPDATA%\PianoHero" "%APPDATA%\lumakeys"`. If `luma-keys` or `piano-hero` exists, back it up: `robocopy "%APPDATA%\luma-keys" "%USERPROFILE%\lumakeys-profile-backup" /E` (same for `piano-hero`). Launch the new exe, open the library, close the app, run the `dir` again | After slice 1: the library opens with your old songs, results, streak and settings, and an installed pack still plays; `%APPDATA%\lumakeys\lumakeys.db` now holds them and `%APPDATA%\luma-keys\pianohero.db` has moved there (the folder is not deleted). If `%APPDATA%\lumakeys` already held a library with songs, a question dialog "Earlier library found" appears instead and Quit is its default. Saved library filter presets are listed (PH-DATA-007). If no old folder exists, write "no pre-rename profile". Before the fix (the kept exe) the library is empty and `luma-keys\pianohero.db` is unchanged | | |
 | 2 | WF-023, RT-001, WF-026 | Launch the exe again; watch the main-menu background for 5 s; close the app | The main menu renders, the background moves, the app closes cleanly | | |
 | 3 | WF-001 | Reopen the setup guide from the main-menu card, set a 20-minute reminder and Large hands, Start Practice, restart the app, open Settings | The reminder and hand size are kept | | |
-| 4 | WF-004, PH-UI-021 | Import one `.mid` from Downloads; start it. Note which folder the file dialog opens in, then open it again and note the folder again | The song appears in the library and starts. On the new build the dialog opens in Downloads both times (PH-UI-021); write down what you see | | |
+| 4 | WF-004, PH-UI-021 | Import one `.mid` from a folder that is not Downloads (for example Documents); start it. Note which folder the file dialog opens in, then open it again and note the folder again. Close the app, start it again and open the dialog a third time | The song appears in the library and starts. The second time, the dialog opens in the folder you picked from; after the restart it opens in Windows' default folder again, because the app remembers folders only while it runs ([PH-UI-021](findings/PH-UI-021.md), fixed in `d5507a6`). Write down all three folders | | |
 | 5 | WF-019 | Settings, Audio, Instrument Flute, "Install Better Sounds"; Free Play, press a few keys. If item 1 carried over a profile that already had a pack installed, check that pack too | "Flute Enhanced Pack ready." and the Flute plays. This is the first run of the pack's `file:///C:/…` path. After slice 1 the desktop builds the pack address from the current profile (`%APPDATA%\lumakeys\instrument-sample-packs`) on every read, so a pack carried over from `luma-keys` plays too | | |
 | 6 | OP-015, PH-OPS-006 | Do this last, on the new build, in a **throwaway Windows user account**, not your own, so your real profile is never renamed or overwritten. Create a local account (Settings, Accounts, Other users, Add account, "I don't have this person's sign-in information", "Add a user without a Microsoft account"), sign in to it, and copy the exe there. Before launching the portable build, make sure the profile has two earlier profile folders, for example `%APPDATA%\luma-keys` and `%APPDATA%\piano-hero`, each holding a `pianohero.db` (and no `%APPDATA%\lumakeys`). A copy of the `pianohero.db` from your item 1 backup works for both. Launch LumaKeys. Afterwards, delete the throwaway account | Expected: a "LumaKeys could not start" dialog names both folders and says nothing was moved, and the app exits after OK. Both folders are unchanged. Before slice 1 (the kept exe) there is no window and no message while a LumaKeys process keeps running | | |
 | 7 | DATA-017, PH-DATA-006 | After item 1 and after item 2, with the app closed, wait 5 s and run `dir /a "%APPDATA%\lumakeys"`. Watch whether Windows deletes the sidecars on close | Neither `lumakeys.db-wal` nor `lumakeys.db-shm` is left once the app has closed. Write down if either remains, and whether it is gone after a minute (the migration refuses to move a library while its sidecar files are left) | | |
@@ -282,12 +298,12 @@ device, "Audit Keys 61". The real keyboard continues as C1 to C5.
 | 3 | Lane H: end date for the legacy-name fallback (suggested 2027-01-31), and whether `CLAUDE.md` and `AGENTS.md` are tracked | Decided 2026-10-20: removal no earlier than 2027-01-31, and only in a release after the carry-over release. `CLAUDE.md` and `AGENTS.md` stay gitignored; what the audit relies on moves into tracked docs (task D1) |
 | 4 | Which findings enter remediation | Decided 2026-10-20: waves, owners and branches as in the plan's [Owner Selection](phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20). Nothing starts until you say go |
 | 5 | Slice 18 (PH-MUS-014, fresh-profile volume): which wave | Decided 2026-10-21: wave 1, after slice 0. Merged to `main` in `db86adc` the same day; B1 is the speaker check of the fix |
-| 6 | PH-MUS-018 (lead-in beats read as 0 on a fresh profile, P3): accept it, and in which slice | Decided 2026-10-21: accepted; fix it now as a wave 1 follow-up ("fix"). See [PH-MUS-018](findings/PH-MUS-018.md) |
-| 7 | PH-UI-021 (desktop file dialogs open in Downloads and forget the last folder since Electron 43, P3): accept it, remember the folders in memory or persist them, and in which slice | Decided 2026-10-21: accepted; each dialog remembers the last folder until the app closes (in memory), as a follow-up to slice 3. See [PH-UI-021](findings/PH-UI-021.md) |
+| 6 | PH-MUS-018 (lead-in beats read as 0 on a fresh profile, P3): accept it, and in which slice | Decided 2026-10-21: accepted; fix it now as a wave 1 follow-up ("fix"). Done: merged in `8a0a764`, then `verified` by the agent in the desktop and web builds. See [PH-MUS-018](findings/PH-MUS-018.md) |
+| 7 | PH-UI-021 (desktop file dialogs open in Downloads and forget the last folder since Electron 43, P3): accept it, remember the folders in memory or persist them, and in which slice | Decided 2026-10-21: accepted; each dialog remembers the last folder until the app closes (in memory), as a follow-up to slice 3. Done: merged in `d5507a6`; the agent's headless proof passed; B15 and sitting 2 item 4 remain. See [PH-UI-021](findings/PH-UI-021.md) |
 | 8 | ADR 0002 items 3, 4, 6 and 7 (a startup line naming the data location, uniform blank-environment handling, the `legacy-brand:` markers, the README upgrade note): must the carry-over release (proposed `0.2.0`) ship them, or do they gate only the removal release (`0.3.0`)? | Open. The ADR says they are obligations of the carry-over release or earlier and that the removal release is blocked until they are done; the plan does not schedule them. The ADR stays `accepted` meanwhile. See [ADR 0002](../../adr/0002-legacy-pianohero-compatibility-window.md) |
 | 9 | ADR 0002 as a whole: confirm it | Open. Its `accepted` status rests on decision 3's wording "as in lane H's draft ADR"; you settled items 1 and 2 (the order and the 2027-01-31 floor) and have not individually settled items 3 to 7. Confirm the rest, or change it |
 | 10 | Pushing `main`: five unpushed commits recorded a personal author address, so GitHub's email-privacy push protection rejects the push (GH007) | Decided 2026-10-21: keep the protection on and never publish the personal address. The five commits now use the GitHub noreply address, as does this repository's git config; all 78 unpushed commits got new hashes ([lookup table](commit-hash-rewrite-2026-10-21.md)) |
-| 11 | A small follow-up to slices 2 and 3: the `Secure` cookie behind the tunnel and the `hono` bump (plan leads (j) and (k)), plus a minimum Node version, the no-op `Dockerfile` line and the dead `npm run rebuild` (leads (b), (f) and (a)); then a new Windows build, cross-built by the agent outside the sandbox | Decided 2026-10-21: do all of it; a redeploy follows the web part |
+| 11 | A small follow-up to slices 2 and 3: the `Secure` cookie behind the tunnel and the `hono` bump (plan leads (j) and (k)), plus a minimum Node version, the no-op `Dockerfile` line and the dead `npm run rebuild` (leads (b), (f) and (a)); then a new Windows build, cross-built by the agent outside the sandbox | Decided 2026-10-21: do all of it; a redeploy follows the web part. Done: merged in `93ac583` ([PH-SEC-006](findings/PH-SEC-006.md) `fixed`); the Windows build is in sitting 2. Your redeploy and A2 remain |
 
 ## Moved To The Agent (headless Electron)
 

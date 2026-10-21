@@ -86,6 +86,7 @@ the viewport and raising `deviceScaleFactor`; headless Chromium has no real zoom
 | `color-state-evidence.mjs` | RT-010, PH-UI-015 | note-state screenshots in both palettes, results screen, quiz review |
 | `grade-badge-contrast.mjs` | RT-010, PH-UI-016 | computed grade badge colours |
 | `palette-cvd-distance.py` | RT-010, PH-UI-015 | simulated colour-vision distance between state colours (not a calibrated review) |
+| `leadin-web.mjs` | WF-009, WF-018, PH-MUS-018 | the count-in timing of `../electron/leadin.mjs` on the web build. Starts its own server from `APPDIR` (a built checkout, not the shared one) with `DATA` as the data folder |
 
 Shared helpers: `harness.mjs` (above), `midi-fixtures.mjs` (small MIDI fixtures built
 with `@tonejs/midi`, including the library and "Two Hand Study" sets) and

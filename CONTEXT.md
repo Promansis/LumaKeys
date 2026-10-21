@@ -192,8 +192,10 @@ it here.
     no token, is refused in every mode.
   - Sign-in: `GET /login` serves a static form (no script) that posts the token to
     `POST /api/access` (body limit 4 KiB). A good token sets an HttpOnly,
-    `SameSite=Strict` cookie scoped to `Path=/api` (plus `Secure` on https) and redirects
-    to `/`. Scripts can post JSON `{"token":"..."}` or send the
+    `SameSite=Strict` cookie scoped to `Path=/api` and redirects to `/`. The cookie gets
+    `Secure` when the request URL is https, or when a proxy reports https through the
+    first `X-Forwarded-Proto` value or Cloudflare's `Cf-Visitor` (`isSecureRequest`); a
+    forged header can only add the flag. Scripts can post JSON `{"token":"..."}` or send the
     `x-lumakeys-access-token` header. The gate reads the header or the cookie only; a
     token in the query string is not accepted. An unsigned API call gets 401 with "Sign
     in at /login." `GET /api/access` answers `{ ok: true }` once past the gate. Trust mode

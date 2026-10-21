@@ -3,10 +3,10 @@
 - Lane: MUS
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: verified
 - Owner: Claude Code (acting)
 - Challenger: the slice 18 reviewer (independent), 2026-10-21
-- Verifier: TBD
+- Verifier: Claude Code (acting), headless Electron and Chromium runs 2026-10-21
 - Affected runtime: both
 - Coverage rows: WF-009, WF-018, MOD-002, MOD-003
 - Related/duplicate findings: PH-MUS-014 (same defect class in the same load effect: a missing stored value read as `0` instead of the default; not a duplicate, because the lead-in value is a different setting with a different consumer and the PH-MUS-014 fix does not touch it)
@@ -112,7 +112,7 @@ This is not implementation authorization.
 ## Resolution
 
 - Accepted/rejected rationale: accepted by the owner on 2026-10-21 ("fix"), to be fixed at once as a wave 1 follow-up (user tests decision 6).
-- Fix branch/commit/issue: branch `remediation/p11-f1-lead-in`, commit `19c10f5` (not pushed).
-- Verification evidence: two App tests added in `src/renderer/App.test.tsx` (fresh profile gives `leadInBeats = 2`; saved `'0'` stays 0). Before the fix the fresh-profile test failed (expected 2, received 0); after it, `src/renderer/App.test.tsx` passes 21/21. Full vitest 73 files passed, 1 skipped; 473 tests passed, 1 skipped. Both `tsc` projects clean; `npm run verify` (both builds and the Electron asset check) passed. Electron and web share this renderer code path; no runtime launch was done.
-- Residual risk: the fix is a guard on the startup read only. No fresh-profile run through the Electron or web build has been done. Other settings in the same effect were checked: `latencyCompMs` also reads null as 0, but its default is 0, so it is harmless; `hitWindowMs` and `beatsVisible` require a value above 0, so null is already rejected.
-- Revisit trigger: the owner's decision on acceptance and placement.
+- Fix branch/commit/issue: branch `remediation/p11-f1-lead-in`, commits `19c10f5` and `78ac0e0`; merged to `main` in `8a0a764` after independent review (not pushed).
+- Verification evidence: two App tests added in `src/renderer/App.test.tsx` (fresh profile gives `leadInBeats = 2`; saved `'0'` stays 0). Before the fix the fresh-profile test failed (expected 2, received 0); after it, `src/renderer/App.test.tsx` passes 21/21. Full vitest 73 files passed, 1 skipped; 473 tests passed, 1 skipped. Both `tsc` projects clean; `npm run verify` (both builds and the Electron asset check) passed. Electron and web share this renderer code path. Runtime check (audit lead, 2026-10-21, headless Electron on a clean copy of `93ac583`, driver `leadin.mjs`): a 120 BPM song on a fresh profile with `gameplay.leadInBeats` never saved keeps the count-in overlay up 3982 ms (3-2-1 is 3000 ms, so two 500 ms lead-in beats); after choosing None (stored `"0"`) and a relaunch it is 2979 ms. The same driver on a build of the fix's parent `6b57537` shows 3010 ms on a fresh profile, the bug. Settings shows "2" on both builds, because the select has its own default. Evidence: `/tmp/claude-1000/p11-pm2/ev/run5-leadin.out` (SHA-256 `1202ddf8…3349af21`) and `run5b-leadin-NEG.out` (`0661c8d6…fe8d5be5`). Web check the same day, driver `leadin-web.mjs`: the built web server of the same copy with an empty data folder, in headless Chromium with a new browser profile, gives 3997 ms (two beats) with the setting never saved, and 3014 ms after choosing None and reloading; no console errors. Evidence: `run5c-leadin-web.out` (`9a752982…dd2f7bff`), beside the others. Status: `verified` (audit lead, 2026-10-21): every Required Regression Proof row has passed (the `App` tests, the Electron and the web fresh-profile runs; no manual proof was required).
+- Residual risk: the fix is a guard on the startup read only. The owner also hears the count-in in B1 and B7, but that is not an owed proof. Other settings in the same effect were checked: `latencyCompMs` also reads null as 0, but its default is 0, so it is harmless; `hitWindowMs` and `beatsVisible` require a value above 0, so null is already rejected.
+- Revisit trigger: none.

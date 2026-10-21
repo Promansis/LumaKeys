@@ -78,6 +78,8 @@ filter it out of their error list.
 | `keyboard-walk.mjs` | RT-008, PH-UI-001, PH-UI-010, PH-UI-011, PH-UI-013, PH-UI-014, PH-UI-017 | lane E's keyboard walk: top-bar focus, the Calibrate dialog's Escape, Soundboard's Escape sequence, invisible Free Play Tab stops, focus after the Settings confirmation closes; part (f) checks PH-UI-001 focus containment in four dialogs |
 | `reset-with-pack.mjs` | WF-022, PH-DATA-002 | Delete User Data with the Flute pack installed removes the pack directory, and the pack does not resolve after a relaunch |
 | `pack-removal-containment.mjs` | OP-006, PH-SEC-001 | Crafted ids sent to `removeInstrumentSamplePack` over IPC remove nothing outside the pack root and leave the stored pack list unchanged; removing Flute leaves Cello |
+| `dialog-defaults.mjs` | WF-004, WF-005, WF-015, WF-019, WF-020, PH-UI-021 | a recorder in place of the native dialogs logs each `defaultPath`: the second use of every dialog kind (Upload MIDI, Import Folder, Export and Import Library, Choose Folder, Free Play Export MIDI and WAV, Load Track) starts in the last folder of that kind, kinds stay separate, and a relaunch forgets them. PASS or FAIL lines; exits 1 on a failure |
+| `leadin.mjs` | WF-009, WF-018, PH-MUS-018 | times the Play count-in overlay on a 120 BPM song: about 4000 ms (3-2-1 plus two lead-in beats) on a fresh profile, about 3000 ms after choosing None and relaunching. Web twin: `../browser/leadin-web.mjs` |
 
 ## Limits
 
