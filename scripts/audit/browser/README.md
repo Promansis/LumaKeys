@@ -5,6 +5,11 @@ web server (`dist/server/index.cjs`) on its own port with an isolated
 `LUMAKEYS_DATA_DIR`, drives headless Chromium, and prints evidence lines. They
 never touch the real data directory.
 
+The server refuses to start without an access gate (PH-OPS-002), so `harness.mjs`
+starts it with `LUMAKEYS_TRUST_UPSTREAM_AUTH=1` on loopback. Pass `opts.env` with
+`LUMAKEYS_WEB_ACCESS_TOKEN` to test the token gate. `csp-check.mjs` starts its own
+server with a test token and signs in through `/login`.
+
 The server must start inside the same process as the browser (`harness.mjs` does
 this), because sandboxed shells kill detached background processes.
 
