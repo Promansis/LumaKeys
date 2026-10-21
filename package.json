@@ -5,6 +5,9 @@
   "description": "LumaKeys desktop piano learning app built with Electron, React, and TypeScript.",
   "main": "out/main/index.js",
   "type": "module",
+  "engines": {
+    "node": ">=22.14.0"
+  },
   "scripts": {
     "predev": "node scripts/ensure-native-module.cjs electron",
     "dev": "electron-vite dev",

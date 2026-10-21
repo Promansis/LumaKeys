@@ -1,7 +1,7 @@
 # Building Portable Windows Executable
 
 ## Prerequisites
-- Node.js and npm installed
+- Node.js 22.14 or later (`engines.node` in `package.json`) and npm installed
 - Windows machine (or Docker for cross-compilation)
 - To install dependencies the normal way (see step 1): Python 3, a C++ toolchain
   (on Windows, Visual Studio Build Tools with "Desktop development with C++"; on
