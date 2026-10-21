@@ -7,6 +7,8 @@
 // Case E6 runs the startup error boundary (runDesktopStartup) against a refusal and checks the exit code.
 // Part 2 (optional, --packaged) launches dist/linux-unpacked/lumakeys against seeded profiles. The packaged
 // app takes the single-instance lock, which needs a Unix socket; a sandbox that blocks socket() aborts it.
+// --harness runs the same cases against the built out/ through scripts/audit/electron/launcher.cjs,
+// which stubs that lock and keeps windows offscreen.
 // Before the PH-DATA-005 fix part 1 repeated the old sequence (setName inside whenReady,
 // one legacy directory, `<appData>/PianoHero`); its output is kept in the Phase 11 lane B
 // evidence.
@@ -16,7 +18,8 @@
 // Part 1 loads better-sqlite3 inside Electron, so LK_SQLITE_MODULE must point at an
 // Electron-ABI copy (see scripts/audit/electron/README.md).
 //
-// Run: LK_SQLITE_MODULE=<dir> PROBE_ROOT=<dir under $TMPDIR> node scripts/audit/electron-userdata-probe.mjs [--packaged | --packaged-only]
+// Run: LK_SQLITE_MODULE=<dir> PROBE_ROOT=<dir under $TMPDIR> node scripts/audit/electron-userdata-probe.mjs
+//        [--packaged | --packaged-only] [--harness | --harness-only]
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -203,11 +206,49 @@ function inspectDb(file, scratchRoot) {
   return { tables: tables.length, counts };
 }
 
-async function partTwo() {
+/** The packaged build in dist/linux-unpacked, launched as a user would. */
+function packagedLauncher() {
   const bin = join(REPO, 'dist', 'linux-unpacked', 'lumakeys');
-  if (!existsSync(bin)) { console.log('PACKAGED skipped: no dist/linux-unpacked build'); return; }
+  if (!existsSync(bin)) return { label: 'PACKAGED', skip: 'no dist/linux-unpacked build' };
   const asar = require('@electron/asar');
   const pkg = JSON.parse(asar.extractFile(join(REPO, 'dist/linux-unpacked/resources/app.asar'), 'package.json').toString());
+  return { label: 'PACKAGED', pkg, launch: (env, _home, opts) => run(bin, FLAGS, env, opts) };
+}
+
+/**
+ * The built out/ through the audit launcher (scripts/audit/electron/launcher.cjs), which
+ * stubs the single-instance lock where the sandbox denies its Unix socket. Headless
+ * Electron has no display for native dialogs, so a preload replaces them with log lines
+ * (the question dialog answers Quit, its cancel button).
+ */
+function harnessLauncher() {
+  if (!existsSync(join(REPO, 'out', 'main', 'index.js'))) return { label: 'HARNESS', skip: 'no out/ build' };
+  const sqlite = process.env.LK_SQLITE_MODULE;
+  if (!sqlite) throw new Error('LK_SQLITE_MODULE must point at an Electron-ABI better-sqlite3 directory');
+  const preload = join(ROOT, 'harness-dialogs.cjs');
+  writeFileSync(preload, `const { dialog } = require('electron');
+dialog.showErrorBox = (title, content) => console.log('PROBE_SHOW_ERROR ' + JSON.stringify({ title, content }));
+dialog.showMessageBoxSync = (options) => {
+  console.log('PROBE_QUESTION ' + JSON.stringify({ message: options.message, buttons: options.buttons }));
+  return options.cancelId ?? 0;
+};
+`);
+  const pkg = JSON.parse(readFileSync(join(REPO, 'package.json'), 'utf8'));
+  const app = join(REPO, 'scripts', 'audit', 'electron');
+  return {
+    label: 'HARNESS', pkg,
+    launch: (env, home, opts) => run(ELECTRON, ['-r', preload, app, ...FLAGS], { ...env, LK_PROFILE: home, LK_SQLITE_MODULE: resolve(sqlite) }, opts),
+  };
+}
+
+function shownError(out) {
+  const line = out.split('\n').find((l) => l.startsWith('PROBE_SHOW_ERROR '));
+  return line ? JSON.parse(line.slice(17)) : null;
+}
+
+async function partTwo(launcher) {
+  const { label, pkg, launch, skip } = launcher;
+  if (skip) { console.log(`${label} skipped: ${skip}`); return; }
 
   // P1: a profile written by the pre-rename build (package name luma-keys) and a first launch of the current build.
   // The legacy database holds one song and theory scores 7 and 9, the 9 committed only in its WAL.
@@ -219,9 +260,9 @@ async function partTwo() {
     seedWalOnlyLegacyProfile(legacy);
     const legacyBefore = inspectDb(join(legacy, 'pianohero.db'), caseRoot);
     const newDb = join(env.XDG_CONFIG_HOME, 'lumakeys', 'lumakeys.db');
-    const r = await run(bin, FLAGS, env, { killAfterMs: 40000, until: () => existsSync(newDb) });
-    console.log('PACKAGED ' + JSON.stringify({
-      case: 'P1', asarPackageName: pkg.name, asarProductName: pkg.productName ?? null, exit: r.code ?? r.signal,
+    const r = await launch(env, join(caseRoot, 'home'), { killAfterMs: 40000, until: () => existsSync(newDb) });
+    console.log(`${label} ` + JSON.stringify({
+      case: 'P1', packageName: pkg.name, productName: pkg.productName ?? null, exit: r.code ?? r.signal,
       configDirs: readdirSync(env.XDG_CONFIG_HOME).sort(),
       newProfile: readdirSync(join(env.XDG_CONFIG_HOME, 'lumakeys')).sort(),
       newDb: inspectDb(newDb, caseRoot),
@@ -239,9 +280,10 @@ async function partTwo() {
     const env = isolatedEnv(join(caseRoot, 'home'));
     for (const name of ['luma-keys', 'piano-hero']) seedLegacyProfile(join(env.XDG_CONFIG_HOME, name));
     const profile = join(env.XDG_CONFIG_HOME, 'lumakeys');
-    const r = await run(bin, FLAGS, env, { killAfterMs: 12000 });
-    console.log('PACKAGED ' + JSON.stringify({
+    const r = await launch(env, join(caseRoot, 'home'), { killAfterMs: 12000 });
+    console.log(`${label} ` + JSON.stringify({
       case: 'P2', exit: r.code ?? r.signal, elapsedMs: r.elapsedMs, stillRunningWhenProbeSentSigterm: r.killedByProbe,
+      shownError: shownError(r.out),
       profileAfter: existsSync(profile) ? readdirSync(profile).sort() : 'missing',
       legacyAfter: Object.fromEntries(['luma-keys', 'piano-hero'].map((n) => [n, readdirSync(join(env.XDG_CONFIG_HOME, n)).sort()])),
       rendererStarted: existsSync(join(profile, 'Local Storage')),
@@ -262,9 +304,9 @@ async function partTwo() {
     db.exec('create table audit_marker (v text)');
     db.close();
     const newDb = join(profile, 'lumakeys.db');
-    const r = await run(bin, FLAGS, env, { killAfterMs: 40000, until: () => existsSync(join(profile, 'Local Storage')) });
+    const r = await launch(env, join(caseRoot, 'home'), { killAfterMs: 40000, until: () => existsSync(join(profile, 'Local Storage')) });
     const backups = readdirSync(profile).filter((n) => n.startsWith('before-legacy-migration-'));
-    console.log('PACKAGED ' + JSON.stringify({
+    console.log(`${label} ` + JSON.stringify({
       case: 'P4', exit: r.code ?? r.signal, stillRunningWhenProbeSentSigterm: r.killedByProbe,
       profileAfter: readdirSync(profile).sort(),
       newDb: inspectDb(newDb, caseRoot),
@@ -288,7 +330,7 @@ async function partTwo() {
     writeFileSync(join(caseRoot, 'source.mid'), bytes);
     writeFileSync(join(profile, 'song-metadata.json'), JSON.stringify({ songs: { [id]: { title: 'Legacy JSON song', sourcePath: join(caseRoot, 'source.mid'), trackAssignments: {}, updatedAt: '2026-07-30T00:00:00.000Z' } } }));
     const newDb = join(profile, 'lumakeys.db');
-    const r = await run(bin, FLAGS, env, { killAfterMs: 40000, until: () => existsSync(newDb) });
+    const r = await launch(env, join(caseRoot, 'home'), { killAfterMs: 40000, until: () => existsSync(newDb) });
     const Database = require('better-sqlite3');
     const scratch = join(caseRoot, 'inspect');
     mkdirSync(scratch);
@@ -297,7 +339,7 @@ async function partTwo() {
     const row = db.prepare('select id, title, file_path from songs where id = ?').get(id);
     db.close();
     const stored = join(profile, 'midi-files', `${id}.mid`);
-    console.log('PACKAGED ' + JSON.stringify({
+    console.log(`${label} ` + JSON.stringify({
       case: 'P3', exit: r.code ?? r.signal, songTitle: row?.title ?? null,
       filePathIsAppOwned: row ? row.file_path === stored : null,
       storedBytesMatch: existsSync(stored) ? readFileSync(stored).equals(bytes) : false,
@@ -307,6 +349,8 @@ async function partTwo() {
 }
 
 mkdirSync(ROOT, { recursive: true });
-// --packaged-only skips part 1, e.g. to run the packaged cases against a build from before the fix.
-if (!process.argv.includes('--packaged-only')) await partOne();
-if (process.argv.includes('--packaged') || process.argv.includes('--packaged-only')) await partTwo();
+// --packaged-only and --harness-only skip part 1, e.g. to run the P cases against a build from before the fix.
+const args = process.argv.slice(2);
+if (!args.some((a) => a.endsWith('-only'))) await partOne();
+if (args.includes('--packaged') || args.includes('--packaged-only')) await partTwo(packagedLauncher());
+if (args.includes('--harness') || args.includes('--harness-only')) await partTwo(harnessLauncher());
