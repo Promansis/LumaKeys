@@ -142,9 +142,9 @@ function buildSessionConfig(
   };
 }
 
-export function parseStoredAudioNumber(value: string | null, fallback: number): number {
+export function parseStoredAudioNumber(value: string | null | undefined, fallback: number): number {
   // Number(null) and Number('') are 0, which would pass as a saved silent level.
-  if (value === null || value.trim() === '') {
+  if (value == null || value.trim() === '') {
     return fallback;
   }
   const parsed = Number(value);

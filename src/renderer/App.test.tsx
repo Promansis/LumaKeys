@@ -253,6 +253,7 @@ vi.mock('../lib/midi/midiFileParser', () => ({
 describe('parseStoredAudioNumber', () => {
   it('returns the fallback for a missing, empty or non-numeric value', () => {
     expect(parseStoredAudioNumber(null, 80)).toBe(80);
+    expect(parseStoredAudioNumber(undefined, 80)).toBe(80);
     expect(parseStoredAudioNumber('', 80)).toBe(80);
     expect(parseStoredAudioNumber('   ', 80)).toBe(80);
     expect(parseStoredAudioNumber('loud', 80)).toBe(80);
