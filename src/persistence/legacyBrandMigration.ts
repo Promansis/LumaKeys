@@ -5,7 +5,9 @@
 
 import Database from 'better-sqlite3';
 import {
+  accessSync,
   closeSync,
+  constants,
   copyFileSync,
   existsSync,
   mkdirSync,
@@ -54,6 +56,13 @@ const SIDECARS = ['-wal', '-shm'];
 
 /** Profile directory names released desktop builds used, newest first. */
 const LEGACY_PROFILE_NAMES = ['luma-keys', 'piano-hero', 'PianoHero'];
+
+/**
+ * The only profile a released build moved out of (5017b8e moved `<appData>/PianoHero`
+ * and renamed inside the data folder), so the only places outside the data folder an
+ * interrupted move can have left a sidecar.
+ */
+const MOVED_PROFILE_NAME = 'PianoHero';
 
 /** App-owned entries that move with a legacy profile. */
 const PROFILE_ENTRIES = [
@@ -150,6 +159,9 @@ function databaseRefusal(dbPath: string, role: DbRole, error: unknown): Error {
 function checkpoint(dbPath: string, role: DbRole): void {
   let db: Database.Database | undefined;
   try {
+    // SQLite opens a read-only file read-only without an error, then cannot remove its
+    // -wal and -shm on close, which would read as "still in use"; ask for access instead.
+    accessSync(dbPath, constants.R_OK | constants.W_OK);
     db = new Database(dbPath, { fileMustExist: true, timeout: 1000 });
     const [result] = db.pragma('wal_checkpoint(TRUNCATE)') as Array<{ busy: number }>;
     if (result && result.busy !== 0) {
@@ -238,12 +250,13 @@ function recordKeptDir(destinationDir: string, keptDirs: string[], dir: string):
 /**
  * Earlier builds renamed the SQLite set one file at a time, main database first. A
  * `lumakeys.db` with a sidecar missing, while a `pianohero.db` sidecar is left beside it
- * or in a legacy profile that no longer holds `pianohero.db`, is such a stopped move:
- * attach the sidecar. A left-over file can also be a stray, for example when someone
- * renamed `pianohero.db` but not its -wal, so a copy of `lumakeys.db` (with any sidecar
- * it has) is kept in the backup folder before anything is attached. A left-over WAL
- * stays where it is when the database was written after it, or when its header shows
- * it belongs to another database.
+ * or in `<appData>/PianoHero` once that no longer holds `pianohero.db`, is such a stopped
+ * move: attach the sidecar. No released build moved the other earlier profiles, so a
+ * sidecar there is only logged and left alone. A left-over file can also be a stray, for
+ * example when someone renamed `pianohero.db` but not its -wal, so a copy of
+ * `lumakeys.db` (with any sidecar it has) is kept in the backup folder before anything
+ * is attached. A left-over WAL stays where it is when the database was written after
+ * it, or when its header shows it belongs to another database.
  */
 function finishInterruptedDbMove(
   destinationDir: string,
@@ -255,7 +268,19 @@ function finishInterruptedDbMove(
   if (!existsSync(newDb)) {
     return false;
   }
-  const leftoverDirs = [destinationDir, ...legacyDirs].filter((dir) => !existsSync(join(dir, LEGACY_DB)));
+  const searched = [destinationDir, ...legacyDirs.filter((dir) => basename(dir) === MOVED_PROFILE_NAME)];
+  const leftoverDirs = searched.filter((dir) => !existsSync(join(dir, LEGACY_DB)));
+  for (const dir of legacyDirs) {
+    if (searched.includes(dir) || existsSync(join(dir, LEGACY_DB))) {
+      continue;
+    }
+    for (const suffix of SIDECARS) {
+      const stray = join(dir, LEGACY_DB + suffix);
+      if (existsSync(stray)) {
+        messages.push(`Left ${stray} in place: no released build moved a library out of ${dir}.`);
+      }
+    }
+  }
   const staleDirs = new Set<string>();
   let finished = false;
   const keepCopyOfCurrentDb = () => {

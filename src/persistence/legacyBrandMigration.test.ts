@@ -505,6 +505,23 @@ describe('migrateLegacyBrand', () => {
       expect(existsSync(join(legacy, 'pianohero.db'))).toBe(true);
     });
 
+    it('refuses before any rename while an earlier build holds its database locked', () => {
+      const appData = stagingRoot();
+      const legacy = join(appData, 'luma-keys');
+      seedWalOnly(legacy);
+      const holder = new Database(join(legacy, 'pianohero.db'));
+      holder.pragma('locking_mode = EXCLUSIVE');
+      holder.exec("INSERT INTO settings (category, key, value) VALUES ('audit', 'held', '1')");
+
+      try {
+        expect(() => migrateLegacyBrand({ destinationDir: join(appData, 'lumakeys'), legacyDirs: legacyProfileDirs(appData) }))
+          .toThrow(/database is locked\). Nothing was moved. Close the earlier version of LumaKeys/);
+      } finally {
+        holder.close();
+      }
+      expect(renames.log).toEqual([]);
+    });
+
     it('refuses before any rename while another program has the lumakeys.db it would replace open', () => {
       const appData = stagingRoot();
       const legacy = join(appData, 'luma-keys');
@@ -588,7 +605,7 @@ describe('migrateLegacyBrand', () => {
 
     it('leaves a left-over WAL alone when the database was written after it', () => {
       const appData = stagingRoot();
-      const legacy = join(appData, 'luma-keys');
+      const legacy = join(appData, 'PianoHero');
       const dest = join(appData, 'lumakeys');
       seedWalOnly(legacy);
       rmSync(join(legacy, 'pianohero.db'));
@@ -605,7 +622,7 @@ describe('migrateLegacyBrand', () => {
 
     it('never takes a sidecar from a folder that still holds pianohero.db as left over', () => {
       const appData = stagingRoot();
-      const legacy = join(appData, 'luma-keys');
+      const legacy = join(appData, 'PianoHero');
       const dest = join(appData, 'lumakeys');
       seedWalOnly(legacy);
       seedCurrentProfile(dest, (db) => db.exec("INSERT INTO songs (id, title, file_path) VALUES ('mine', 'Mine', 'x')"));
@@ -627,7 +644,7 @@ describe('migrateLegacyBrand', () => {
 
     it('keeps a copy of the current library before attaching a newer stray WAL', () => {
       const appData = stagingRoot();
-      const legacy = join(appData, 'luma-keys');
+      const legacy = join(appData, 'PianoHero');
       const dest = join(appData, 'lumakeys');
       seedForeignWal(legacy, { songs: 42 });
       seedCurrentProfile(dest, (db) => db.exec(
@@ -648,7 +665,7 @@ describe('migrateLegacyBrand', () => {
 
     it('leaves a left-over WAL alone when its page size differs from the database', () => {
       const appData = stagingRoot();
-      const legacy = join(appData, 'luma-keys');
+      const legacy = join(appData, 'PianoHero');
       const dest = join(appData, 'lumakeys');
       seedForeignWal(legacy, { pageSize: 8192 });
       seedCurrentProfile(dest, (db) => db.exec("INSERT INTO songs (id, title, file_path) VALUES ('mine', 'Mine', 'x')"));
@@ -662,6 +679,85 @@ describe('migrateLegacyBrand', () => {
       expect(readdirSync(legacy).sort()).toEqual(['pianohero.db-shm', 'pianohero.db-wal', 'pianohero.db.old']);
       expect(backupDirs(dest)).toEqual([]);
       expect(readLibrary(dest)).toMatchObject({ songs: ['mine'], integrity: 'ok' });
+    });
+
+    it.each(['luma-keys', 'piano-hero'])('leaves a stray WAL in %s alone, since no released build moved that profile', (name) => {
+      const appData = stagingRoot();
+      const stray = join(appData, name);
+      const dest = join(appData, 'lumakeys');
+      seedForeignWal(stray);
+      seedCurrentProfile(dest, (db) => db.exec("INSERT INTO songs (id, title, file_path) VALUES ('mine', 'Mine', 'x')"));
+      const earlier = new Date('2026-07-01T10:00:00Z');
+      utimesSync(join(dest, 'lumakeys.db'), earlier, earlier);
+
+      const res = migrateLegacyBrand({ destinationDir: dest, legacyDirs: legacyProfileDirs(appData) });
+
+      expect(res.migrated).toBe(false);
+      expect(res.messages).toContainEqual(expect.stringContaining(`Left ${join(stray, 'pianohero.db-wal')} in place`));
+      expect(readdirSync(stray).sort()).toEqual(['pianohero.db-shm', 'pianohero.db-wal', 'pianohero.db.old']);
+      expect(renames.log).toEqual([]);
+      expect(backupDirs(dest)).toEqual([]);
+      expect(readLibrary(dest)).toMatchObject({ songs: ['mine'], integrity: 'ok' });
+    });
+
+    it('still finishes a move from PianoHero while luma-keys holds a stray WAL', () => {
+      const appData = stagingRoot();
+      const legacy = join(appData, 'PianoHero');
+      const dest = join(appData, 'lumakeys');
+      seedWalOnly(legacy);
+      mkdirSync(dest, { recursive: true });
+      renameSync(join(legacy, 'midi-files'), join(dest, 'midi-files'));
+      renameSync(join(legacy, 'pianohero.db'), join(dest, 'lumakeys.db'));
+      seedForeignWal(join(appData, 'luma-keys'));
+
+      const res = migrateLegacyBrand({ destinationDir: dest, legacyDirs: legacyProfileDirs(appData) });
+
+      expect(res.migrated).toBe(true);
+      expect(readdirSync(legacy)).toEqual([]);
+      expect(readLibrary(dest)).toEqual(LEGACY_LIBRARY);
+      expect(readdirSync(join(appData, 'luma-keys')).sort())
+        .toEqual(['pianohero.db-shm', 'pianohero.db-wal', 'pianohero.db.old']);
+    });
+
+    it('refuses to choose between left-over WALs in the data folder and in PianoHero', () => {
+      const appData = stagingRoot();
+      const dest = join(appData, 'lumakeys');
+      seedForeignWal(dest);
+      seedForeignWal(join(appData, 'PianoHero'));
+      seedCurrentProfile(dest);
+
+      expect(() => migrateLegacyBrand({ destinationDir: dest, legacyDirs: legacyProfileDirs(appData) }))
+        .toThrow(/Left-over pianohero\.db-wal files exist in .*lumakeys and .*PianoHero.*Rename the ones you do not need/);
+      expect(renames.log).toEqual([]);
+      expect(backupDirs(dest)).toEqual([]);
+    });
+
+    it('keeps the copy made before attaching apart from a database it then replaces', () => {
+      // PianoHero stopped after its database moved; luma-keys holds another earlier library.
+      const appData = stagingRoot();
+      const moved = join(appData, 'PianoHero');
+      const dest = join(appData, 'lumakeys');
+      seedWalOnly(moved);
+      mkdirSync(dest, { recursive: true });
+      renameSync(join(moved, 'midi-files'), join(dest, 'midi-files'));
+      renameSync(join(moved, 'pianohero.db'), join(dest, 'lumakeys.db'));
+      const other = join(appData, 'luma-keys');
+      mkdirSync(other, { recursive: true });
+      const otherDb = new AppDatabase(join(other, 'pianohero.db'));
+      addSong(otherDb, 'other-song', other);
+      otherDb.close();
+
+      const res = migrateLegacyBrand({
+        destinationDir: dest,
+        legacyDirs: legacyProfileDirs(appData),
+        chooseOnConflict: () => 'use-legacy',
+      });
+
+      expect(res.migrated).toBe(true);
+      expect(readLibrary(dest).songs).toEqual(['other-song']);
+      // One folder holds lumakeys.db as found (without the WAL), the other the library replaced.
+      const kept = backupDirs(dest).map((dir) => readLibrary(dir).marker).sort();
+      expect(kept).toEqual(['checkpointed', 'wal-only']);
     });
 
     it('recovers from a stop at every rename without losing either library', () => {
@@ -722,6 +818,21 @@ describe('migrateLegacyBrand', () => {
       const legacy = join(appData, 'luma-keys');
       seedWalOnly(legacy);
       chmodSync(join(legacy, 'pianohero.db'), 0o000);
+
+      try {
+        expect(() => migrateLegacyBrand({ destinationDir: join(appData, 'lumakeys'), legacyDirs: legacyProfileDirs(appData) }))
+          .toThrow(/Give your user account read and write access to/);
+      } finally {
+        chmodSync(join(legacy, 'pianohero.db'), 0o644);
+      }
+      expect(renames.log).toEqual([]);
+    });
+
+    it.skipIf(process.getuid?.() === 0)('asks for access when the earlier library is read-only', () => {
+      const appData = stagingRoot();
+      const legacy = join(appData, 'luma-keys');
+      seedWalOnly(legacy);
+      chmodSync(join(legacy, 'pianohero.db'), 0o444);
 
       try {
         expect(() => migrateLegacyBrand({ destinationDir: join(appData, 'lumakeys'), legacyDirs: legacyProfileDirs(appData) }))
