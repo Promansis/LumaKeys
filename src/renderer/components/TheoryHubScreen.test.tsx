@@ -44,9 +44,12 @@ describe('TheoryHubScreen', () => {
       expect(window.appBridge?.getTheoryStats).toHaveBeenCalledTimes(3);
     });
 
-    expect(screen.getByRole('heading', { name: 'Scale Practice' }).closest('article')).toHaveTextContent('87.5%');
-    expect(screen.getByRole('heading', { name: 'Interval Trainer' }).closest('article')).toHaveTextContent('9');
-    expect(screen.getByRole('heading', { name: 'Theory Quizzes' }).closest('article')).toHaveTextContent('2');
+    // The stats render after the three calls resolve, so wait for the text rather than the calls.
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Scale Practice' }).closest('article')).toHaveTextContent('87.5%');
+      expect(screen.getByRole('heading', { name: 'Interval Trainer' }).closest('article')).toHaveTextContent('9');
+      expect(screen.getByRole('heading', { name: 'Theory Quizzes' }).closest('article')).toHaveTextContent('2');
+    });
   });
 
   it('saves completed quiz payloads with the same score sent to session completion', async () => {
