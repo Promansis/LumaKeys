@@ -545,7 +545,7 @@ async function startDesktopApp(): Promise<void> {
   );
 
   ipcMain.handle('samples:resolve-source', (_event, instrumentId: string) =>
-    resolveDesktopInstrumentSampleSource(db, instrumentId),
+    resolveDesktopInstrumentSampleSource(db, userDataPath, instrumentId),
   );
 
   await createMainWindow();

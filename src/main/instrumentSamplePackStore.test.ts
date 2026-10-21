@@ -5,12 +5,43 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { INSTALLED_INSTRUMENT_SAMPLE_PACKS_SETTING_KEY } from '../lib/audio/instrumentSamplePacks';
 import { AppDatabase } from '../persistence/database';
-import { prepareDesktopInstrumentSamplePackReset, removeDesktopInstrumentSamplePack } from './instrumentSamplePackStore';
+import {
+  prepareDesktopInstrumentSamplePackReset,
+  removeDesktopInstrumentSamplePack,
+  resolveDesktopInstrumentSampleSource,
+} from './instrumentSamplePackStore';
 
 const roots: string[] = [];
 
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
+describe('resolveDesktopInstrumentSampleSource', () => {
+  it('serves a pack from the current profile when its stored baseUrl points at an earlier profile', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'lumakeys-sample-pack-moved-'));
+    roots.push(root);
+    const userDataPath = join(root, 'lumakeys');
+    await mkdir(userDataPath, { recursive: true });
+    const db = new AppDatabase(join(userDataPath, 'lumakeys.db'));
+    // Installed by an earlier build into <appData>/luma-keys, then moved by the profile migration.
+    db.setSetting('audio', INSTALLED_INSTRUMENT_SAMPLE_PACKS_SETTING_KEY, JSON.stringify({
+      flute: {
+        instrumentId: 'flute',
+        packLabel: 'Flute Enhanced Pack',
+        version: 'test',
+        installedAt: '2026-07-30T00:00:00.000Z',
+        baseUrl: `file:///${join(root, 'luma-keys', 'instrument-sample-packs', 'flute')}/`,
+        urls: { C4: 'sample.wav' },
+      },
+    }));
+
+    const source = resolveDesktopInstrumentSampleSource(db, userDataPath, 'flute');
+    db.close();
+
+    const packDir = join(userDataPath, 'instrument-sample-packs', 'flute').replace(/\\/g, '/');
+    expect(source).toMatchObject({ instrumentId: 'flute', baseUrl: `file:///${packDir}/`, urls: { C4: 'sample.wav' } });
+  });
 });
 
 describe('removeDesktopInstrumentSamplePack', () => {
