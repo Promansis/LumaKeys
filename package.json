@@ -15,8 +15,8 @@
     "build:web": "tsc --noEmit -p tsconfig.server.json && vite build --config vite.web.config.ts && esbuild src/server/index.ts --bundle --platform=node --outfile=dist/server/index.cjs --external:better-sqlite3",
     "prestart:web": "node scripts/ensure-native-module.cjs node",
     "start:web": "node dist/server/index.cjs",
-    "package:local": "npm run build && electron-builder --config packaging/electron-builder.yml --linux AppImage dir",
-    "package:win": "npm run build && electron-builder --config packaging/electron-builder.yml --win portable",
+    "package:local": "npm run build && node scripts/assert-electron-assets.mjs && electron-builder --config packaging/electron-builder.yml --linux AppImage dir",
+    "package:win": "npm run build && node scripts/assert-electron-assets.mjs && electron-builder --config packaging/electron-builder.yml --win portable",
     "prepreview": "node scripts/ensure-native-module.cjs electron",
     "preview": "electron-vite preview",
     "pretest": "node scripts/ensure-native-module.cjs node",
@@ -24,6 +24,7 @@
     "pretest:watch": "node scripts/ensure-native-module.cjs node",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && tsc --noEmit -p tsconfig.server.json && vitest run && npm run build && npm run build:web && node scripts/assert-electron-assets.mjs",
     "normalize:samples": "node scripts/normalize-audio-assets.mjs",
     "postinstall": "node scripts/postinstall.cjs",
     "rebuild": "electron-rebuild -f -w better-sqlite3"
