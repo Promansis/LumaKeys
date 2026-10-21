@@ -4,8 +4,19 @@
 // its tests.
 
 import Database from 'better-sqlite3';
-import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import {
+  closeSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  readSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 
 /** What the user picked when an earlier library and a current one both hold data. */
 export type LegacyLibraryChoice = 'use-legacy' | 'keep-current' | 'quit';
@@ -53,16 +64,24 @@ const PROFILE_ENTRIES = [
   'Local Storage',
 ];
 
-/** A destination row in any of these means the user has a library worth keeping. */
-const USER_ROW_QUERIES: Record<string, string> = {
-  songs: 'SELECT 1 FROM songs LIMIT 1',
-  game_results: 'SELECT 1 FROM game_results LIMIT 1',
-  theory_results: 'SELECT 1 FROM theory_results LIMIT 1',
-  practice_days: 'SELECT 1 FROM practice_days LIMIT 1',
-  achievements: 'SELECT 1 FROM achievements WHERE unlocked_at IS NOT NULL LIMIT 1',
-  folders: 'SELECT 1 FROM folders LIMIT 1',
-  playlists: 'SELECT 1 FROM playlists LIMIT 1',
-};
+/** A destination row found by any of these means the user has a library worth keeping. */
+const USER_ROW_QUERIES: Array<{ table: string; sql: string }> = [
+  { table: 'songs', sql: 'SELECT 1 FROM songs LIMIT 1' },
+  { table: 'game_results', sql: 'SELECT 1 FROM game_results LIMIT 1' },
+  { table: 'theory_results', sql: 'SELECT 1 FROM theory_results LIMIT 1' },
+  { table: 'practice_days', sql: 'SELECT 1 FROM practice_days LIMIT 1' },
+  { table: 'achievements', sql: 'SELECT 1 FROM achievements WHERE unlocked_at IS NOT NULL LIMIT 1' },
+  { table: 'folders', sql: 'SELECT 1 FROM folders LIMIT 1' },
+  { table: 'playlists', sql: 'SELECT 1 FROM playlists LIMIT 1' },
+  // Lesson progress lives only in settings (see src/lib/learning/learningProgress.ts),
+  // stored as JSON; '[]' and '{}' are what an untouched profile saves.
+  {
+    table: 'settings',
+    sql: "SELECT 1 FROM settings WHERE category = 'learning' "
+      + "AND key IN ('completedLessons', 'completedSteps', 'capstoneResults') "
+      + "AND value NOT IN ('', '[]', '{}') LIMIT 1",
+  },
+];
 
 const BACKUP_PREFIX = 'before-legacy-migration-';
 const CHOICE_FILE = 'legacy-library-choice.json';
@@ -80,20 +99,69 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/** Folds the WAL into the main file, so the database moves as one file. */
-function checkpoint(dbPath: string): void {
+/** `earlier` is a `pianohero.db` from an earlier build; `current` is `lumakeys.db`. */
+type DbRole = 'earlier' | 'current';
+
+class DatabaseInUseError extends Error {}
+
+const BUSY_CODES = /^SQLITE_(BUSY|LOCKED)/;
+const DAMAGED_CODES = /^SQLITE_(NOTADB|CORRUPT)/;
+const ACCESS_CODES = /^(EACCES|EPERM|EROFS|SQLITE_(READONLY|CANTOPEN|PERM|AUTH))/;
+
+/** Turns a failure to open or prepare a database into a refusal that names the safe next step. */
+function databaseRefusal(dbPath: string, role: DbRole, error: unknown): Error {
+  const code = String((error as { code?: unknown } | null)?.code ?? '');
+  const renameIt = `rename ${basename(dbPath)} with its -wal and -shm files`;
+  if (error instanceof DatabaseInUseError || BUSY_CODES.test(code)) {
+    const closeWhat = role === 'earlier'
+      ? 'Close the earlier version of LumaKeys'
+      : 'Close every other copy of LumaKeys';
+    return new Error(
+      `${dbPath} is still open in another program (${errorMessage(error)}). Nothing was moved. `
+        + `${closeWhat} (and any other program using this file), then start again.`,
+    );
+  }
+  if (DAMAGED_CODES.test(code)) {
+    return new Error(
+      `${dbPath} is not a readable LumaKeys library (${errorMessage(error)}). Nothing was moved. `
+        + `To start without it, ${renameIt} (for example to ${basename(dbPath)}.damaged), then start again.`,
+    );
+  }
+  if (ACCESS_CODES.test(code)) {
+    return new Error(
+      `LumaKeys cannot read and write ${dbPath} (${errorMessage(error)}). Nothing was moved. `
+        + `Give your user account read and write access to ${dirname(dbPath)} and the files in it, `
+        + 'then start again.',
+    );
+  }
+  return new Error(
+    `Could not prepare ${dbPath} for the move (${errorMessage(error)}). Nothing was moved. `
+      + `Start LumaKeys again; if this repeats, ${renameIt} (for example to ${basename(dbPath)}.old) `
+      + 'so LumaKeys starts without it.',
+  );
+}
+
+/**
+ * Folds the WAL into the main file, so the database moves as one file. When this is
+ * the last connection, SQLite deletes the -wal and -shm files as it closes; if either
+ * is still there afterwards, another program (such as an earlier build that is still
+ * running) has the database open, and moving it now would split its data.
+ */
+function checkpoint(dbPath: string, role: DbRole): void {
   let db: Database.Database | undefined;
   try {
-    db = new Database(dbPath, { fileMustExist: true });
+    db = new Database(dbPath, { fileMustExist: true, timeout: 1000 });
     const [result] = db.pragma('wal_checkpoint(TRUNCATE)') as Array<{ busy: number }>;
     if (result && result.busy !== 0) {
-      throw new Error('it is in use by another program');
+      throw new DatabaseInUseError('the checkpoint was blocked');
+    }
+    db.close();
+    db = undefined;
+    if (SIDECARS.some((suffix) => existsSync(dbPath + suffix))) {
+      throw new DatabaseInUseError('its -wal or -shm file is still in use');
     }
   } catch (error) {
-    throw new Error(
-      `Could not prepare ${dbPath} for the move: ${errorMessage(error)}. Nothing was moved. `
-        + 'Close every copy of LumaKeys and start it again.',
-    );
+    throw databaseRefusal(dbPath, role, error);
   } finally {
     db?.close();
   }
@@ -106,14 +174,49 @@ function hasUserRows(dbPath: string): boolean {
     const tables = new Set(
       db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").pluck().all() as string[],
     );
-    return Object.entries(USER_ROW_QUERIES).some(
-      ([table, sql]) => tables.has(table) && db?.prepare(sql).get() !== undefined,
-    );
+    return USER_ROW_QUERIES.some(({ table, sql }) => tables.has(table) && db?.prepare(sql).get() !== undefined);
   } catch (error) {
-    throw new Error(`Could not read ${dbPath}: ${errorMessage(error)}. Nothing was moved.`);
+    throw databaseRefusal(dbPath, 'current', error);
   } finally {
     db?.close();
   }
+}
+
+/** Reads a big-endian unsigned integer from a file header; null when the file is too short. */
+function readHeaderUInt(file: string, offset: number, length: 2 | 4): number | null {
+  const fd = openSync(file, 'r');
+  try {
+    const buffer = Buffer.alloc(length);
+    if (readSync(fd, buffer, 0, length, offset) < length) {
+      return null;
+    }
+    return length === 2 ? buffer.readUInt16BE(0) : buffer.readUInt32BE(0);
+  } finally {
+    closeSync(fd);
+  }
+}
+
+const WAL_MAGIC = new Set([0x377f0682, 0x377f0683]);
+
+/**
+ * Why a left-over WAL cannot belong to `dbPath`, or null when it may. SQLite does not
+ * check that a WAL belongs to its database, so these cheap header checks run first.
+ * An empty WAL holds no commits and is harmless.
+ */
+function walMismatch(walPath: string, dbPath: string): string | null {
+  if (statSync(walPath).size === 0) {
+    return null;
+  }
+  if (!WAL_MAGIC.has(readHeaderUInt(walPath, 0, 4) ?? 0)) {
+    return 'it is not a SQLite WAL file';
+  }
+  const walPageSize = readHeaderUInt(walPath, 8, 4);
+  const rawDbPageSize = readHeaderUInt(dbPath, 16, 2);
+  const dbPageSize = rawDbPageSize === 1 ? 65536 : rawDbPageSize;
+  if (walPageSize !== dbPageSize) {
+    return `its page size (${walPageSize}) differs from the database's (${dbPageSize})`;
+  }
+  return null;
 }
 
 function readKeptDirs(destinationDir: string): string[] {
@@ -136,13 +239,17 @@ function recordKeptDir(destinationDir: string, keptDirs: string[], dir: string):
  * Earlier builds renamed the SQLite set one file at a time, main database first. A
  * `lumakeys.db` with a sidecar missing, while a `pianohero.db` sidecar is left beside it
  * or in a legacy profile that no longer holds `pianohero.db`, is such a stopped move:
- * attach the sidecar. A left-over WAL older than the database stays where it is, since
- * the database was written after it and the WAL no longer belongs to it.
+ * attach the sidecar. A left-over file can also be a stray, for example when someone
+ * renamed `pianohero.db` but not its -wal, so a copy of `lumakeys.db` (with any sidecar
+ * it has) is kept in the backup folder before anything is attached. A left-over WAL
+ * stays where it is when the database was written after it, or when its header shows
+ * it belongs to another database.
  */
 function finishInterruptedDbMove(
   destinationDir: string,
   legacyDirs: string[],
   messages: string[],
+  backupDir: () => string,
 ): boolean {
   const newDb = join(destinationDir, NEW_DB);
   if (!existsSync(newDb)) {
@@ -151,6 +258,18 @@ function finishInterruptedDbMove(
   const leftoverDirs = [destinationDir, ...legacyDirs].filter((dir) => !existsSync(join(dir, LEGACY_DB)));
   const staleDirs = new Set<string>();
   let finished = false;
+  const keepCopyOfCurrentDb = () => {
+    if (finished) {
+      return;
+    }
+    const dir = backupDir();
+    for (const suffix of ['', ...SIDECARS]) {
+      if (existsSync(newDb + suffix)) {
+        copyFileSync(newDb + suffix, join(dir, NEW_DB + suffix));
+      }
+    }
+    messages.push(`Kept a copy of ${newDb} in ${dir} before attaching left-over files.`);
+  };
   for (const suffix of SIDECARS) {
     if (existsSync(newDb + suffix)) {
       continue;
@@ -169,11 +288,17 @@ function finishInterruptedDbMove(
       );
     }
     const source = join(sources[0], LEGACY_DB + suffix);
-    if (suffix === '-wal' && statSync(newDb).mtimeMs > statSync(source).mtimeMs) {
-      staleDirs.add(sources[0]);
-      messages.push(`Left ${source} in place: ${newDb} was written after it.`);
-      continue;
+    if (suffix === '-wal') {
+      const reason = statSync(newDb).mtimeMs > statSync(source).mtimeMs
+        ? `${newDb} was written after it`
+        : walMismatch(source, newDb);
+      if (reason) {
+        staleDirs.add(sources[0]);
+        messages.push(`Left ${source} in place: ${reason}.`);
+        continue;
+      }
     }
+    keepCopyOfCurrentDb();
     renameSync(source, newDb + suffix);
     messages.push(`Finished an interrupted rename: ${source} -> ${newDb + suffix}`);
     finished = true;
@@ -209,14 +334,15 @@ function backupDirFactory(destinationDir: string, now: () => Date): () => string
  *   legacy profile. Two or more sources are refused, naming each.
  * - A destination `lumakeys.db` with no user rows is set aside and replaced. One with
  *   user rows needs `chooseOnConflict`; without it the migration refuses.
- * - Checkpoints the legacy database first, moves profile entries, then sidecars, and
- *   the main database last, so a source that still holds `pianohero.db` is an
- *   unfinished move the next start resumes.
+ * - Checkpoints both databases and refuses while another program still has either
+ *   open, so each database moves as one file. Profile entries move first and the
+ *   main database last, so a source that still holds `pianohero.db` is an unfinished
+ *   move the next start resumes.
  *
  * Nothing is deleted: anything replaced goes to `before-legacy-migration-<time>/`
  * inside the destination. Never merges two libraries, and refuses to cross
- * filesystems (where a rename would silently degrade to copy). Idempotent: once the
- * new layout exists, later starts do nothing.
+ * filesystems (where a rename would silently degrade to copy). Every refusal names
+ * the safe next step. Idempotent: once the new layout exists, later starts do nothing.
  */
 export function migrateLegacyBrand(
   options: LegacyBrandMigrationOptions,
@@ -225,8 +351,11 @@ export function migrateLegacyBrand(
   const messages: string[] = [];
   mkdirSync(destinationDir, { recursive: true });
 
-  const finished = finishInterruptedDbMove(destinationDir, legacyDirs, messages);
-  const notMigrated = { migrated: finished, messages };
+  // The copy kept before attaching left-over files gets its own folder, so setting
+  // aside a replaced database later in this run cannot overwrite it.
+  const leftoverBackupDir = backupDirFactory(destinationDir, now);
+  const finished = finishInterruptedDbMove(destinationDir, legacyDirs, messages, leftoverBackupDir);
+  const notMigrated = { migrated: finished, messages, ...(finished ? { backupDir: leftoverBackupDir() } : {}) };
 
   const keptDirs = readKeptDirs(destinationDir);
   const sources = [destinationDir, ...legacyDirs].filter(
@@ -269,14 +398,16 @@ export function migrateLegacyBrand(
   const profileMove = sourceDir !== destinationDir;
   if (profileMove && !isSameFilesystem(sourceDir, destinationDir)) {
     throw new Error(
-      `Legacy profile ${sourceDir} and ${destinationDir} are on different filesystems. `
-        + 'Move them manually; do not merge here.',
+      `The earlier library in ${sourceDir} is on a different drive from ${destinationDir}, and LumaKeys `
+        + 'only moves files within one drive. Nothing was moved. To carry it over, copy everything in '
+        + `${sourceDir} into ${destinationDir}, then rename ${sourceDir} (for example to `
+        + `${basename(sourceDir)}.old) and start LumaKeys again.`,
     );
   }
 
-  checkpoint(join(sourceDir, LEGACY_DB));
+  checkpoint(join(sourceDir, LEGACY_DB), 'earlier');
   if (existsSync(newDb)) {
-    checkpoint(newDb);
+    checkpoint(newDb, 'current');
   }
 
   const backupDir = backupDirFactory(destinationDir, now);
@@ -287,7 +418,8 @@ export function migrateLegacyBrand(
   };
 
   // Set aside the replaced database main file first: once it is gone, a restart sees
-  // a destination without a database and only resumes the move.
+  // a destination without a database and only resumes the move. Stray -wal and -shm
+  // files go too, so SQLite cannot attach them to the database moved in.
   const replacingDb = existsSync(newDb);
   for (const suffix of ['', ...SIDECARS]) {
     if (existsSync(newDb + suffix)) {
@@ -309,11 +441,7 @@ export function migrateLegacyBrand(
     }
   }
 
-  for (const suffix of SIDECARS) {
-    if (existsSync(join(sourceDir, LEGACY_DB + suffix))) {
-      renameSync(join(sourceDir, LEGACY_DB + suffix), newDb + suffix);
-    }
-  }
+  // The checkpoint left no -wal or -shm beside the earlier database, so it moves as one file.
   renameSync(join(sourceDir, LEGACY_DB), newDb);
 
   messages.push(
@@ -324,5 +452,6 @@ export function migrateLegacyBrand(
   if (usedBackup) {
     messages.push(`Kept the replaced entries in ${backupDir()}`);
   }
-  return { migrated: true, messages, ...(usedBackup ? { backupDir: backupDir() } : {}) };
+  const keptIn = usedBackup ? backupDir() : notMigrated.backupDir;
+  return { migrated: true, messages, ...(keptIn ? { backupDir: keptIn } : {}) };
 }
