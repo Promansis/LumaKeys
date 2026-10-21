@@ -67,3 +67,18 @@ Node-side boundary.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
+- Fix branch/commit/issue: branch `remediation/p11-s15-browser-legacy`, commit 4708ad0 (slice 15; ships in the carry-over release with slice 1). No issue.
+- Verification evidence:
+
+  What changed: `src/renderer/webBridge.ts` carries packs over once per page, before the pack store is first opened. If the current `lumakeys-instrument-sample-packs` store holds no packs and `pianohero-instrument-sample-packs` exists, its records are copied in one read-write transaction. The legacy database is deleted only after that transaction commits. If both hold packs the current ones win and the legacy database is left untouched until reset. Probing for a missing legacy database aborts its upgrade, so none is created. A failed carry-over logs a warning, keeps the legacy data and does not block the pack store. `resetUserData` now deletes the legacy name first, then the current one. The carry-over is marked for removal no earlier than 2027-01-31 (owner decision 3).
+  Unit tests (`src/renderer/webBridge.test.ts`, with the in-memory IndexedDB in `src/renderer/testUtils/fakeIndexedDb.ts`; `fake-indexeddb` is not a dependency). Failed before the fix, pass after: "installs packs saved under the pre-rename database name and deletes the legacy database", "carries packs into a current database that exists but holds no packs", "deletes a legacy database with no pack store without copying anything", "clears both database names when user data is reset". Guards that pass before and after: "keeps the current packs and leaves the legacy database untouched when both hold packs", "does not create the legacy database when there is none".
+  Driver `scripts/audit/browser/legacy-sample-packs.mjs` (new; headless Chromium via Playwright 1.56.1, isolated data under `$TMPDIR/p11-s15`). Run against `5017b8e` (product code identical to the audited `6e549b6`) and against the fix:
+  - P, legacy only: before `installed: []` with both databases present; after `installed: [flute, cello]`, only the current database, copied blob 2048 bytes.
+  - E, current exists but empty: before `[]`; after `[flute]`, legacy gone.
+  - B, both hold packs: before and after `[flute]` (the current one); legacy kept.
+  - N, neither: no legacy database is created.
+  - R, reset with both: before the legacy database remained; after no database remains.
+
+  Runtime proof on a profile that really installed a pack on the pre-rename release is owed to the owner and is optional (sitting 1 item 9).
+- Residual risk: a user who reinstalled a pack after the rename and still has a legacy database keeps both until reset or the removal release, as the slice plan chose. The carry-over reads the legacy pack set into memory (tens of MB) once. If another open tab blocks the legacy delete, the data stays and the next start retries.
+- Revisit trigger, if accepted-risk:

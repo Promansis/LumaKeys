@@ -53,7 +53,8 @@ Write output to a file, not through `head`: a pipe buffers everything until exit
 | `freeplay-recording-export.mjs` | WF-015, PH-PAR-005 | record and replay, and which export and backing-track controls the web shows |
 | `wav-render-probe.mjs` | WF-015, PH-MUS-007 | the product's offline WAV render returns silence |
 | `mscz-upload-no-musescore.mjs` | WF-025, PH-UI-009, PH-ARCH-004 | `.mscz` upload with no MuseScore or a missing path |
-| `legacy-filter-presets.mjs` | DATA-016, DATA-017, PH-DATA-007 | filter presets saved before the rename are no longer offered |
+| `legacy-filter-presets.mjs` | DATA-016, DATA-017, PH-DATA-007 | filter presets saved before the rename are offered again, moved to the current key (case L lists "Legacy Preset") |
+| `legacy-sample-packs.mjs` | DATA-015, DATA-017, PH-DATA-004 | packs in the pre-rename IndexedDB are installed and the old database is deleted; both-present keeps the current pack; reset clears both names |
 | `practice-runtime-proofs.mjs` | PH-MUS-001, PH-MUS-003 | judged state kept across a tempo change; fingering in a loop binds to the right note |
 | `metronome-and-quiz.mjs` | PH-MUS-006, PH-MUS-009 | metronome click rate at 100 and 50 percent tempo; quiz shuffle and first-option run |
 | `lane-d-parity.mjs` | BR rows in the delta | runtime-parity evidence that needs no Electron |
