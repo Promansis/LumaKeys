@@ -3,6 +3,18 @@
 ## Prerequisites
 - Node.js and npm installed
 - Windows machine (or Docker for cross-compilation)
+- To install dependencies the normal way (see step 1): Python 3, a C++ toolchain
+  (on Windows, Visual Studio Build Tools with "Desktop development with C++"; on
+  Linux, `make` and a C++ compiler), and access to nodejs.org. `better-sqlite3` ships
+  a prebuilt binary and compiles nothing, but npm still runs `node-gyp rebuild` for it
+  during install, and node-gyp looks for Python and the toolchain and downloads Node
+  headers before it reads the build file. Without them `npm ci` fails.
+
+## Before You Release
+
+Run `node scripts/audit/dependency-triage.mjs` and read its "Desktop Runtime Advisories"
+section. Electron ships to every desktop user, so that section must be empty and
+`package.json` must name a supported Electron major (the latest three).
 
 ## Build Steps
 
@@ -10,6 +22,18 @@
 ```bash
 npm install
 ```
+
+On a machine without Python and a C++ toolchain, skip the install scripts and run the
+project's own post-install step by hand:
+
+```bash
+npm ci --ignore-scripts
+node scripts/postinstall.cjs
+```
+
+This was checked on Linux with Node 22 and no Python, `make` or compiler on the `PATH`:
+the build and the unit tests pass, and `better-sqlite3` loads under Node and Electron.
+It has not been run on Windows.
 
 ### 2. Build the Application
 ```bash
@@ -70,7 +94,7 @@ To view data directory:
 
 **Issue**: "better-sqlite3 not found" error
 - **Cause**: Native module not properly bundled
-- **Solution**: Rebuild on Windows machine: `npm run rebuild && npm run package:win`
+- **Solution**: Reinstall on the Windows machine and package again: `npm ci && npm run package:win` (or the `--ignore-scripts` form in step 1). `better-sqlite3` ships a prebuilt N-API binary that Electron loads directly, so packaging does not rebuild it.
 
 **Issue**: Application won't start
 - **Cause**: Missing Visual C++ Redistributable

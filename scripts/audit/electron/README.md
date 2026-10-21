@@ -14,8 +14,8 @@ records what they proved and what they cannot prove.
   `out/main/index.js` unchanged.
 - `hooks.mjs` redirects two imports of the main bundle and nothing else: `electron` to
   `electron-shim.mjs`, whose `BrowserWindow` forces `show: false` and
-  `offscreen: true` (a visible window crashes Electron 30 without a display), and
-  `better-sqlite3` to an Electron-ABI copy outside the repository.
+  `offscreen: true` (a visible window crashed Electron 30 without a display), and
+  `better-sqlite3` to the package named by `LK_SQLITE_MODULE`.
 - `electron-harness.mjs` exports `withElectron(profile, fn)`. The callback gets `app`,
   `page`, `errors` (console errors, warnings and page errors), `relaunch({ kill })`
   (close or SIGKILL, then launch again on the same profile), `stubOpen(paths)`,
@@ -29,28 +29,31 @@ Node-ABI `better-sqlite3`.
 ## Setup (outside the repository)
 
 Needs the browser drivers' Playwright install (see `../browser/README.md`) and an
-existing `out/` build. Do not run `npm run build` for an audit: it rewrites the shared
-`out/`.
+existing `out/` build. In a checkout you may build (`npm run build`); do not rebuild the
+shared `out/` of the main checkout for an audit.
+
+`better-sqlite3` 13 is an N-API module: the one prebuilt binary in
+`node_modules/better-sqlite3/prebuilds/` loads in Node and in Electron, so no
+Electron-ABI copy is needed. Point `LK_SQLITE_MODULE` at the checkout's own package.
+(Before the Electron 44 upgrade the drivers needed a `prebuild-install` copy built for
+the Electron version.)
 
 ```bash
-# Electron-ABI copy of better-sqlite3; the repository's Node-ABI build stays as it is.
-M="$TMPDIR/p11/EL/electron-modules/node_modules"
-mkdir -p "$M"
-cp -r node_modules/better-sqlite3 node_modules/bindings node_modules/file-uri-to-path "$M/"
-(cd "$M/better-sqlite3" && npm_config_cache="$TMPDIR/npm-cache" \
-  node /media/storage/LumaKeys/node_modules/prebuild-install/bin.js --runtime electron --target 30.5.1)
-
 # Drivers run next to the Playwright install so `import 'playwright'` resolves.
 cp scripts/audit/electron/*.mjs "$TMPDIR/pw/"
+# electron-harness.mjs hard-codes REPO; point it at the checkout under test.
+sed -i "s#^export const REPO = .*#export const REPO = '$PWD';#" "$TMPDIR/pw/electron-harness.mjs"
 ```
 
-The `prebuild-install` step downloads from `github.com` once; later runs use the cache.
+If the Electron binary is missing (Electron 42 and later no longer download it at
+install time), run `npx install-electron --no` once. With Node 24 behind a proxy, set
+`NODE_USE_ENV_PROXY=1`.
 
 ## Run
 
 ```bash
 cd "$TMPDIR/pw"
-PROFILE="$TMPDIR/p11/EL2/wf" LK_SQLITE_MODULE="$TMPDIR/p11/EL/electron-modules/node_modules/better-sqlite3" \
+PROFILE="$TMPDIR/p11/EL2/wf" LK_SQLITE_MODULE="<checkout>/node_modules/better-sqlite3" \
   timeout 300 node workflows.mjs > "$TMPDIR/p11/EL2/wf.out" 2>&1
 ```
 
@@ -67,7 +70,7 @@ filter it out of their error list.
 | `backup-reset-restore.mjs` | WF-006, WF-020, WF-021, WF-022, WF-023 | missing-file recovery and reattach, export, garbage and tampered restore, both resets, SIGKILL after writes |
 | `freeplay-export.mjs` | WF-015, PH-MUS-007 | record in Free Play, export MIDI and WAV through the save handler, read both files back. Optional `WAV_BUNDLES`: a directory with the PH-MUS-007 probe's `audio-engine.{product,control}.bundle.js`, rendered in the same page as a control |
 | `sample-pack.mjs` | WF-019 | install the Flute pack, load the copied files, relaunch, remove, check `userData` |
-| `window-open.mjs` | MOD-014, PH-SEC-005 | what a Soundboard credit-link window is and what it can reach. `NO_HANDLER=1` skips the offscreen window handler and shows the headless crash instead |
+| `window-open.mjs` | MOD-014, PH-SEC-005 | a Soundboard credit link opens no app window: the https: URL reaches a stubbed `shell.openExternal`, an http: link does not, a navigation attempt leaves the main window on the app, and the sandbox is on (PASS or FAIL lines). `ALLOW_OFFSCREEN=1` replays the Phase 11 baseline for a build with no handler (what a child window is and can reach). `NO_HANDLER=1` shows the headless crash instead |
 | `lesson-pass.mjs` | WF-011 | lesson 1 drill on time, Complete Lesson, gating, the novice capstone note by note, Beginner unlock across a relaunch |
 | `paused-input.mjs` | WF-011, PH-MUS-012 | a note pressed during the count-in or before Space scores |
 | `practice-proofs.mjs` | WF-008, WF-009, WF-010, PH-MUS-001, PH-MUS-003 | a tempo change keeps the judged notes and the finished run saves them, a structural change asks first, a fingering set inside a loop is stored on the right note through IPC. Needs `POS` (see the file header) |

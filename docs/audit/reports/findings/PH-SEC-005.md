@@ -107,3 +107,14 @@ plus a unit test around the handler if the window setup is extracted.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
+
+- Implementation, 2026-10-21 (branch `remediation/p11-s03-electron`, commit `eeae17b`; status unchanged, verifier pending):
+  - New `src/main/windowGuard.ts` (no Electron imports) and a call in `createMainWindow`. `setWindowOpenHandler` returns `{ action: 'deny' }` for every URL and calls `shell.openExternal` only for `https:` URLs (a rejected or throwing launch is swallowed). A `will-navigate` handler cancels navigation unless the target is the packaged `index.html` file (hash and query ignored) or the dev-server origin. `sandbox: true` is now explicit.
+  - Source identity: product code on `main` at `5017b8e` is identical to the audited `6e549b6` (`git diff 6e549b6 5017b8e -- src public package.json package-lock.json packaging` is empty).
+  - Fails before, passes after:
+    - Unit: `src/main/windowGuard.test.ts` (7 tests: `handleWindowOpen`, `isAppNavigation`, `installWindowGuard`). Before the module existed the file failed to load; after, 7 of 7 pass.
+    - Electron driver `scripts/audit/electron/window-open.mjs`, which now checks the app as shipped (PASS or FAIL lines); `ALLOW_OFFSCREEN=1` replays the old baseline.
+      - Baseline, Electron 30.5.1, `out/` built from `5017b8e`, `ALLOW_OFFSCREEN=1`: child window at `http://127.0.0.1:<port>/child` with `bridge: "undefined"`, `node: "undefined"`, `opener: "null"`; it navigates itself to `/next`; windows 1 to 2.
+      - Baseline, default mode: the headless app exits on the click (`page.evaluate: Target page, context or browser has been closed`), the same crash the finding records for `NO_HANDLER=1`.
+      - After, Electron 30.5.1 and again on Electron 44.9.2: windows 1 to 1, no `window` event, stubbed `shell.openExternal` called once with the https URL (the http link opens nothing), a `location.href` change to another origin leaves the main window on `file://…/out/renderer/index.html` with its bridge, main window `sandbox: true`. Four PASS lines on both.
+  - Not run: a real click on a credit link with a real browser (human-only; steps in the slice report).
