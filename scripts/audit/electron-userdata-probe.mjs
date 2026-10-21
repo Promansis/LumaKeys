@@ -1,15 +1,22 @@
 // Phase 11 lane B probe: which userData directory does the desktop app use, and does
 // the legacy brand migration find a pre-rename profile there?
 //
-// Part 1 runs a throwaway Electron app that repeats the exact startup sequence of
-// src/main/index.ts (whenReady -> setName -> getPath('userData') -> migrateLegacyBrand)
-// with the real migration bundled from src/, once per package name. Part 2 (optional,
-// --packaged) launches dist/linux-unpacked/lumakeys against a seeded legacy profile.
+// Part 1 runs a throwaway Electron app that repeats the startup sequence of
+// src/main/index.ts (pin userData before ready -> setName -> whenReady -> migrateLegacyBrand
+// over legacyProfileDirs) with the real code bundled from src/, once per package name.
+// Case E6 runs the startup error boundary (runDesktopStartup) against a refusal and checks the exit code.
+// Part 2 (optional, --packaged) launches dist/linux-unpacked/lumakeys against seeded profiles. The packaged
+// app takes the single-instance lock, which needs a Unix socket; a sandbox that blocks socket() aborts it.
+// Before the PH-DATA-005 fix part 1 repeated the old sequence (setName inside whenReady,
+// one legacy directory, `<appData>/PianoHero`); its output is kept in the Phase 11 lane B
+// evidence.
 //
 // Every Electron run gets its own HOME and XDG_* under PROBE_ROOT, so ~/.config is never
 // read or written. Requires a headless-capable Electron (uses --ozone-platform=headless).
+// Part 1 loads better-sqlite3 inside Electron, so LK_SQLITE_MODULE must point at an
+// Electron-ABI copy (see scripts/audit/electron/README.md).
 //
-// Run: node scripts/audit/electron-userdata-probe.mjs [--packaged]
+// Run: LK_SQLITE_MODULE=<dir> PROBE_ROOT=<dir under $TMPDIR> node scripts/audit/electron-userdata-probe.mjs [--packaged | --packaged-only]
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -26,7 +33,8 @@ const ELECTRON = join(REPO, 'node_modules', 'electron', 'dist', 'electron');
 const FLAGS = ['--no-sandbox', '--disable-gpu', '--ozone-platform=headless'];
 
 function isolatedEnv(home) {
-  const env = { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: join(home, '.config'), XDG_CACHE_HOME: join(home, '.cache'), XDG_DATA_HOME: join(home, '.local', 'share') };
+  // TMPDIR keeps Chromium's single-instance socket directory out of the shared /tmp.
+  const env = { PATH: process.env.PATH, TMPDIR: tmpdir(), HOME: home, XDG_CONFIG_HOME: join(home, '.config'), XDG_CACHE_HOME: join(home, '.cache'), XDG_DATA_HOME: join(home, '.local', 'share') };
   for (const k of ['XDG_CONFIG_HOME', 'XDG_CACHE_HOME', 'XDG_DATA_HOME']) mkdirSync(env[k], { recursive: true });
   return env;
 }
@@ -66,24 +74,57 @@ function listTree(dir) {
   return Object.fromEntries(readdirSync(dir).sort().map((n) => [n, existsSync(join(dir, n)) ? readdirSync(join(dir, n), { withFileTypes: true }).length >= 0 && (existsSync(join(dir, n, '.')) ? 'dir-or-file' : 'file') : '?']));
 }
 
+/** The real AppDatabase bundled from src/, loading the repository's Node-ABI better-sqlite3. */
+function loadAppDatabase() {
+  const esbuild = require('esbuild');
+  const out = join(ROOT, 'database.cjs');
+  esbuild.buildSync({ entryPoints: [join(REPO, 'src/persistence/database.ts')], bundle: true, platform: 'node', format: 'cjs', outfile: out, external: ['better-sqlite3'], nodePaths: [join(REPO, 'node_modules')], logLevel: 'silent' });
+  writeFileSync(out, readFileSync(out, 'utf8').replaceAll('require("better-sqlite3")', `require(${JSON.stringify(join(REPO, 'node_modules', 'better-sqlite3'))})`));
+  return require(out).AppDatabase;
+}
+
+/** A legacy profile whose database holds one song and theory score 7, plus score 9 committed only in the WAL. */
+function seedWalOnlyLegacyProfile(dir) {
+  const AppDatabase = loadAppDatabase();
+  mkdirSync(join(dir, 'midi-files'), { recursive: true });
+  writeFileSync(join(dir, 'midi-files', 'legacy-song.mid'), 'MThd-legacy');
+  const seed = join(dir, 'seed.db');
+  const db = new AppDatabase(seed);
+  db.addSong({ id: 'legacy-song', title: 'Legacy Song', artist: '', genre: '', filePath: join(dir, 'midi-files', 'legacy-song.mid'), difficulty: 1, durationSec: 10, bpm: 120, noteCount: 4, tags: [], trackAssignments: {} });
+  db.saveTheoryResult({ type: 'quiz', score: 7, totalQuestions: 10, accuracy: 70 });
+  db.db.pragma('wal_checkpoint(TRUNCATE)');
+  db.db.pragma('wal_autocheckpoint = 0');
+  db.saveTheoryResult({ type: 'quiz', score: 9, totalQuestions: 10, accuracy: 90 });
+  for (const ext of ['', '-wal', '-shm']) copyFileSync(seed + ext, join(dir, 'pianohero.db' + ext));
+  db.close();
+  for (const ext of ['', '-wal', '-shm']) rmSync(seed + ext, { force: true });
+}
+
 async function partOne() {
   const esbuild = require('esbuild');
-  const bundle = join(ROOT, 'legacyBrandMigration.cjs');
-  esbuild.buildSync({ entryPoints: [join(REPO, 'src/persistence/legacyBrandMigration.ts')], bundle: true, platform: 'node', format: 'cjs', outfile: bundle, logLevel: 'silent' });
+  const sqlite = process.env.LK_SQLITE_MODULE;
+  if (!sqlite) throw new Error('LK_SQLITE_MODULE must point at an Electron-ABI better-sqlite3 directory');
+  const bundle = join(ROOT, 'startup.cjs');
+  esbuild.buildSync({
+    stdin: { contents: "export { migrateLegacyBrand, legacyProfileDirs } from './src/persistence/legacyBrandMigration'; export { desktopProfileDir, runDesktopStartup } from './src/main/desktopStartup';", resolveDir: REPO, loader: 'ts' },
+    bundle: true, platform: 'node', format: 'cjs', outfile: bundle, external: ['better-sqlite3', 'electron'], logLevel: 'silent',
+  });
+  writeFileSync(bundle, readFileSync(bundle, 'utf8').replaceAll('require("better-sqlite3")', `require(${JSON.stringify(resolve(sqlite))})`));
   const main = `
 const { app } = require('electron');
 const fs = require('node:fs');
-const { migrateLegacyBrand, defaultLegacyProfileDir } = require(${JSON.stringify(bundle)});
+const { migrateLegacyBrand, legacyProfileDirs, desktopProfileDir } = require(${JSON.stringify(bundle)});
+const nameAtLoad = app.name;
+app.setPath('userData', desktopProfileDir(app.getPath('appData')));   // src/main/index.ts, module top level
+app.setName('LumaKeys');
 app.whenReady().then(() => {
-  const out = { packageName: require('./package.json').name, nameAtReady: app.name };
-  app.setName('LumaKeys');                         // src/main/index.ts, inside whenReady
+  const out = { packageName: require('./package.json').name, nameAtLoad, nameAtReady: app.name };
   app.setAppUserModelId('com.lumakeys.app');
-  out.nameAfterSetName = app.name;
   const userData = app.getPath('userData');
   out.userData = userData;
   out.userDataBefore = fs.readdirSync(userData).sort();
-  out.legacyDirChecked = defaultLegacyProfileDir(app.getPath('appData'));
-  try { out.migration = migrateLegacyBrand({ destinationDir: userData, legacyDir: out.legacyDirChecked }); }
+  out.legacyDirsChecked = legacyProfileDirs(app.getPath('appData'));
+  try { out.migration = migrateLegacyBrand({ destinationDir: userData, legacyDirs: out.legacyDirsChecked }); }
   catch (e) { out.migration = { error: e.message }; }
   out.userDataAfter = fs.readdirSync(userData).sort();
   out.appDataAfter = fs.readdirSync(app.getPath('appData')).sort();
@@ -92,6 +133,20 @@ app.whenReady().then(() => {
   console.log('PROBE_RESULT ' + JSON.stringify(out));
   app.quit();
 });`;
+  // E6 (PH-OPS-006): the startup error boundary of src/main/index.ts with a real refusal and the real
+  // app.exit. Headless Electron has no display for dialog.showErrorBox, so the dialog is replaced by a log line.
+  const failureMain = `
+const { app } = require('electron');
+const { migrateLegacyBrand, legacyProfileDirs, desktopProfileDir, runDesktopStartup } = require(${JSON.stringify(bundle)});
+app.setPath('userData', desktopProfileDir(app.getPath('appData')));
+app.setName('LumaKeys');
+app.whenReady().then(() => runDesktopStartup(async () => {
+  migrateLegacyBrand({ destinationDir: app.getPath('userData'), legacyDirs: legacyProfileDirs(app.getPath('appData')) });
+  console.log('PROBE_UNEXPECTED startup continued');
+}, {
+  showError: (title, content) => console.log('PROBE_SHOW_ERROR ' + JSON.stringify({ title, content })),
+  exit: (code) => app.exit(code),
+}));`;
   const results = [];
   // Package names shipped by released builds, from git history of package.json:
   //   piano-hero (to 2026-04-27), luma-keys (2026-04-29 to 2026-08-07), lumakeys (current).
@@ -102,6 +157,7 @@ app.whenReady().then(() => {
     { id: 'E3', pkg: 'lumakeys', seed: ['PianoHero'] },
     { id: 'E4', pkg: 'luma-keys', seed: [] },
     { id: 'E5', pkg: 'piano-hero', seed: [] },
+    { id: 'E6', pkg: 'lumakeys', seed: ['luma-keys', 'piano-hero'], main: failureMain },
   ];
   for (const c of cases) {
     const caseRoot = join(ROOT, c.id);
@@ -109,12 +165,22 @@ app.whenReady().then(() => {
     const appDir = join(caseRoot, 'app');
     mkdirSync(appDir, { recursive: true });
     writeFileSync(join(appDir, 'package.json'), JSON.stringify({ name: c.pkg, version: '0.1.0', main: 'main.cjs' }));
-    writeFileSync(join(appDir, 'main.cjs'), main);
+    writeFileSync(join(appDir, 'main.cjs'), c.main ?? main);
     const env = isolatedEnv(join(caseRoot, 'home'));
     for (const s of c.seed) seedLegacyProfile(join(env.XDG_CONFIG_HOME, s));
     const r = await run(ELECTRON, [...FLAGS, appDir], env, { killAfterMs: 30000, until: () => false });
     const line = r.out.split('\n').find((l) => l.startsWith('PROBE_RESULT '));
     const res = { case: c.id, seededLegacyProfiles: c.seed, exit: r.code ?? r.signal, result: line ? JSON.parse(line.slice(13)) : r.out.slice(-800) };
+    if (c.main) {
+      const shown = r.out.split('\n').find((l) => l.startsWith('PROBE_SHOW_ERROR '));
+      Object.assign(res, {
+        elapsedMs: r.elapsedMs, stillRunningWhenProbeSentSigterm: r.killedByProbe,
+        shownError: shown ? JSON.parse(shown.slice(17)) : null,
+        startupContinued: r.out.includes('PROBE_UNEXPECTED'),
+        loggedFailure: r.out.includes('LumaKeys startup failed:'),
+        result: undefined,
+      });
+    }
     for (const s of c.seed) res[`legacy:${s}`] = readdirSync(join(env.XDG_CONFIG_HOME, s)).sort();
     console.log('CASE ' + JSON.stringify(res));
     results.push(res);
@@ -144,12 +210,14 @@ async function partTwo() {
   const pkg = JSON.parse(asar.extractFile(join(REPO, 'dist/linux-unpacked/resources/app.asar'), 'package.json').toString());
 
   // P1: a profile written by the pre-rename build (package name luma-keys) and a first launch of the current build.
+  // The legacy database holds one song and theory scores 7 and 9, the 9 committed only in its WAL.
   {
     const caseRoot = join(ROOT, 'P1');
     rmSync(caseRoot, { recursive: true, force: true });
     const env = isolatedEnv(join(caseRoot, 'home'));
     const legacy = join(env.XDG_CONFIG_HOME, 'luma-keys');
-    seedLegacyProfile(legacy);
+    seedWalOnlyLegacyProfile(legacy);
+    const legacyBefore = inspectDb(join(legacy, 'pianohero.db'), caseRoot);
     const newDb = join(env.XDG_CONFIG_HOME, 'lumakeys', 'lumakeys.db');
     const r = await run(bin, FLAGS, env, { killAfterMs: 40000, until: () => existsSync(newDb) });
     console.log('PACKAGED ' + JSON.stringify({
@@ -157,14 +225,34 @@ async function partTwo() {
       configDirs: readdirSync(env.XDG_CONFIG_HOME).sort(),
       newProfile: readdirSync(join(env.XDG_CONFIG_HOME, 'lumakeys')).sort(),
       newDb: inspectDb(newDb, caseRoot),
+      legacyDbBefore: legacyBefore,
       legacyProfile: readdirSync(legacy).sort(),
       legacyDb: inspectDb(join(legacy, 'pianohero.db'), caseRoot),
     }));
   }
 
-  // P2: the migration refuses (both database names in the profile). What does the desktop user see?
+  // P2: the migration refuses: two earlier profiles (luma-keys and piano-hero) both hold pianohero.db.
+  // What does the desktop user see? (Headless Electron has no display for the error dialog.)
   {
     const caseRoot = join(ROOT, 'P2');
+    rmSync(caseRoot, { recursive: true, force: true });
+    const env = isolatedEnv(join(caseRoot, 'home'));
+    for (const name of ['luma-keys', 'piano-hero']) seedLegacyProfile(join(env.XDG_CONFIG_HOME, name));
+    const profile = join(env.XDG_CONFIG_HOME, 'lumakeys');
+    const r = await run(bin, FLAGS, env, { killAfterMs: 12000 });
+    console.log('PACKAGED ' + JSON.stringify({
+      case: 'P2', exit: r.code ?? r.signal, elapsedMs: r.elapsedMs, stillRunningWhenProbeSentSigterm: r.killedByProbe,
+      profileAfter: existsSync(profile) ? readdirSync(profile).sort() : 'missing',
+      legacyAfter: Object.fromEntries(['luma-keys', 'piano-hero'].map((n) => [n, readdirSync(join(env.XDG_CONFIG_HOME, n)).sort()])),
+      rendererStarted: existsSync(join(profile, 'Local Storage')),
+      relevantOutput: r.out.split('\n').filter((l) => /Both|Unhandled|unhandled|Error: |startup failed|earlier libraries|Gtk-ERROR/.test(l) && !/bus\.cc/.test(l)).slice(0, 4),
+    }));
+  }
+
+  // P4: the original P2 fixture, the PH-OPS-006 route: an empty lumakeys.db from the current build and a
+  // pianohero.db copied in beside it. The empty database is now set aside and replaced.
+  {
+    const caseRoot = join(ROOT, 'P4');
     rmSync(caseRoot, { recursive: true, force: true });
     const env = isolatedEnv(join(caseRoot, 'home'));
     const profile = join(env.XDG_CONFIG_HOME, 'lumakeys');
@@ -173,12 +261,15 @@ async function partTwo() {
     const db = new Database(join(profile, 'lumakeys.db'));
     db.exec('create table audit_marker (v text)');
     db.close();
-    const r = await run(bin, FLAGS, env, { killAfterMs: 12000 });
+    const newDb = join(profile, 'lumakeys.db');
+    const r = await run(bin, FLAGS, env, { killAfterMs: 40000, until: () => existsSync(join(profile, 'Local Storage')) });
+    const backups = readdirSync(profile).filter((n) => n.startsWith('before-legacy-migration-'));
     console.log('PACKAGED ' + JSON.stringify({
-      case: 'P2', exit: r.code ?? r.signal, elapsedMs: r.elapsedMs, stillRunningWhenProbeSentSigterm: r.killedByProbe,
+      case: 'P4', exit: r.code ?? r.signal, stillRunningWhenProbeSentSigterm: r.killedByProbe,
       profileAfter: readdirSync(profile).sort(),
-      rendererStarted: existsSync(join(profile, 'Local Storage')),
-      relevantOutput: r.out.split('\n').filter((l) => /Both|Unhandled|unhandled|Error: /.test(l) && !/bus\.cc/.test(l)).slice(0, 4),
+      newDb: inspectDb(newDb, caseRoot),
+      backups: Object.fromEntries(backups.map((b) => [b, { entries: readdirSync(join(profile, b)).sort(), db: inspectDb(join(profile, b, 'lumakeys.db'), caseRoot) }])),
+      relevantOutput: r.out.split('\n').filter((l) => /Both|Unhandled|unhandled|Error: |startup failed/.test(l) && !/bus\.cc/.test(l)).slice(0, 4),
     }));
   }
 
@@ -216,5 +307,6 @@ async function partTwo() {
 }
 
 mkdirSync(ROOT, { recursive: true });
-await partOne();
-if (process.argv.includes('--packaged')) await partTwo();
+// --packaged-only skips part 1, e.g. to run the packaged cases against a build from before the fix.
+if (!process.argv.includes('--packaged-only')) await partOne();
+if (process.argv.includes('--packaged') || process.argv.includes('--packaged-only')) await partTwo();

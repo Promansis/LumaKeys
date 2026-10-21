@@ -19,7 +19,7 @@ import { buildLibraryBackup, importLibraryBackup } from '../persistence/libraryB
 import { isLibraryBackup } from '../shared/libraryBackup';
 import { getInstrumentSamplePackDefinition } from '../lib/audio/instrumentSamplePacks';
 import { AppDatabase } from '../persistence/database';
-import { defaultLegacyProfileDir, migrateLegacyBrand } from '../persistence/legacyBrandMigration';
+import { legacyProfileDirs, migrateLegacyBrand } from '../persistence/legacyBrandMigration';
 import { FileSystemMidiStorageAdapter } from '../storage/midiStorage';
 import { deleteSongsAcrossStores, resetUserDataAcrossStores } from '../persistence/crossStoreMutations';
 import {
@@ -30,6 +30,17 @@ import {
   recoverDesktopInstrumentSamplePackReset,
   resolveDesktopInstrumentSampleSource,
 } from './instrumentSamplePackStore';
+import {
+  desktopProfileDir,
+  legacyLibraryChoiceFromResponse,
+  legacyLibraryPrompt,
+  runDesktopStartup,
+} from './desktopStartup';
+
+// Electron derives the default userData from package.json before this module runs,
+// so pin the profile explicitly before `ready`.
+app.setPath('userData', desktopProfileDir(app.getPath('appData')));
+app.setName('LumaKeys');
 
 let mainWindow: BrowserWindow | null = null;
 let db: AppDatabase;
@@ -92,15 +103,21 @@ async function createMainWindow(): Promise<void> {
   await mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
 }
 
-app.whenReady().then(async () => {
-  app.setName('LumaKeys');
+async function startDesktopApp(): Promise<void> {
   app.setAppUserModelId('com.lumakeys.app');
 
   const userDataPath = app.getPath('userData');
-  migrateLegacyBrand({
+  const migration = migrateLegacyBrand({
     destinationDir: userDataPath,
-    legacyDir: defaultLegacyProfileDir(app.getPath('appData')),
+    legacyDirs: legacyProfileDirs(app.getPath('appData')),
+    chooseOnConflict: (conflict) =>
+      legacyLibraryChoiceFromResponse(dialog.showMessageBoxSync(legacyLibraryPrompt(conflict))),
   });
+  migration.messages.forEach((message) => console.log(message));
+  if (migration.quit) {
+    app.quit();
+    return;
+  }
 
   const midiFilesDir = join(userDataPath, 'midi-files');
   mkdirSync(midiFilesDir, { recursive: true });
@@ -538,7 +555,26 @@ app.whenReady().then(async () => {
       await createMainWindow();
     }
   });
-});
+}
+
+if (app.requestSingleInstanceLock()) {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.focus();
+    }
+  });
+  app.whenReady().then(() =>
+    runDesktopStartup(startDesktopApp, {
+      showError: (title, content) => dialog.showErrorBox(title, content),
+      exit: (code) => app.exit(code),
+    }),
+  );
+} else {
+  app.quit();
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

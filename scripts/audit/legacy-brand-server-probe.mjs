@@ -38,6 +38,21 @@ function seed(dir, dbName, songId) {
   for (const ext of ['', '-wal', '-shm']) if (existsSync(join(dir, 'seed.db' + ext))) renameSync(join(dir, 'seed.db' + ext), join(dir, dbName + ext));
 }
 
+/** Seed a database whose second song is committed only in the WAL: the set is copied while the writer is still open. */
+function seedWalOnly(dir, dbName, [checkpointedId, walOnlyId]) {
+  mkdirSync(join(dir, 'midi-files'), { recursive: true });
+  const seedPath = join(dir, 'seed.db');
+  const db = new AppDatabase(seedPath);
+  const add = (id) => db.addSong({ id, title: id, artist: '', genre: '', filePath: join(dir, 'midi-files', `${id}.mid`), difficulty: 1, durationSec: 1, bpm: 120, noteCount: 1, tags: [], trackAssignments: {} });
+  add(checkpointedId);
+  db.db.pragma('wal_checkpoint(TRUNCATE)');
+  db.db.pragma('wal_autocheckpoint = 0');
+  add(walOnlyId);
+  for (const ext of ['', '-wal', '-shm']) copyFileSync(seedPath + ext, join(dir, dbName + ext));
+  db.close();
+  for (const ext of ['', '-wal', '-shm']) rmSync(seedPath + ext, { force: true });
+}
+
 /** Every path under base (depth 3) that holds a lumakeys.db or pianohero.db, plus its songs. */
 function dbMap(base) {
   const found = {};
@@ -131,6 +146,8 @@ await runCase('S5', 'only PIANOHERO_DATA_DIR set, pointing at a legacy db', ({ c
 await runCase('S6', 'both env vars set; LUMAKEYS_DATA_DIR empty dir, PIANOHERO_DATA_DIR has data', ({ caseRoot }) => seed(join(caseRoot, 'legacy-env'), 'pianohero.db', 'song-in-legacy-env-dir'), ({ caseRoot }) => ({ LUMAKEYS_DATA_DIR: join(caseRoot, 'explicit'), PIANOHERO_DATA_DIR: join(caseRoot, 'legacy-env') }));
 await runCase('S7', 'one directory holds both lumakeys.db and pianohero.db', ({ caseRoot }) => { seed(join(caseRoot, 'both'), 'lumakeys.db', 'song-in-new-db'); seed(join(caseRoot, 'both-tmp'), 'pianohero.db', 'song-in-old-db'); for (const ext of ['', '-wal', '-shm']) if (existsSync(join(caseRoot, 'both-tmp', 'pianohero.db' + ext))) renameSync(join(caseRoot, 'both-tmp', 'pianohero.db' + ext), join(caseRoot, 'both', 'pianohero.db' + ext)); }, ({ caseRoot }) => ({ LUMAKEYS_DATA_DIR: join(caseRoot, 'both') }));
 await runCase('S8', 'server started from an unrelated directory that has a stray .pianohero-data; GET / checks the SPA', legacyCwd, {}, async () => ({ getRoot: (await fetch(`http://127.0.0.1:${PORT}/`)).status }));
+// PH-DATA-006 state H3: a same-directory rename stopped after the .db, so the WAL-only song sits in pianohero.db-wal.
+await runCase('S9', 'interrupted same-directory rename: lumakeys.db beside pianohero.db-wal and -shm holding a WAL-only song', ({ caseRoot }) => { const dir = join(caseRoot, 'h3'); seedWalOnly(dir, 'pianohero.db', ['song-checkpointed', 'song-wal-only']); renameSync(join(dir, 'pianohero.db'), join(dir, 'lumakeys.db')); }, ({ caseRoot }) => ({ LUMAKEYS_DATA_DIR: join(caseRoot, 'h3') }), async ({ caseRoot }) => ({ dataDirEntries: readdirSync(join(caseRoot, 'h3')).sort() }));
 
 // Question 2: environment precedence.
 await runCase('V1', 'LUMAKEYS_DATA_DIR is the empty string', null, { LUMAKEYS_DATA_DIR: '' });
