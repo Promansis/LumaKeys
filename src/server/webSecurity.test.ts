@@ -99,6 +99,60 @@ describe('webSecurity', () => {
     expect(response.headers.get('set-cookie')).toContain('HttpOnly');
   });
 
+  // PH-SEC-006: behind the Cloudflare Tunnel the origin sees plain HTTP, so the forwarded
+  // scheme decides whether the access cookie is Secure. A forged header can only add the flag.
+  describe('access cookie Secure flag', () => {
+    async function signInCookie(headers: Record<string, string> = {}) {
+      const response = await makeApp().request('/api/access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({ token: 'secret-token' }),
+      });
+      expect(response.status).toBe(200);
+      return response.headers.get('set-cookie') ?? '';
+    }
+
+    it('is not Secure on plain loopback HTTP without forwarded headers', async () => {
+      expect(await signInCookie()).not.toContain('Secure');
+    });
+
+    it('is Secure when X-Forwarded-Proto is https', async () => {
+      expect(await signInCookie({ 'X-Forwarded-Proto': 'https' })).toMatch(/; Secure$/);
+    });
+
+    it('reads the first X-Forwarded-Proto value, trimmed and case-insensitive', async () => {
+      expect(await signInCookie({ 'X-Forwarded-Proto': ' HTTPS , http' })).toMatch(/; Secure$/);
+      expect(await signInCookie({ 'X-Forwarded-Proto': 'http, https' })).not.toContain('Secure');
+      expect(await signInCookie({ 'X-Forwarded-Proto': 'http' })).not.toContain('Secure');
+    });
+
+    it('is Secure when Cf-Visitor says the scheme is https', async () => {
+      expect(await signInCookie({ 'Cf-Visitor': '{"scheme":"https"}' })).toMatch(/; Secure$/);
+    });
+
+    it('ignores a Cf-Visitor header that is malformed or names another scheme', async () => {
+      expect(await signInCookie({ 'Cf-Visitor': '{"scheme":' })).not.toContain('Secure');
+      expect(await signInCookie({ 'Cf-Visitor': '{"scheme":"http"}' })).not.toContain('Secure');
+      expect(await signInCookie({ 'Cf-Visitor': 'null' })).not.toContain('Secure');
+    });
+
+    it('stays Secure when the request URL itself is https', async () => {
+      const response = await makeApp().request('https://example.test/api/access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: 'secret-token' }),
+      });
+      expect(response.headers.get('set-cookie')).toMatch(/; Secure$/);
+    });
+
+    it('is Secure on the header sign-in path too', async () => {
+      const response = await makeApp().request('/api/ping', {
+        headers: { 'x-lumakeys-access-token': 'secret-token', 'X-Forwarded-Proto': 'https' },
+      });
+      expect(response.headers.get('set-cookie')).toMatch(/; Secure$/);
+    });
+  });
+
   it('rejects a wrong token posted to /api/access without setting a cookie', async () => {
     const app = makeApp();
 

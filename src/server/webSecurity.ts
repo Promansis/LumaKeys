@@ -65,8 +65,37 @@ function readCookie(request: Request, name: string): string | null {
   return null;
 }
 
+/**
+ * True when the visitor reached the site over HTTPS. Behind a TLS-terminating proxy (the
+ * documented Cloudflare Tunnel) the origin sees plain HTTP, so the forwarded scheme counts too.
+ * Trusting these headers is safe here: a forged one can only add the Secure flag.
+ */
+function isSecureRequest(c: Context): boolean {
+  if (new URL(c.req.url).protocol === 'https:') {
+    return true;
+  }
+
+  const forwardedProto = c.req.header('x-forwarded-proto')?.split(',')[0]?.trim().toLowerCase();
+  if (forwardedProto === 'https') {
+    return true;
+  }
+
+  const cfVisitor = c.req.header('cf-visitor');
+  if (cfVisitor) {
+    try {
+      const parsed: unknown = JSON.parse(cfVisitor);
+      const scheme = (parsed as { scheme?: unknown } | null)?.scheme;
+      return typeof scheme === 'string' && scheme.trim().toLowerCase() === 'https';
+    } catch {
+      // A malformed header is ignored; the flag stays off.
+    }
+  }
+
+  return false;
+}
+
 function setAccessCookie(c: Context, secret: string): void {
-  const secure = new URL(c.req.url).protocol === 'https:';
+  const secure = isSecureRequest(c);
   c.header(
     'Set-Cookie',
     `${ACCESS_COOKIE_NAME}=${encodeURIComponent(secret)}; Path=/api; HttpOnly; SameSite=Strict${secure ? '; Secure' : ''}`,
