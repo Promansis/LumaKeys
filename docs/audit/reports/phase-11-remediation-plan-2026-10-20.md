@@ -190,8 +190,9 @@ in `64a8160` (ADR 0002, `CONTEXT.md`, and the audit's citations):
   7, 10 and 11). PH-MUS-018 and PH-UI-021 are `accepted` and are fixed at once as wave 1
   follow-ups; PH-UI-021 remembers each dialog's folder until the app closes. A third
   follow-up takes leads (j) and (k), and (a), (b) and (f), with a redeploy after it; then
-  the agent cross-builds a new Windows build. Counts: 71 findings (12 verified, 17 fixed,
-  41 accepted, 1 accepted-risk). The unpushed history was rewritten so that no commit
+  the agent cross-builds a new Windows build. Lead (j) became
+  [PH-SEC-006](findings/PH-SEC-006.md) (P3, `accepted`). Counts: 72 findings (12 verified,
+  17 fixed, 42 accepted, 1 accepted-risk). The unpushed history was rewritten so that no commit
   records a personal author address; every hash in this document is the new one
   ([lookup table](commit-hash-rewrite-2026-10-21.md)).
 

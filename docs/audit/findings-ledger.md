@@ -45,6 +45,7 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-SEC-003 | Web HTML responses carry no Content-Security-Policy or related security headers, and the desktop renderer has no CSP either | SEC | P3 | high | both | fixed | OP-016, MOD-010, MOD-013, MOD-014 | [PH-SEC-003](reports/findings/PH-SEC-003.md) | Claude Code (acting) |
 | PH-SEC-004 | One MuseScore conversion blocks every other import for up to 45 seconds | SEC | P3 | high | web | accepted | OP-017, WF-025, MOD-013 | [PH-SEC-004](reports/findings/PH-SEC-004.md) | Claude Code (acting) |
 | PH-SEC-005 | Soundboard source links open remote sites inside an Electron window with no navigation guard | SEC | P3 | high | Electron | fixed | MOD-014, OP-013, MOD-008 | [PH-SEC-005](reports/findings/PH-SEC-005.md) | Claude Code (acting) |
+| PH-SEC-006 | The web access cookie is never marked Secure behind the Cloudflare Tunnel | SEC | P3 | high | web | accepted | OP-014, MOD-010 | [PH-SEC-006](reports/findings/PH-SEC-006.md) | Claude Code (acting) |
 | PH-OPS-002 | Default web deployment exposes `/api/*` with no app-level gate | OPS | P0 | high | web | fixed | OP-014 | [PH-OPS-002](reports/findings/PH-OPS-002.md) | Claude Code (acting) |
 | PH-OPS-003 | Shipped desktop runtime Electron 30.5.1 is past end of life | OPS | P2 | high | Electron | fixed | MOD-012, MOD-008, OP-013 | [PH-OPS-003](reports/findings/PH-OPS-003.md) | Claude Code (acting) |
 | PH-OPS-004 | A default-state SQLite database remains in git history | OPS | P3 | high | runtime-independent | accepted-risk | MOD-012, DATA-003, DATA-004 | [PH-OPS-004](reports/findings/PH-OPS-004.md) | Claude Code (acting) |
@@ -190,8 +191,9 @@ in the detailed report.
   [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#remediation-progress-2026-10-21).
 - Owner decisions, 2026-10-21: PH-MUS-018 and PH-UI-021 moved from `reproduced` to
   `accepted`, both to be fixed at once as wave 1 follow-ups (PH-UI-021 remembers each
-  dialog's folder until the app closes). Counts: 71 findings (12 verified, 17 fixed,
-  41 accepted, 1 accepted-risk). The same day the five unpushed commits that recorded a
+  dialog's folder until the app closes). Plan lead (j) became PH-SEC-006 (P3, `accepted`):
+  the web access cookie is never marked `Secure` behind the Cloudflare Tunnel. Counts:
+  72 findings (12 verified, 17 fixed, 42 accepted, 1 accepted-risk). The same day the five unpushed commits that recorded a
   personal author address were rewritten to the GitHub noreply address, which gave all 78
   unpushed commits new hashes; tracked files cite the new ones
   ([lookup table](reports/commit-hash-rewrite-2026-10-21.md)).
