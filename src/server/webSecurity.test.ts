@@ -51,6 +51,16 @@ describe('webSecurity', () => {
     expect(response.status).toBe(200);
   });
 
+  it('answers 401, not 500, for a malformed access cookie', async () => {
+    const app = makeApp();
+
+    const response = await app.request('/api/ping', {
+      headers: { cookie: 'lumakeys_web_access=%' },
+    });
+
+    expect(response.status).toBe(401);
+  });
+
   // PH-SEC-002: a token in the URL ends up in history, proxy logs and Referer headers.
   it('rejects an access token in the query string and sets no cookie', async () => {
     const app = makeApp();
@@ -141,6 +151,13 @@ describe('resolveWebAccessPolicy', () => {
     expect(resolveWebAccessPolicy({ LUMAKEYS_WEB_ACCESS_TOKEN: ' secret-token ' })).toEqual({ mode: 'token', token: 'secret-token' });
     expect(resolveWebAccessPolicy({ PIANOHERO_WEB_ACCESS_TOKEN: 'legacy-token' })).toEqual({ mode: 'token', token: 'legacy-token' });
     expect(resolveWebAccessPolicy({ LUMAKEYS_WEB_ACCESS_TOKEN: 'secret-token', LUMAKEYS_TRUST_UPSTREAM_AUTH: '1' })).toEqual({ mode: 'token', token: 'secret-token' });
+  });
+
+  it('treats a blank token variable as unset, so the legacy token still applies', () => {
+    expect(resolveWebAccessPolicy({ LUMAKEYS_WEB_ACCESS_TOKEN: '', PIANOHERO_WEB_ACCESS_TOKEN: 'legacy-token' })).toEqual({ mode: 'token', token: 'legacy-token' });
+    expect(resolveWebAccessPolicy({ LUMAKEYS_WEB_ACCESS_TOKEN: '  ', PIANOHERO_WEB_ACCESS_TOKEN: ' legacy-token ' })).toEqual({ mode: 'token', token: 'legacy-token' });
+    expect(() => resolveWebAccessPolicy({ LUMAKEYS_WEB_ACCESS_TOKEN: ' ', PIANOHERO_WEB_ACCESS_TOKEN: 'change-this-long-random-token' })).toThrow(/placeholder/);
+    expect(resolveWebAccessPolicy({ LUMAKEYS_WEB_ACCESS_TOKEN: '', LUMAKEYS_TRUST_UPSTREAM_AUTH: '1' })).toEqual({ mode: 'trust-upstream' });
   });
 
   it('trusts upstream auth only when LUMAKEYS_TRUST_UPSTREAM_AUTH is exactly 1', () => {

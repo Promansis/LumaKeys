@@ -16,6 +16,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:3100',
+      // The server's sign-in form (token mode).
+      '/login': 'http://localhost:3100',
     },
   },
 });

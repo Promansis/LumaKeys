@@ -53,7 +53,12 @@ function readCookie(request: Request, name: string): string | null {
   for (const cookie of header.split(';')) {
     const [rawKey, ...rawValue] = cookie.trim().split('=');
     if (rawKey === name) {
-      return decodeURIComponent(rawValue.join('='));
+      try {
+        return decodeURIComponent(rawValue.join('='));
+      } catch {
+        // A malformed value is no credential; the gate answers 401.
+        return null;
+      }
     }
   }
 
@@ -73,8 +78,10 @@ function setAccessCookie(c: Context, secret: string): void {
  * deployment that loses its Cloudflare Access policy cannot start with the library open.
  */
 export function resolveWebAccessPolicy(env: Record<string, string | undefined>): WebAccessPolicy {
-  // New variable first, legacy variable as a one-release fallback.
-  const token = (env.LUMAKEYS_WEB_ACCESS_TOKEN ?? env.PIANOHERO_WEB_ACCESS_TOKEN)?.trim();
+  // New variable first, legacy variable as a one-release fallback. A blank value counts as unset.
+  const token = [env.LUMAKEYS_WEB_ACCESS_TOKEN, env.PIANOHERO_WEB_ACCESS_TOKEN]
+    .map((value) => value?.trim())
+    .find(Boolean);
   if (token === WEB_ACCESS_TOKEN_PLACEHOLDER) {
     throw new Error(
       'LUMAKEYS_WEB_ACCESS_TOKEN is still the placeholder from docker-compose.yml. '

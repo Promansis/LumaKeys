@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { navigateToLogin } from './loginRedirect';
 import { webBridge } from './webBridge';
+
+vi.mock('./loginRedirect', () => ({ navigateToLogin: vi.fn() }));
 
 type FetchMock = ReturnType<typeof vi.fn>;
 
@@ -66,6 +69,29 @@ describe('webBridge', () => {
     mockFetch(jsonResponse({ error: 'Nope.' }, { status: 400 }));
 
     await expect(webBridge.getSong('song-1')).rejects.toThrow('Nope.');
+  });
+
+  it('stays on the page for API errors other than 401', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ error: 'Server error.' }, { status: 500 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(webBridge.getAllSongs()).rejects.toThrow('Server error.');
+
+    expect(navigateToLogin).not.toHaveBeenCalled();
+  });
+
+  // PH-SEC-002: with the token gate on, a browser without the session cookie gets 401
+  // from every /api call; it should land on the sign-in form, and only once.
+  it('sends an unsigned browser to /login once when the API answers 401', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ error: 'Web API access token required. Sign in at /login.' }, { status: 401 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(webBridge.getAllSongs()).rejects.toThrow(/Sign in at \/login/);
+    await expect(webBridge.getSong('song-1')).rejects.toThrow(/Sign in at \/login/);
+    await expect(webBridge.loadMidiFileData('song-1')).rejects.toThrow('Unable to load MIDI: 401');
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(navigateToLogin).toHaveBeenCalledTimes(1);
   });
 
   it('returns null for known desktop-only stubs', async () => {

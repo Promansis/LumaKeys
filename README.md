@@ -134,12 +134,12 @@ LUMAKEYS_WEB_ACCESS_TOKEN=paste-your-long-random-token-here
 
 Then run `docker compose up -d`. The placeholder in `docker-compose.yml` is refused. Keep `.env` private and out of Git.
 
-Browser sign-in, once per browser:
+Browser sign-in, once per browser session:
 
 1. Open `https://piano.a173d20e27.com/login`.
 2. Enter the token and select Sign in.
 
-The form sends the token in the request body, never in the address. The server sets an HttpOnly cookie scoped to `/api` and returns you to the app. Old `/api/access?access_token=...` links no longer work.
+The form sends the token in the request body, never in the address. The server sets an HttpOnly cookie scoped to `/api` and returns you to the app. The cookie lasts until the browser closes; after that the app sends you back to `/login`. Old `/api/access?access_token=...` links no longer work.
 
 Scripts can send the header `x-lumakeys-access-token: <token>` with each request, or `POST /api/access` with the JSON body `{"token":"<token>"}` to get the cookie.
 
@@ -147,7 +147,7 @@ Cloudflare Access only, with no token:
 
 Delete the `LUMAKEYS_WEB_ACCESS_TOKEN` line from `docker-compose.yml` and set `LUMAKEYS_TRUST_UPSTREAM_AUTH: "1"`. Do this only when Access protects the host. The server logs a warning at start in this mode.
 
-Local runs (`npm run start:web`, `npm run dev:web`) need one of the two settings too, for example `LUMAKEYS_WEB_ACCESS_TOKEN=<token> npm run start:web`, then sign in at `/login`.
+Local runs (`npm run start:web`, `npm run dev:web`) need one of the two settings too, for example `LUMAKEYS_WEB_ACCESS_TOKEN=<token> npm run start:web`, then sign in at `/login` on the address you opened (the Vite dev server passes `/login` and `/api` through to the server).
 
 ## 6. Open the Site
 
@@ -257,7 +257,7 @@ Check logs:
 docker compose logs -f lumakeys
 ```
 
-If the log says no web access gate is set, or that the token is still the placeholder, set the token as described in section 5a.
+If the log says no web access gate is set, or that the token is still the placeholder, set the token as described in section 5a. With `restart: unless-stopped`, Docker keeps restarting the container, with growing delays, and the log repeats the error each time until the setting is fixed.
 
 ### Cloudflare works but the site does not load
 
