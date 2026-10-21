@@ -17,6 +17,8 @@ if (!profile || !tmp || !path.resolve(profile).startsWith(path.resolve(tmp) + pa
 // Electron would report this launcher directory as the app path; the unpackaged app
 // expects the repo root (getDesktopAssetRoot reads <appPath>/public).
 app.getAppPath = () => repo;
+// The agent sandbox denies AF_UNIX sockets, which the single-instance lock needs; the product keeps the lock.
+app.requestSingleInstanceLock = () => true;
 app.setPath('appData', path.join(profile, '.config'));
 app.setPath('userData', path.join(profile, '.config', 'lumakeys'));
 
