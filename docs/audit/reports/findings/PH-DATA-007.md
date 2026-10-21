@@ -3,10 +3,10 @@
 - Lane: DATA
 - Severity: P3
 - Confidence: high
-- Status: fixed
+- Status: verified
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
-- Verifier: TBD
+- Verifier: Claude Code (acting), headless Electron run 2026-10-21
 - Affected runtime: both (web reproduced; Electron runs the same renderer code)
 - Coverage rows: DATA-016, DATA-017
 - Related/duplicate findings: PH-DATA-004 (same pattern for the web IndexedDB pack store; the lead may merge both into one "browser-side stores renamed without carry-over" finding), PH-DATA-005
@@ -98,12 +98,12 @@ the helper with the rest of the legacy fallback (see the lane H ADR draft).
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue: branch `remediation/p11-s15-browser-legacy` (slice 15; ships in the carry-over release with slice 1): `f3b1fb8` (fix), `7bdd671` (Resolutions), then the slice 15 review repairs `ec47dea` (keep the carry-over in one deletable file; this finding), `c526de5` (abort the pack copy on a failed put; [PH-DATA-004](PH-DATA-004.md)) and `46487db` (Resolutions of both after the review). The review passed after the repairs. Merged to `main` in `7c9ec01` on 2026-10-21, held until slice 1 merged (`9e249ae`). The merge resolved a conflict in the `webBridge.test.ts` imports by keeping both sides. No issue.
-- Status: `fixed`, not `verified` (audit lead, 2026-10-21). Rows that have passed: the `LibraryScreen` unit test, the web driver `legacy-filter-presets.mjs` (case L lists "Legacy Preset") and the broader command. Still owed: the Electron row ("sitting 2 or a headless Electron run after PH-DATA-005 is fixed"). PH-DATA-005 is fixed now, so the headless run is the agent's to do on a carried-over profile; the desktop renderer runs the same code, and the Windows profile is sitting 2 item 1. The release gate asks for both runtimes before the carry-over release ships.
+- Status: `verified` (audit lead, 2026-10-21). Every Required proof row has passed: the `LibraryScreen` unit test, the web driver `legacy-filter-presets.mjs` (case L lists "Legacy Preset"), and the Electron row ("sitting 2 or a headless Electron run after PH-DATA-005 is fixed") through a headless Electron run on 2026-10-21 (an earlier `luma-keys` build saved two presets beside `pianohero.db`; the merged `ed40fa6` build migrated the profile and the Library listed both presets under `lumakeys-filter-presets`, again after a relaunch; a rebuild without the carry-over call listed none; evidence `$TMPDIR/p11-ph-data-007/evidence/03-after-merged.out`, sha256 `0ef72641…cd59ef`). The Windows profile in sitting 2 item 1 remains a release check, not an owed proof for this finding.
 - Verification evidence:
 
   What changed: new `src/renderer/legacyFilterPresets.ts`. `LibraryScreen` calls `carryOverLegacyFilterPresets()` in its preset state initialiser. When `lumakeys-filter-presets` is absent and `pianohero-filter-presets` exists, the value is copied across and the old key is removed once the copy reads back equal. When the current key exists it wins and the legacy key is left until reset. Storage errors are swallowed. `LibraryScreen` keeps its original key literals and gains only the one call, so removal is deleting that file and that call. Marked for removal no earlier than 2027-01-31 (owner decision 3). "Reset all user data" already calls `localStorage.clear()`, which clears both names, so reset needed no change and has no new test.
   Tests. Failed before the fix, pass after: `LibraryScreen.test.tsx` "lists a preset saved under the pre-rename key and moves it to the current key". Guard: "keeps the current presets and leaves the legacy key alone when both exist".
   Driver `legacy-filter-presets.mjs` (headless Chromium, isolated data): case L before `userChips: []`, `presetKeys: [pianohero-filter-presets]`; after `userChips: [Legacy Preset]`, `presetKeys: [lumakeys-filter-presets]`; case C (control) unchanged.
-  Electron half: the renderer code is the same, so it follows the web result. A headless Electron run is owed after slice 1 lands (sitting 2 or an Electron probe on a carried-over profile).
+  Electron half: the renderer code is the same, so it follows the web result. After slice 1 landed, the audit lead's headless Electron run passed on a carried-over profile. The seeding build was the pre-rename source (`0bd40f5`, package `luma-keys`), built and run under Electron 44.9.2, since only that Electron is installed locally. On the merged build, the main menu still held only `pianohero-filter-presets` (moved by the profile migration with `Local Storage`). The Library then showed the chips "Legacy Preset Alpha" and "Legacy Preset Beta", with only `lumakeys-filter-presets` left. The control rebuild with `carryOverLegacyFilterPresets()` commented out migrated the profile but listed no presets.
 - Residual risk: A user who saved presets under the current key after the rename and still has a legacy key keeps both until reset or the removal release. The carry-over runs when the library opens, so a legacy key lingers until then.
 - Revisit trigger, if accepted-risk:

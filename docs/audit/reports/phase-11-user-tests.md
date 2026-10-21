@@ -308,8 +308,7 @@ They need no person, so the agent ran them with throwaway profiles. The
   it. B1 is the human half.
 - 2026-10-21, later: after the second half of wave 1 the agent staged B7 to B15, G1 and G2,
   updated B6, and re-staged sitting 2 for a new build. Left with the agent, not on your
-  list: a headless Electron run of the PH-DATA-007 filter
-  preset carry-over on a carried-over profile, and the packaged `--packaged` userdata run,
+  list: the packaged `--packaged` userdata run,
   which needs the sandbox off (G2).
 - Date the batch was run: sittings 0, 1, 3 and 4 by the agent on 2026-10-20; A to G not yet.
 - Items the agent re-staged: sitting 1 item 1 (the capstone is locked on a fresh profile;
