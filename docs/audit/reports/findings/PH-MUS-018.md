@@ -112,11 +112,7 @@ This is not implementation authorization.
 ## Resolution
 
 - Accepted/rejected rationale: accepted by the owner on 2026-10-21 ("fix"), to be fixed at once as a wave 1 follow-up (user tests decision 6).
-- Fix branch/commit/issue: none. Proposed placement: slice 14 "Settings values" (deferred
-  wave), which already edits the `App.tsx` setting read path
-  ([plan](../phase-11-remediation-plan-2026-10-20.md)). The fix is one line plus one
-  `App` test, so the owner may prefer to fold it into a wave 1 or wave 2 slice that edits
-  the same effect.
-- Verification evidence: none yet beyond the throwaway reproduction.
-- Residual risk: as stated in User Impact.
+- Fix branch/commit/issue: branch `remediation/p11-f1-lead-in`, commit `19c10f5` (not pushed).
+- Verification evidence: two App tests added in `src/renderer/App.test.tsx` (fresh profile gives `leadInBeats = 2`; saved `'0'` stays 0). Before the fix the fresh-profile test failed (expected 2, received 0); after it, `src/renderer/App.test.tsx` passes 21/21. Full vitest 73 files passed, 1 skipped; 473 tests passed, 1 skipped. Both `tsc` projects clean; `npm run verify` (both builds and the Electron asset check) passed. Electron and web share this renderer code path; no runtime launch was done.
+- Residual risk: the fix is a guard on the startup read only. No fresh-profile run through the Electron or web build has been done. Other settings in the same effect were checked: `latencyCompMs` also reads null as 0, but its default is 0, so it is harmless; `hitWindowMs` and `beatsVisible` require a value above 0, so null is already rejected.
 - Revisit trigger: the owner's decision on acceptance and placement.
