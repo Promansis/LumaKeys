@@ -10,7 +10,7 @@
 - Affected runtime: both (renderer; web, headless Electron, Edge 155 and Firefox 142 proven)
 - Coverage rows: RT-008, WF-016, WF-024, MOD-002
 - Related/duplicate findings: related to PH-UI-004 (Escape semantics) but a different mechanism: listener ordering, not a missing `preventDefault`.
-- First observed against: `main` at `6e549b6`
+- First observed against: `main` at `4466626`
 
 ## User Impact
 
@@ -26,7 +26,7 @@ On the Soundboard, the first Escape opens the session menu and the second closes
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`; headless Chromium 141, Playwright 1.56.1, built web server, 1480x960.
+- Commit/patch identity: `4466626`; headless Chromium 141, Playwright 1.56.1, built web server, 1480x960.
 
 ### Reproduction
 

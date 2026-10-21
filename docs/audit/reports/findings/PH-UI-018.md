@@ -10,7 +10,7 @@
 - Affected runtime: both (shared renderer)
 - Coverage rows: WF-011
 - Related/duplicate findings: PH-MUS-005 (a common reason a computer-keyboard drill scores nothing)
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane F (FA run 2026-10-19; source trace 2026-10-20)
+- First observed against: `main` at source identity `4466626`, Phase 11 lane F (FA run 2026-10-19; source trace 2026-10-20)
 
 ## User Impact
 
@@ -31,7 +31,7 @@ at least report the accuracy reached and the accuracy needed.
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`, web bundle from `dist/`
+- Commit/patch identity: `4466626`, web bundle from `dist/`
 - OS/runtime/browser: Linux, headless Chromium 141 (`scripts/audit/browser/lesson-progression.mjs`)
 
 ### Reproduction

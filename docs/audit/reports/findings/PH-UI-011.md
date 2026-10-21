@@ -10,7 +10,7 @@
 - Affected runtime: both (CSS; web, headless Electron, Edge 155 and Firefox 142 proven)
 - Coverage rows: RT-008, WF-024, MOD-007
 - Related/duplicate findings: none. PH-UI-001/004 concern dialogs, not the navigation bar.
-- First observed against: `main` at `6e549b6`
+- First observed against: `main` at `4466626`
 
 ## User Impact
 
@@ -29,7 +29,7 @@ Severity P2: WCAG 2.4.7 Focus Visible (AA) failure on the primary navigation of 
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`
+- Commit/patch identity: `4466626`
 - OS/runtime/browser: Linux, headless Chromium 141, Playwright 1.56.1, built web server, 1480x960, default dark theme
 - Data profile/fixture: empty isolated data directory plus two MIDI fixtures
 

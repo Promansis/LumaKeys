@@ -2,7 +2,7 @@
 
 - Lane owner: Claude Code (acting)
 - Reviewer/challenger: Claude Code (acting), second pass on 2026-10-19; owner confirmation items in the user batch
-- Baseline identity: `main` at source identity `6e549b6`, [baseline](baseline-2026-10-19.md)
+- Baseline identity: `main` at source identity `4466626`, [baseline](baseline-2026-10-19.md)
 - Started: 2026-10-19
 - Last updated: 2026-10-19
 - Status: in progress (static and probe evidence complete; Docker and Electron runtime proof staged for the owner)

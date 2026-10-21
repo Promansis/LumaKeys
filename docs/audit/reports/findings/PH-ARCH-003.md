@@ -10,7 +10,7 @@
 - Affected runtime: both (shared renderer)
 - Coverage rows: WF-001, WF-018
 - Related/duplicate findings: PH-ARCH-002 (settings write contract)
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane F, 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 lane F, 2026-10-19
 
 ## User Impact
 

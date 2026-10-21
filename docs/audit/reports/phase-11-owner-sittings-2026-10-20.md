@@ -3,7 +3,7 @@
 - Status: done for everything this host can run. Sittings 0, 1, 3 and 4 ran; sitting 2
   needs a Windows machine. What still needs the owner is listed in
   [What Still Needs The Owner](#what-still-needs-the-owner).
-- Source identity: `main` at `6e549b6` plus audit-only commits (HEAD `9aa8fe7` when the run
+- Source identity: `main` at `4466626` plus audit-only commits (HEAD `c357a97` when the run
   started). No product source changed after the baseline.
 - New findings: [PH-MUS-014](findings/PH-MUS-014.md) (P1),
   [PH-MUS-015](findings/PH-MUS-015.md) (P3), [PH-MUS-016](findings/PH-MUS-016.md) (P3) and
@@ -70,7 +70,7 @@ under owner decision 4's gate slice 2 moves to the front of wave 1.
 Owner follow-up (user tests A1), 2026-10-20: from a phone on mobile data the app opened
 with no Cloudflare login, so the exposure is not limited to this host's address. The
 owner said the site looks like an old version. Read-only image metadata shows the image
-was built 13 seconds after commit `6e549b6`, and only audit docs have changed since; see
+was built 13 seconds after commit `4466626`, and only audit docs have changed since; see
 [PH-OPS-002](findings/PH-OPS-002.md) step 5.
 
 ### Added: crafted archives (OP-017)

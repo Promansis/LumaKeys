@@ -10,7 +10,7 @@
 - Affected runtime: web
 - Coverage rows: OP-017, WF-025, MOD-013
 - Related/duplicate findings: none
-- First observed against: `main` at source identity `6e549b6`, Phase 11 baseline 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 baseline 2026-10-19
 
 ## User Impact
 
@@ -35,7 +35,7 @@ the intended fix ("use a job queue if multi-user imports are needed").
 
 ### Environment
 
-- Commit/patch identity: source `6e549b6`
+- Commit/patch identity: source `4466626`
 - OS/runtime/browser: static analysis; MuseScore binary not present outside Docker. Runtime check in the Docker image `lumakeys-audit:p11` on 2026-10-20 (Reproduction step 3).
 
 ### Reproduction

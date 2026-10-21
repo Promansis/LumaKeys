@@ -2,7 +2,7 @@
 
 - Lane owner: Claude Code (acting)
 - Reviewer/challenger: Claude Code (acting); each candidate finding carries its own challenge record; lead challenge pending
-- Baseline identity: `main` at `6e549b6` (later commits are audit docs only); web build in `dist/` from that source, not rebuilt by this lane
+- Baseline identity: `main` at `4466626` (later commits are audit docs only); web build in `dist/` from that source, not rebuilt by this lane
 - Started: 2026-10-19
 - Last updated: 2026-10-19
 - Status: complete for the sandbox; owed runtime proof staged for sittings 0, 1, and 4
@@ -22,7 +22,7 @@
   bundled curriculum files (the lane F lessons run owns it); audible output; MIDI
   hardware; Docker (not reachable from the sandbox)
 
-Delta in this lane's files (`git diff 0bd40f5..6e549b6 --stat -- src/lib src/renderer/components/GameScreen.tsx`):
+Delta in this lane's files (`git diff 0bd40f5..4466626 --stat -- src/lib src/renderer/components/GameScreen.tsx`):
 8 files, 42 insertions and 17 deletions, almost all the `'piano-hero'` to `'luma-keys'`
 session-mode rename plus an `importMetadata` title change. The database migration and the
 bridge alias normalize old `'piano-hero'` rows. No scoring, timing, or measure logic
@@ -66,7 +66,7 @@ No existing finding re-raised. Candidates (provisional IDs, for the lead to renu
 
 ## Re-Verification Records (PH-MUS-001 to 004)
 
-| Finding | Fix present at `6e549b6` | Runtime proof done | Runtime proof owed | Verdict |
+| Finding | Fix present at `4466626` | Runtime proof done | Runtime proof owed | Verdict |
 |---|---|---|---|---|
 | PH-MUS-001 | yes; delta touches only the mode rename in `GameScreen.tsx` | web: tempo change keeps judged state, structural change asks and Cancel keeps the run (this lane); computer-keyboard completion and persisted history (lane F, `play-short-song.mjs`) | Electron completion and persistence: blocked, no display for Electron in the sandbox, owed to sitting 1 (item 5 and proposed item 8). MIDI controller: blocked, no device, owed to sitting 4 item 3 | holds |
 | PH-MUS-002 | yes; `types.ts` change is the rename | product-code proof for 6/8, meter change, tempo change mid-bar, pickup forms, exact-bar end (this lane's probe). The re-verification proof gap is closed at probe level; the deterministic test in `src/` is still missing (see Missing Deterministic Tests) | MuseScore-converted MIDI: blocked, no Docker in the sandbox, owed to sitting 0 (proposed item 5) | holds; separate root cause raised as PH-MUS-008 |

@@ -5,7 +5,7 @@ One consolidated record for the 18 findings the Phase 10 report left `fixed` or
 ledger status of each ID is unchanged unless the Conclusion column says otherwise.
 
 - Baseline that proved the fixes: `0bd40f5` (2026-08-07)
-- New baseline under test: `main` at source identity `6e549b6` (2026-10-19)
+- New baseline under test: `main` at source identity `4466626` (2026-10-19)
 - Re-verifier: Claude Code (acting); not the implementer of any Phase 9 fix
 - Date: 2026-10-19
 - Delta source: [delta inventory](../evidence/phase-11-delta-inventory-2026-10-19.md)
@@ -31,7 +31,7 @@ asset inventory passed with 649 public files in `out/renderer`. Full-suite basel
 | PH-MUS-003 | `GameScreen.tsx` modified | `GameSession.test.ts` "applies stable fingering overrides after a loop filters the schedule"; `database.test.ts` "stores stable fingering identities alongside ambiguous legacy rows" pass | runtime fingering identity | holds |
 | PH-MUS-004 | none near | `midiInputService.test.ts` "releases held notes before reporting a disconnected device"; `GameSession.test.ts` source-disconnect release pass | physical disconnect/reconnect | holds; sitting 4 |
 | PH-PAR-001 | new video asset; `packaging/`, `electron.vite.config.ts` in delta | `assert-electron-assets.mjs` passes (649 files, video `.webm` present in `out/renderer/assets/main-menu`) | capstone/managed-pack workflow; missing-asset recovery | holds; note: the assertion is not wired into any npm script, so it runs only when someone remembers (lane G) |
-| PH-PAR-002 | `webBridge.ts` modified: commit `99adf7c` removed the focus-based fallback timer (corrected 2026-10-19 by lane D; earlier text named `1fbd73f`), so cancellation now relies solely on the input `cancel` event | `webBridge.test.ts` MIDI and JSON picker cancellation, "waits for native cancellation instead of treating window focus as cancellation", retry pass | real-browser cancellation | holds for browsers that fire `cancel` (Chrome 113+, Firefox 91+, Safari 16.4+); on older browsers the original pending-promise behavior returns; lane F should confirm in Edge and Firefox (sitting 3) |
+| PH-PAR-002 | `webBridge.ts` modified: commit `4b2db33` removed the focus-based fallback timer (corrected 2026-10-19 by lane D; earlier text named `a7c907a`), so cancellation now relies solely on the input `cancel` event | `webBridge.test.ts` MIDI and JSON picker cancellation, "waits for native cancellation instead of treating window focus as cancellation", retry pass | real-browser cancellation | holds for browsers that fire `cancel` (Chrome 113+, Firefox 91+, Safari 16.4+); on older browsers the original pending-promise behavior returns; lane F should confirm in Edge and Firefox (sitting 3) |
 | PH-PAR-003 | `legacyBrandMigration.ts` new; `database.ts` modified | `databaseMigration.test.ts` four migration/repair tests pass; `legacyBrandMigration.test.ts` nine tests pass | migration in both runtimes | holds; DATA-017 adds the brand fallback as a new row |
 | PH-UI-001 | `FreePlayScreen.tsx`, `NoveltySoundboardScreen.tsx`, `ImmersiveHud.tsx` modified | `SettingsScreen.test.tsx` "keeps keyboard focus inside confirmation dialogs"; Free Play and Soundboard Escape/overlay tests pass | keyboard matrix at zoom | holds; sitting 1 |
 | PH-UI-002 | `styles.css` modified | `.settings-tab-row { min-height: 46px }` still present; `SettingsScreen.test.tsx` tab tests pass | 125 to 200 percent hit-testing | holds in source; the Phase 9 "tablist client height" assertion is not in the suite, so automated proof is weaker than reported (proof gap) |

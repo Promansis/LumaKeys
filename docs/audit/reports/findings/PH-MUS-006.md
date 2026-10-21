@@ -10,7 +10,7 @@
 - Affected runtime: both (shared renderer code in `GameScreen.tsx`); reproduced in the web build in headless Chromium, by replaying the code on the real `GameSession` clock, and in Electron by recording (sitting 1 item 7, 2026-10-20)
 - Coverage rows: WF-009, MOD-011
 - Related/duplicate findings: PH-MUS-002 (measure map; this consumer reads neither `measureBoundaries` nor the tempo map, so its root cause is independent); PH-MUS-001 (tempo changes mid-run)
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane C. The code dates from `e37c612` (2026-05-27) and is not part of the 0bd40f5..6e549b6 delta
+- First observed against: `main` at source identity `4466626`, Phase 11 lane C. The code dates from `e37c612` (2026-05-27) and is not part of the 0bd40f5..4466626 delta
 
 ## User Impact
 
@@ -47,7 +47,7 @@ beats (`GameScreen.tsx` `runCountdown`, `beatMs = 60 / (song.bpm × tempoMultipl
 
 ### Environment
 
-- Commit/patch identity: `6e549b6` (audited source); web build in `dist/` from that source
+- Commit/patch identity: `4466626` (audited source); web build in `dist/` from that source
 - OS/runtime/browser: Linux; Node 24 with tsx for the replay; headless Chromium 141 (Playwright 1.56.1) for the runtime run
 - Data profile/fixture: isolated data dir `$TMPDIR/p11/C/data-metro`; `scripts/audit/fixtures/midi/metro-3-4-late-note.mid` (3/4, 120 BPM, one note at 30 s) for the browser run; `pmus-16.mid`, `6-8-then-3-4-reached.mid`, `3-4-to-4-4-tempo.mid` for the replay
 - Hardware, if applicable: none (click times read from the Web Audio API, not by ear)

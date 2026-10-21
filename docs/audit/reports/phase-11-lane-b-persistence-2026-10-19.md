@@ -2,7 +2,7 @@
 
 - Lane owner: Claude Code (acting)
 - Reviewer/challenger: Claude Code (acting), second pass on every candidate
-- Baseline identity: `main` at `6e549b6` plus audit-only commits (HEAD `6ca051e`); delta base `0bd40f5` (Phase 10)
+- Baseline identity: `main` at `4466626` plus audit-only commits (HEAD `c0a7283`); delta base `0bd40f5` (Phase 10)
 - Started: 2026-10-19
 - Last updated: 2026-10-19
 - Status: challenged. Matrix, ledger and user-test changes are proposed at the end for the lead to merge.

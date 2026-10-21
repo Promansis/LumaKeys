@@ -10,7 +10,7 @@
 - Affected runtime: web
 - Coverage rows: OP-014
 - Related/duplicate findings: PH-SEC-002 (token transport once a gate exists)
-- First observed against: `main` at source identity `6e549b6`, Phase 11 baseline 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 baseline 2026-10-19
 
 ## User Impact
 
@@ -38,7 +38,7 @@ reachable without Access.
 
 ### Environment
 
-- Commit/patch identity: source `6e549b6`
+- Commit/patch identity: source `4466626`
 - OS/runtime/browser: static analysis; live hostname probed with `curl` from this host on 2026-10-20 (sitting 0 item 4)
 
 ### Reproduction
@@ -61,8 +61,8 @@ reachable without Access.
    opened the app with no Cloudflare login. The owner said it looks like an old version.
    Read-only image metadata (`docker image inspect`, `docker ps`; nothing changed): the
    image `lumakeys-lumakeys` was built 2026-10-06 16:47:35 +08:00, 13 seconds after
-   commit `6e549b6`, and the running container was created from it the same minute.
-   Since `6e549b6` only audit docs have changed, so the live host runs the code this
+   commit `4466626`, and the running container was created from it the same minute.
+   Since `4466626` only audit docs have changed, so the live host runs the code this
    audit tested. Why it looks old is not known; a page cached on the phone or at
    Cloudflare is one possibility.
 
@@ -105,16 +105,16 @@ with a placeholder that the server rejects until changed. `src/server/index.ts`,
 ## Resolution
 
 - Accepted/rejected rationale: kept `suspected` at the Phase 11 consolidation on 2026-10-20; accepted at P0 the same day after sitting 0 item 4. Under owner decision 4's gate, slice 2 moves to the front of wave 1 ([Owner Selection](../phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20)).
-- Immediate mitigation, outside any slice and the owner's to make (production infrastructure): put a Cloudflare Access application in front of the hostname, or set `LUMAKEYS_WEB_ACCESS_TOKEN` and recreate the container. The live build (`6e549b6`) already reads the token, so the token needs no rebuild; README section 5a gives the one-time `/api/access?access_token=` sign-in for each device. The agent changed nothing in production.
-- Fix branch/commit/issue: branch `remediation/p11-s02-web-access`, `b6aaf47` (fix) and `aae47b5` (audit drivers), slice 2, with review repairs in `3d5d963` and `ed31acb`. Merged to `main` in `4b72c98` on 2026-10-21; not deployed.
-  - What changed: `resolveWebAccessPolicy` in `src/server/webSecurity.ts` reads the gate from the environment. A token (`LUMAKEYS_WEB_ACCESS_TOKEN`, or the legacy `PIANOHERO_WEB_ACCESS_TOKEN`) gates `/api/*`. A blank or whitespace-only value counts as unset for each token variable, so a blank new variable does not hide a set legacy one (`3d5d963`). With no token, only `LUMAKEYS_TRUST_UPSTREAM_AUTH=1` starts the server without a gate (the value is trimmed, so `1 ` counts as `1`; `true` or `0` do not), and the server logs a warning. Anything else throws. `startServer` in `src/server/index.ts` checks this first, so the process exits 1 before it creates the data dir, opens the database or binds the port. The placeholder `change-this-long-random-token` is refused in every mode.
+- Immediate mitigation, outside any slice and the owner's to make (production infrastructure): put a Cloudflare Access application in front of the hostname, or set `LUMAKEYS_WEB_ACCESS_TOKEN` and recreate the container. The live build (`4466626`) already reads the token, so the token needs no rebuild; README section 5a gives the one-time `/api/access?access_token=` sign-in for each device. The agent changed nothing in production.
+- Fix branch/commit/issue: branch `remediation/p11-s02-web-access`, `07aa4f5` (fix) and `3a110a0` (audit drivers), slice 2, with review repairs in `05f33cb` and `3b344ca`. Merged to `main` in `ed07ce2` on 2026-10-21; not deployed.
+  - What changed: `resolveWebAccessPolicy` in `src/server/webSecurity.ts` reads the gate from the environment. A token (`LUMAKEYS_WEB_ACCESS_TOKEN`, or the legacy `PIANOHERO_WEB_ACCESS_TOKEN`) gates `/api/*`. A blank or whitespace-only value counts as unset for each token variable, so a blank new variable does not hide a set legacy one (`05f33cb`). With no token, only `LUMAKEYS_TRUST_UPSTREAM_AUTH=1` starts the server without a gate (the value is trimmed, so `1 ` counts as `1`; `true` or `0` do not), and the server logs a warning. Anything else throws. `startServer` in `src/server/index.ts` checks this first, so the process exits 1 before it creates the data dir, opens the database or binds the port. The placeholder `change-this-long-random-token` is refused in every mode.
   - `docker-compose.yml` now sets `LUMAKEYS_WEB_ACCESS_TOKEN: "${LUMAKEYS_WEB_ACCESS_TOKEN:-change-this-long-random-token}"`, so the token comes from a `.env` file next to the compose file, and a deployment without one stops at start instead of running open. The trust line is there, commented out. README sections 3 and 5a say this, and the troubleshooting section names the two startup errors.
   - Of the two options in the boundary, this takes "refuse to bind". A server that serves the app but no API looks broken in confusing ways. With `restart: unless-stopped`, a refused start becomes a restart loop with growing delays, and each attempt logs the error that names the fix in `docker compose logs`.
   - Once this is deployed, the `/api/access?access_token=` sign-in in the mitigation bullet above stops working ([PH-SEC-002](PH-SEC-002.md)). Sign in at `/login` instead.
 - Verification evidence (agent run 2026-10-21, for the verifier; not a verification). Evidence files are under `$TMPDIR/p11-s02/`.
   - Tests that failed before the fix and pass after: in `src/server/webSecurity.test.ts`, "resolveWebAccessPolicy" > "refuses to start when neither a token nor upstream trust is set", "refuses the placeholder token shipped in docker-compose.yml", "uses the configured token, with the legacy variable as a fallback" and "trusts upstream auth only when LUMAKEYS_TRUST_UPSTREAM_AUTH is exactly 1" (before: `resolveWebAccessPolicy is not a function`). In the new `src/server/index.test.ts`, "web server startup" > "refuses to start when neither an access token nor upstream trust is set" and "refuses to start with the placeholder token from docker-compose.yml". These start the real entry with `node --import tsx`; before the fix the server kept running and was killed after 8 s ("expected null to be 1"). "allows API requests when upstream auth is explicitly trusted" replaces the old "no token means open" case.
-  - Review repairs (`3d5d963`): "treats a blank token variable as unset, so the legacy token still applies" failed before the repair ("No web access gate is set") and passes after. Both refused-start tests now point `LUMAKEYS_DATA_DIR` at a path that does not exist yet and check it is still absent afterwards. A new spawn test, "gates the API and sends the CSP header when started with a token", checks that `POST /api/bridge/getAllSongs` is 401 without the token and 200 with it. In a scratch copy outside the worktree, moving `installWebAccess` after the `app.route(...)` calls fails that test ("expected 200 to be 401"); the mutation was not committed.
-  - Built server, throwaway data dirs, port 3221. Before (`6e549b6` code), no variables: `GET /api/access` 200 and `POST /api/bridge/getAllSongs` 200 (`ops002-before.txt`, sha256 `3e0923d4…d0e5852b`). After: no variables, exit 1 with "No web access gate is set. …"; the placeholder, exit 1 with "… still the placeholder from docker-compose.yml …"; `LUMAKEYS_TRUST_UPSTREAM_AUTH=true`, exit 1. In all three the data dir was not created and nothing listened. `LUMAKEYS_TRUST_UPSTREAM_AUTH=1` starts, logs the warning and answers `/api/access` 200. With a token, `/api/access` is 401 without it (`ops002-final.txt`, sha256 `25b247da…e7537ddb`).
+  - Review repairs (`05f33cb`): "treats a blank token variable as unset, so the legacy token still applies" failed before the repair ("No web access gate is set") and passes after. Both refused-start tests now point `LUMAKEYS_DATA_DIR` at a path that does not exist yet and check it is still absent afterwards. A new spawn test, "gates the API and sends the CSP header when started with a token", checks that `POST /api/bridge/getAllSongs` is 401 without the token and 200 with it. In a scratch copy outside the worktree, moving `installWebAccess` after the `app.route(...)` calls fails that test ("expected 200 to be 401"); the mutation was not committed.
+  - Built server, throwaway data dirs, port 3221. Before (`4466626` code), no variables: `GET /api/access` 200 and `POST /api/bridge/getAllSongs` 200 (`ops002-before.txt`, sha256 `3e0923d4…d0e5852b`). After: no variables, exit 1 with "No web access gate is set. …"; the placeholder, exit 1 with "… still the placeholder from docker-compose.yml …"; `LUMAKEYS_TRUST_UPSTREAM_AUTH=true`, exit 1. In all three the data dir was not created and nothing listened. `LUMAKEYS_TRUST_UPSTREAM_AUTH=1` starts, logs the warning and answers `/api/access` 200. With a token, `/api/access` is 401 without it (`ops002-final.txt`, sha256 `25b247da…e7537ddb`).
   - `scripts/audit/web-security-probe.sh` against a token server: "/api/access requires a token (401)", 0 WARN (`probe-final.txt`, sha256 `ec7926c5…b27249f5`).
   - Full suite on the branch after the repairs: `npx vitest run` 68 files passed and 1 skipped, 386 tests passed and 1 skipped (the opt-in MuseScore integration test); both `tsc --noEmit` runs clean.
   - Not run: Docker. The compose file was parsed as YAML only. `docker compose config`, a container start with the owner's `.env`, and a repeat of user tests A1 on the live host are owed.

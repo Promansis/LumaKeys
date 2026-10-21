@@ -5,7 +5,7 @@
 //   (inside the agent sandbox: node --import tsx scripts/audit/metronome-replay-probe.ts ...)
 //
 // Replays the in-game metronome interval from src/renderer/components/GameScreen.tsx
-// (the useEffect around lines 590-615 at 6e549b6; the beat computation is copied verbatim
+// (the useEffect around lines 590-615 at 4466626; the beat computation is copied verbatim
 // below) against the real GameSession clock with a controlled 25 ms time source, at practice
 // tempos 1.0, 0.5, and 1.5. For each run it prints the wall-clock and song-time of every click,
 // which clicks are accented, and the song's barlines from parseMidiFile. Compare by hand with

@@ -2,7 +2,7 @@
 
 - Status: complete for the web half of WF-002, WF-003, WF-011, WF-018 and WF-019. The
   desktop half is in the [Electron runtime report](phase-11-electron-runtime-2026-10-20.md).
-- Source identity: `main` at `6e549b6` plus audit-only commits; web build from `npm run build:web`
+- Source identity: `main` at `4466626` plus audit-only commits; web build from `npm run build:web`
 - Runner: agent FA (Sonnet) ran the drivers on 2026-10-19 on ports 3781 to 3784. It
   stopped before writing a report. The lead (Claude Code, acting) wrote this report
   on 2026-10-20 from FA's output, after checking every defect claim against source.

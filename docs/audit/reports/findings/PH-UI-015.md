@@ -10,7 +10,7 @@
 - Affected runtime: both (canvas code); web proven
 - Coverage rows: RT-010, WF-009, MOD-003
 - Related/duplicate findings: none
-- First observed against: `main` at `6e549b6`
+- First observed against: `main` at `4466626`
 
 ## User Impact
 
@@ -26,7 +26,7 @@ The setting "Colour-blind mode" exists to make note states distinguishable. In t
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`; headless Chromium 141, Playwright 1.56.1, built web server, default dark theme, 1480x960.
+- Commit/patch identity: `4466626`; headless Chromium 141, Playwright 1.56.1, built web server, default dark theme, 1480x960.
 - Fixture: generated four-note song (C4 to F4, 120 BPM), Play mode, the first two notes hit with computer-keyboard keys, the last two left to miss.
 
 ### Reproduction

@@ -10,7 +10,7 @@
 - Affected runtime: both (web reproduced; Electron runs the same renderer code)
 - Coverage rows: DATA-016, DATA-017
 - Related/duplicate findings: PH-DATA-004 (same pattern for the web IndexedDB pack store; the lead may merge both into one "browser-side stores renamed without carry-over" finding), PH-DATA-005
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane B, 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 lane B, 2026-10-19
 
 ## User Impact
 
@@ -38,7 +38,7 @@ lost, but it is durable user-created state that the rename drops silently.
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`; web build in `dist/` (current for this source).
+- Commit/patch identity: `4466626`; web build in `dist/` (current for this source).
 - OS/runtime: Linux, headless Chromium 141 via Playwright 1.56.1, server on port
   3798 with `LUMAKEYS_DATA_DIR` under `$TMPDIR/p11/B/presets`.
 
@@ -97,8 +97,8 @@ the helper with the rest of the legacy fallback (see the lane H ADR draft).
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: branch `remediation/p11-s15-browser-legacy` (slice 15; ships in the carry-over release with slice 1): `f3b1fb8` (fix), `7bdd671` (Resolutions), then the slice 15 review repairs `ec47dea` (keep the carry-over in one deletable file; this finding), `c526de5` (abort the pack copy on a failed put; [PH-DATA-004](PH-DATA-004.md)) and `46487db` (Resolutions of both after the review). The review passed after the repairs. Merged to `main` in `7c9ec01` on 2026-10-21, held until slice 1 merged (`9e249ae`). The merge resolved a conflict in the `webBridge.test.ts` imports by keeping both sides. No issue.
-- Status: `verified` (audit lead, 2026-10-21). Every Required proof row has passed: the `LibraryScreen` unit test, the web driver `legacy-filter-presets.mjs` (case L lists "Legacy Preset"), and the Electron row ("sitting 2 or a headless Electron run after PH-DATA-005 is fixed") through a headless Electron run on 2026-10-21 (an earlier `luma-keys` build saved two presets beside `pianohero.db`; the merged `ed40fa6` build migrated the profile and the Library listed both presets under `lumakeys-filter-presets`, again after a relaunch; a rebuild without the carry-over call listed none; evidence `$TMPDIR/p11-ph-data-007/evidence/03-after-merged.out`, sha256 `0ef72641…cd59ef`). The Windows profile in sitting 2 item 1 remains a release check, not an owed proof for this finding.
+- Fix branch/commit/issue: branch `remediation/p11-s15-browser-legacy` (slice 15; ships in the carry-over release with slice 1): `f282e8a` (fix), `d885390` (Resolutions), then the slice 15 review repairs `9e9e458` (keep the carry-over in one deletable file; this finding), `7d94c95` (abort the pack copy on a failed put; [PH-DATA-004](PH-DATA-004.md)) and `38dc6bc` (Resolutions of both after the review). The review passed after the repairs. Merged to `main` in `8d73767` on 2026-10-21, held until slice 1 merged (`c95586b`). The merge resolved a conflict in the `webBridge.test.ts` imports by keeping both sides. No issue.
+- Status: `verified` (audit lead, 2026-10-21). Every Required proof row has passed: the `LibraryScreen` unit test, the web driver `legacy-filter-presets.mjs` (case L lists "Legacy Preset"), and the Electron row ("sitting 2 or a headless Electron run after PH-DATA-005 is fixed") through a headless Electron run on 2026-10-21 (an earlier `luma-keys` build saved two presets beside `pianohero.db`; the merged `a84acb0` build migrated the profile and the Library listed both presets under `lumakeys-filter-presets`, again after a relaunch; a rebuild without the carry-over call listed none; evidence `$TMPDIR/p11-ph-data-007/evidence/03-after-merged.out`, sha256 `0ef72641…cd59ef`). The Windows profile in sitting 2 item 1 remains a release check, not an owed proof for this finding.
 - Verification evidence:
 
   What changed: new `src/renderer/legacyFilterPresets.ts`. `LibraryScreen` calls `carryOverLegacyFilterPresets()` in its preset state initialiser. When `lumakeys-filter-presets` is absent and `pianohero-filter-presets` exists, the value is copied across and the old key is removed once the copy reads back equal. When the current key exists it wins and the legacy key is left until reset. Storage errors are swallowed. `LibraryScreen` keeps its original key literals and gains only the one call, so removal is deleting that file and that call. Marked for removal no earlier than 2027-01-31 (owner decision 3). "Reset all user data" already calls `localStorage.clear()`, which clears both names, so reset needed no change and has no new test.

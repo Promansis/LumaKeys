@@ -10,7 +10,7 @@
 - Affected runtime: both (shared renderer and input service); reproduced with scripted devices in the web build and, on 2026-10-20, in Electron
 - Coverage rows: WF-002, WF-018, RT-011
 - Related/duplicate findings: PH-MUS-010
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane F (FA run 2026-10-19; source trace 2026-10-20)
+- First observed against: `main` at source identity `4466626`, Phase 11 lane F (FA run 2026-10-19; source trace 2026-10-20)
 
 ## User Impact
 
@@ -33,7 +33,7 @@ the filter falls back to any device or the card says the saved device is missing
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`, web bundle from `dist/`
+- Commit/patch identity: `4466626`, web bundle from `dist/`
 - OS/runtime/browser: Linux, headless Chromium 141, fake Web MIDI (`midi-permission-fallback.mjs`)
 - Data profile/fixture: two fake inputs, `fake-1` "Fake Piano 88" and `fake-2` "Fake Second Keys"
 

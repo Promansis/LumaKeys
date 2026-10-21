@@ -10,7 +10,7 @@
 - Affected runtime: web
 - Coverage rows: WF-004, WF-025
 - Related/duplicate findings: PH-PAR-004 (same route, different defect)
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane F (FB), 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 lane F (FB), 2026-10-19
 
 ## User Impact
 
@@ -34,7 +34,7 @@ filesystem paths to clients.
 
 ### Environment
 
-- Commit/patch identity: `6e549b6` web build
+- Commit/patch identity: `4466626` web build
 - OS/runtime/browser: Node 24, web server on ports 3785 to 3788
 - Data profile/fixture: valid MIDI uploaded alone and with an `.mscz`
 

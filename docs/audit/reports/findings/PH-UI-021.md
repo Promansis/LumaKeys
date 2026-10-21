@@ -3,14 +3,14 @@
 - Lane: UI
 - Severity: P3
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: the slice 3 reviewer (independent), 2026-10-21
 - Verifier: TBD
 - Affected runtime: Electron
 - Coverage rows: WF-004, WF-005, WF-006, WF-020, MOD-008
 - Related/duplicate findings: PH-OPS-003 (the Electron 30.5.1 to 44.9.2 upgrade that brought the behaviour in; not a duplicate, because the upgrade is correct and this is a follow-up the app owes to it)
-- First observed against: `main` at `ed40fa6` (slice 3 merged); the code that lacks `defaultPath` is older than the Phase 11 baseline, and the behaviour changed with the upgrade commit `21d8cd5`. Found 2026-10-21 during the slice 3 implementation and review.
+- First observed against: `main` at `a84acb0` (slice 3 merged); the code that lacks `defaultPath` is older than the Phase 11 baseline, and the behaviour changed with the upgrade commit `5f3d4d4`. Found 2026-10-21 during the slice 3 implementation and review.
 
 ## User Impact
 
@@ -39,7 +39,7 @@ Electron 31 to 44).
 
 ### Environment
 
-- Commit/patch identity: `main` at `ed40fa6`; Electron 44.9.2, better-sqlite3 13.0.3.
+- Commit/patch identity: `main` at `a84acb0`; Electron 44.9.2, better-sqlite3 13.0.3.
 - OS/runtime/browser: none run for this finding. The evidence is the Electron 43
   breaking-changes notes (`docs/breaking-changes.md` in the Electron repository, section
   for 43) and the call sites in `src/main/index.ts`.
@@ -63,7 +63,7 @@ in the call sites; the charter's status model has no word for "confirmed by docu
 
 ### Artifacts
 
-- File/line (`src/main/index.ts` at `ed40fa6`): none of the open-dialog option objects sets
+- File/line (`src/main/index.ts` at `a84acb0`): none of the open-dialog option objects sets
   `defaultPath`. The 8 `dialog.showOpenDialog` calls are at lines 147 (`dialog:pick-midi-file`),
   187 (`songs:import-midi-files`, the Library "Upload MIDI" path), 224 (`songs:import-folder`),
   268 (`songs:reattach-midi-file`), 415 (`library:import`, a JSON backup), 487
@@ -134,7 +134,7 @@ This is not implementation authorization.
 
 ## Resolution
 
-- Accepted/rejected rationale: not yet decided; the finding awaits the owner.
+- Accepted/rejected rationale: accepted by the owner on 2026-10-21; each dialog remembers the last folder until the app closes (in memory), as a follow-up to slice 3 (user tests decision 7).
 - Fix branch/commit/issue: none. Proposed placement: a small follow-up to slice 3 (in
   memory, one file and one test), or slice 14 "Settings values" if the folders are
   persisted. The owner decides both the placement and in-memory against persisted.

@@ -10,7 +10,7 @@
 - Affected runtime: web (Electron grants MIDI without a prompt: no permission handler is set in `src/main/index.ts`)
 - Coverage rows: WF-001, WF-002, RT-011
 - Related/duplicate findings: none
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane F (FA run 2026-10-19; source trace 2026-10-20)
+- First observed against: `main` at source identity `4466626`, Phase 11 lane F (FA run 2026-10-19; source trace 2026-10-20)
 
 ## User Impact
 
@@ -31,7 +31,7 @@ has not been answered yet should get the same fallback, not block the app.
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`, web bundle from `dist/`
+- Commit/patch identity: `4466626`, web bundle from `dist/`
 - OS/runtime/browser: Linux, headless Chromium 141; `navigator.requestMIDIAccess` replaced by a promise the driver settles later (`midi-permission-fallback.mjs`, case "pending")
 
 ### Reproduction

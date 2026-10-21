@@ -10,7 +10,7 @@
 - Affected runtime: both (renderer code, no runtime branch; web, headless Electron, Edge 155 and Firefox 142 proven)
 - Coverage rows: RT-008, WF-018, MOD-005
 - Related/duplicate findings: same defect class as PH-UI-001 (focus containment) and PH-UI-004 (Escape also navigates). Their Phase 9 fixes covered the Settings confirmation dialog and the immersive session menus, not this dialog. Lead may fold this into a reopened PH-UI-001/004 or keep it separate.
-- First observed against: `main` at `6e549b6` (audit-only commits after it)
+- First observed against: `main` at `4466626` (audit-only commits after it)
 
 ## User Impact
 
@@ -35,7 +35,7 @@ Latency compensation is an optional setting and a pointer user is unaffected, so
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`
+- Commit/patch identity: `4466626`
 - OS/runtime/browser: Linux, headless Chromium 141, Playwright 1.56.1, built web server (`dist/server/index.cjs`), 1480x960
 - Data profile/fixture: empty isolated data directory under `$TMPDIR/p11/E/data`
 - Hardware: none (a real audio output is not needed to reproduce)

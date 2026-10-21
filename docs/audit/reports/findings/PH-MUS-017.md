@@ -10,7 +10,7 @@
 - Affected runtime: both
 - Coverage rows: WF-008, DATA-007, BR-034, MOD-003
 - Related/duplicate findings: PH-MUS-003 (fingering identity, now verified; this is a separate cause); none duplicate
-- First observed against: `main` at `d28a028` (source identity `6e549b6`), agent proof run for PH-MUS-003, 2026-10-20
+- First observed against: `main` at `d208ee2` (source identity `4466626`), agent proof run for PH-MUS-003, 2026-10-20
 
 ## User Impact
 
@@ -34,7 +34,7 @@ must be told and asked first.
 
 ### Environment
 
-- Commit/patch identity: `main` at `d28a028`; no product source changed since `6e549b6`.
+- Commit/patch identity: `main` at `d208ee2`; no product source changed since `4466626`.
 - OS/runtime/browser: Electron 30.5.1 (`out/`), Linux, headless offscreen.
 - Data profile/fixture: throwaway profile under `$TMPDIR`; the "Two Hand Study" fixture
   (Melody F4 G4 A4 B4 C5 C5 on Right Hand, Accompaniment C3 E3 G3 C3 E3 G3 on Left Hand).

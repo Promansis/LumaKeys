@@ -10,7 +10,7 @@
 - Affected runtime: both (renderer); reproduced in headless Chromium 141, real Chrome 151 and headless Electron 30.5.1; not reproduced in Edge 155 or Firefox 142 (sitting 3, 2026-10-20)
 - Coverage rows: RT-008, WF-018, WF-021, WF-022, MOD-005
 - Related/duplicate findings: PH-UI-001 and PH-UI-004 are verified for this dialog (containment and Escape hold); this is the third part of the Phase 5 modal oracle, "restore focus on close".
-- First observed against: `main` at `6e549b6`
+- First observed against: `main` at `4466626`
 
 ## User Impact
 
@@ -26,7 +26,7 @@ In Chrome and Electron, after Cancel or Escape closes "Clear learning progress?"
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`; headless Chromium 141, Playwright 1.56.1, built web server, 1480x960.
+- Commit/patch identity: `4466626`; headless Chromium 141, Playwright 1.56.1, built web server, 1480x960.
 
 ### Reproduction
 

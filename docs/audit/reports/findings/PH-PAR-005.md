@@ -10,7 +10,7 @@
 - Affected runtime: web
 - Coverage rows: WF-015
 - Related/duplicate findings: none
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane F (FB), 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 lane F (FB), 2026-10-19
 
 ## User Impact
 
@@ -36,7 +36,7 @@ panel copy do not follow it.
 
 ### Environment
 
-- Commit/patch identity: `6e549b6` web build
+- Commit/patch identity: `4466626` web build
 - OS/runtime/browser: headless Chromium 141, web server on port 3788
 - Data profile/fixture: eight notes played with the computer keyboard
 

@@ -2,7 +2,7 @@
 
 - Lane owner: Claude Code (acting)
 - Reviewer/challenger: Claude Code (acting)
-- Baseline identity: `main` at `6e549b6` plus audit-only commits (HEAD `6ca051e`)
+- Baseline identity: `main` at `4466626` plus audit-only commits (HEAD `c0a7283`)
 - Started: 2026-10-19
 - Last updated: 2026-10-19
 - Status: challenged. Document edits are proposed, not made; the lead or the owner applies them.
@@ -20,7 +20,7 @@
 | Surface | Oracle/invariant | Method/fixture | Runtime | Expected artifact |
 |---|---|---|---|---|
 | Paths and links in audit documents | plan exit gate: "no document the audit depends on names a path that does not exist" | `scripts/audit/doc-path-check.mjs` (new, read-only) | none | classified reference list |
-| `CLAUDE.md`, ADR 0001, `CONTEXT.md`, `docs/agents/*` | they describe the current module layout and runtime support | statements checked against source at `6e549b6` | none | stale-statement table |
+| `CLAUDE.md`, ADR 0001, `CONTEXT.md`, `docs/agents/*` | they describe the current module layout and runtime support | statements checked against source at `4466626` | none | stale-statement table |
 | Coverage summary | charter rule: update counts from the tables | `node scripts/audit/recount-coverage.mjs --check` | none | exit code and message |
 | Legacy fallback governance | `docs/adr/README.md:15-17`: an ADR is required when work changes persisted data or migration strategy | lane B evidence | none | proposed ADR draft |
 
@@ -106,7 +106,7 @@ gap is governance: two documents the audit depends on are not versioned.
 
 ### `CLAUDE.md`
 
-| Line | Statement | Current fact (source at `6e549b6`) |
+| Line | Statement | Current fact (source at `4466626`) |
 |---|---|---|
 | 41 | "loads MIDI files" | The web runtime also imports `.mscz` through MuseScore (`src/server/museScore.ts`, `README.md:208-211`); Electron imports MIDI only. The runtime difference is not mentioned. |
 | 53 | "~60 IPC handlers" | 68 `ipcMain.handle` registrations in `src/main/index.ts`. |
@@ -144,7 +144,7 @@ Correct as written: `CONTEXT.md`'s module ownership map (`:66-79`) and runtime l
 ## Task 3: Coverage Recount
 
 `node scripts/audit/recount-coverage.mjs --check` at 22:44 (+08:00) on HEAD
-`6ca051e`, with `coverage-matrix.md` sha256 `e577121d…ea1acb3`, printed "Summary
+`c0a7283`, with `coverage-matrix.md` sha256 `e577121d…ea1acb3`, printed "Summary
 table matches the rows" and exited 0. Runs at 22:33 and 22:52 gave the same result with the same matrix hash.
 Totals: workflows 26 (0 covered, 26 gap or blocked), runtime/UI 12 (6, 6), durable
 stores 17 (17, 0), bridge methods 69 (69, 0), privileged operations 18 (16, 2),

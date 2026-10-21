@@ -10,7 +10,7 @@
 - Affected runtime: Electron (the web never uses the pack, PH-PAR-006)
 - Coverage rows: WF-019
 - Related/duplicate findings: PH-PAR-006
-- First observed against: `main` at source identity `6e549b6`, sitting 1 audio run 2026-10-20
+- First observed against: `main` at source identity `4466626`, sitting 1 audio run 2026-10-20
 
 ## User Impact
 
@@ -30,7 +30,7 @@ A pack replaces the samples, not the instrument's envelope. The built-in sampler
 
 ### Environment
 
-- Commit/patch identity: source `6e549b6`
+- Commit/patch identity: source `4466626`
 - OS/runtime/browser: Electron 30.5.1 (`out/`, offscreen), Linux; audio from a
   PulseAudio null sink
 - Data profile/fixture: fresh profile, Flute pack installed, sliders saved

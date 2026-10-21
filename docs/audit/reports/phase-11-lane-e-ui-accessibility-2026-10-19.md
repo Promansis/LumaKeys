@@ -2,7 +2,7 @@
 
 - Lane owner: Claude Code (acting)
 - Reviewer/challenger: Claude Code (acting); every candidate finding carries its own challenge record
-- Baseline identity: `main` at `6e549b6` (later commits are audit documents only); web build from `dist/` as left by lane F
+- Baseline identity: `main` at `4466626` (later commits are audit documents only); web build from `dist/` as left by lane F
 - Started: 2026-10-19
 - Last updated: 2026-10-19
 - Status: complete (web half); Electron, real zoom, Edge, Firefox, OS reduced-motion setting, and colour-vision proof are named below and owed to user sittings

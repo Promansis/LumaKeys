@@ -10,7 +10,7 @@
 - Affected runtime: Electron
 - Coverage rows: MOD-014, OP-013, MOD-008
 - Related/duplicate findings: none
-- First observed against: `main` at source identity `6e549b6`, Phase 11 baseline 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 baseline 2026-10-19
 
 ## User Impact
 
@@ -36,7 +36,7 @@ links open in the user's browser.
 
 ### Environment
 
-- Commit/patch identity: source `6e549b6`; current `out/main/index.js` and `out/renderer`
+- Commit/patch identity: source `4466626`; current `out/main/index.js` and `out/renderer`
 - OS/runtime/browser: static analysis plus Electron 30.5.1 source; runtime in the real
   app under the Phase 11 headless Electron harness (`scripts/audit/electron/`,
   offscreen windows, isolated profile under `$TMPDIR`), 2026-10-20
@@ -108,15 +108,15 @@ plus a unit test around the handler if the window setup is extracted.
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 
-- Implementation, 2026-10-21 (branch `remediation/p11-s03-electron`, slice 3, commits `eeae17b` and the review follow-up `71e3fcf`, with `66165f6` (Resolutions); the independent review passed; merged to `main` in `ed40fa6` on 2026-10-21):
+- Implementation, 2026-10-21 (branch `remediation/p11-s03-electron`, slice 3, commits `9f1e99c` and the review follow-up `0e50a6f`, with `8bf28ef` (Resolutions); the independent review passed; merged to `main` in `a84acb0` on 2026-10-21):
   - New `src/main/windowGuard.ts` (no Electron imports) and a call in `createMainWindow`. `setWindowOpenHandler` returns `{ action: 'deny' }` for every URL and calls `shell.openExternal` only for `https:` URLs (a rejected or throwing launch is swallowed). A `will-navigate` handler cancels navigation unless the target is the packaged `index.html` file (hash and query ignored) or the dev-server origin. `sandbox: true` is now explicit.
-  - Source identity: product code on `main` at `5017b8e` is identical to the audited `6e549b6` (`git diff 6e549b6 5017b8e -- src public package.json package-lock.json packaging` is empty).
+  - Source identity: product code on `main` at `7cf0c62` is identical to the audited `4466626` (`git diff 4466626 7cf0c62 -- src public package.json package-lock.json packaging` is empty).
   - Fails before, passes after:
     - Unit: `src/main/windowGuard.test.ts` (7 tests: `handleWindowOpen`, `isAppNavigation`, `installWindowGuard`). Before the module existed the file failed to load; after, 7 of 7 pass.
     - Electron driver `scripts/audit/electron/window-open.mjs`, which now checks the app as shipped (PASS or FAIL lines); `ALLOW_OFFSCREEN=1` replays the old baseline.
-      - Baseline, Electron 30.5.1, `out/` built from `5017b8e`, `ALLOW_OFFSCREEN=1`: child window at `http://127.0.0.1:<port>/child` with `bridge: "undefined"`, `node: "undefined"`, `opener: "null"`; it navigates itself to `/next`; windows 1 to 2.
+      - Baseline, Electron 30.5.1, `out/` built from `7cf0c62`, `ALLOW_OFFSCREEN=1`: child window at `http://127.0.0.1:<port>/child` with `bridge: "undefined"`, `node: "undefined"`, `opener: "null"`; it navigates itself to `/next`; windows 1 to 2.
       - Baseline, default mode: the headless app exits on the click (`page.evaluate: Target page, context or browser has been closed`), the same crash the finding records for `NO_HANDLER=1`.
       - After, Electron 30.5.1 and again on Electron 44.9.2: windows 1 to 1, no `window` event, stubbed `shell.openExternal` called once with the https URL (the http link opens nothing), a `location.href` change to another origin leaves the main window on `file://…/out/renderer/index.html` with its bridge, main window `sandbox: true`. Four PASS lines on both.
   - Not run: a real click on a credit link with a real browser (human-only; steps in the slice report).
-- Review follow-up (`71e3fcf`, 2026-10-21): `isAppNavigation` compared only the pathname for `file:` URLs, so `file://server/<app path>` (a UNC share on Windows) counted as in-app. It now also requires the same host. `handleWindowOpen` passes the parsed `href`, not the raw string, to `openExternal`. The unit test's fake `webContents` now only records `will-navigate` listeners, so renaming the event fails the suite. The merged `src/main/windowGuard.test.ts` has 8 tests (one added: `passes the normalised URL to the system browser`; the host rejection is a new assertion in an existing test), which supersedes the "7 tests" above. The Electron driver results above were taken before this change.
+- Review follow-up (`0e50a6f`, 2026-10-21): `isAppNavigation` compared only the pathname for `file:` URLs, so `file://server/<app path>` (a UNC share on Windows) counted as in-app. It now also requires the same host. `handleWindowOpen` passes the parsed `href`, not the raw string, to `openExternal`. The unit test's fake `webContents` now only records `will-navigate` listeners, so renaming the event fails the suite. The merged `src/main/windowGuard.test.ts` has 8 tests (one added: `passes the normalised URL to the system browser`; the host rejection is a new assertion in an existing test), which supersedes the "7 tests" above. The Electron driver results above were taken before this change.
 - Status: `fixed`, not `verified` (audit lead, 2026-10-21). Rows of the Required Regression Proof that have passed: the deterministic row (`windowGuard.test.ts`: `deny` for every URL, `openExternal` only for `https:`), the web row (unchanged), the Electron driver `window-open.mjs` on Electron 30.5.1 and 44.9.2, and the broader build command; the merge check in [PH-OPS-003](PH-OPS-003.md) covers the merged tree. Still owed: a real click on a credit link in the packaged app on a real display, to see the system browser open and no LumaKeys window (user tests B8; Windows in sitting 2 item 8). The post-merge `window-open.mjs` run on the merged tree passed (audit lead, 2026-10-21: four PASS lines, `ERRORS []`). Not part of this finding: `will-frame-navigate` and `will-redirect` are not guarded (optional defence in depth), and 24 of the 61 Soundboard credit links use `local://` and open nothing (see the plan's leads from the wave 1 reviews).

@@ -3,14 +3,14 @@
 - Lane: MUS
 - Severity: P3
 - Confidence: high
-- Status: reproduced
+- Status: accepted
 - Owner: Claude Code (acting)
 - Challenger: the slice 18 reviewer (independent), 2026-10-21
 - Verifier: TBD
 - Affected runtime: both
 - Coverage rows: WF-009, WF-018, MOD-002, MOD-003
 - Related/duplicate findings: PH-MUS-014 (same defect class in the same load effect: a missing stored value read as `0` instead of the default; not a duplicate, because the lead-in value is a different setting with a different consumer and the PH-MUS-014 fix does not touch it)
-- First observed against: `main` at source identity `6e549b6`; the code is older than the Phase 11 baseline. Found 2026-10-21 during the slice 18 implementation and review.
+- First observed against: `main` at source identity `4466626`; the code is older than the Phase 11 baseline. Found 2026-10-21 during the slice 18 implementation and review.
 
 ## User Impact
 
@@ -35,8 +35,8 @@ choice and must stay 0 (PH-MUS-014 applies the same rule to the volumes).
 
 ### Environment
 
-- Commit/patch identity: `main` at `44024d0`; product source equal to `6e549b6` plus the
-  slice 18 change (`b1a4742`), which does not touch the lead-in read.
+- Commit/patch identity: `main` at `64a8160`; product source equal to `4466626` plus the
+  slice 18 change (`db86adc`), which does not touch the lead-in read.
 - OS/runtime/browser: jsdom (Vitest), renderer code only.
 - Data profile/fixture: a throwaway App test with the bridge stubbed so that every
   `getSetting` resolves `null`, which is what a fresh profile returns.
@@ -111,7 +111,7 @@ This is not implementation authorization.
 
 ## Resolution
 
-- Accepted/rejected rationale: not yet decided; the finding awaits the owner.
+- Accepted/rejected rationale: accepted by the owner on 2026-10-21 ("fix"), to be fixed at once as a wave 1 follow-up (user tests decision 6).
 - Fix branch/commit/issue: none. Proposed placement: slice 14 "Settings values" (deferred
   wave), which already edits the `App.tsx` setting read path
   ([plan](../phase-11-remediation-plan-2026-10-20.md)). The fix is one line plus one

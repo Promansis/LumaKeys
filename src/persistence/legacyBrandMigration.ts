@@ -58,7 +58,7 @@ const SIDECARS = ['-wal', '-shm'];
 const LEGACY_PROFILE_NAMES = ['luma-keys', 'piano-hero', 'PianoHero'];
 
 /**
- * The only profile a released build moved out of (5017b8e moved `<appData>/PianoHero`
+ * The only profile a released build moved out of (7cf0c62 moved `<appData>/PianoHero`
  * and renamed inside the data folder), so the only places outside the data folder an
  * interrupted move can have left a sidecar.
  */

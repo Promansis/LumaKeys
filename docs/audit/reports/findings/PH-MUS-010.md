@@ -10,7 +10,7 @@
 - Affected runtime: both (shared renderer code); reproduced with a scripted Web MIDI device in the web build and, on 2026-10-20, in Electron
 - Coverage rows: WF-002, WF-009, RT-011
 - Related/duplicate findings: PH-MUS-001 (fixed; a different trigger that also erased judged state), PH-MUS-004 (fixed; held notes on disconnect)
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane F (FA run 2026-10-19; source trace 2026-10-20)
+- First observed against: `main` at source identity `4466626`, Phase 11 lane F (FA run 2026-10-19; source trace 2026-10-20)
 
 ## User Impact
 
@@ -31,7 +31,7 @@ erase judged practice state.
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`, web bundle from `dist/`
+- Commit/patch identity: `4466626`, web bundle from `dist/`
 - OS/runtime/browser: Linux, headless Chromium 141, fake `navigator.requestMIDIAccess` installed by `addInitScript` (`scripts/audit/browser/midi-permission-fallback.mjs`)
 - Data profile/fixture: `repeat-c4.mid` (148 notes), Learning mode
 

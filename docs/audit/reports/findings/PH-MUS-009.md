@@ -10,7 +10,7 @@
 - Affected runtime: both; the size of the bias depends on the JavaScript engine (largest in the shipped Electron 30 runtime and in Node; smaller in current Chromium)
 - Coverage rows: WF-012, WF-013
 - Related/duplicate findings: none
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane C. The shuffle dates from `b112c95` (2026-04-02) and is not part of the 0bd40f5..6e549b6 delta
+- First observed against: `main` at source identity `4466626`, Phase 11 lane C. The shuffle dates from `b112c95` (2026-04-02) and is not part of the 0bd40f5..4466626 delta
 
 ## User Impact
 
@@ -35,7 +35,7 @@ algorithms assume a consistent comparator.
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`
+- Commit/patch identity: `4466626`
 - OS/runtime/browser: Linux. Node 24.15 (V8 13.6) for the real-code probes; Electron 30.5.1 (V8 12.4, the version in `node_modules/.bin/electron` that the desktop build ships) run as Node; headless Chromium 141 (V8 14.1) for the browser run
 - Data profile/fixture: isolated data dir `$TMPDIR/p11/C/data-metro` for the browser run
 - Hardware, if applicable: none

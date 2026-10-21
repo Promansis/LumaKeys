@@ -5,7 +5,7 @@
   (WF-007, WF-008, WF-015, WF-025) and [input, settings, packs and lessons](phase-11-lane-f-setup-settings-2026-10-19.md)
   (WF-002, WF-003, WF-011, WF-018, WF-019). The desktop half of every row is in the
   [Electron runtime report](phase-11-electron-runtime-2026-10-20.md) (2026-10-20).
-- Source identity: `main` at `6e549b6` plus audit-only commits; web build from `npm run build:web`
+- Source identity: `main` at `4466626` plus audit-only commits; web build from `npm run build:web`
 - Runner: Claude Code (acting)
 - Date: 2026-10-19
 - Drivers: [`scripts/audit/browser/`](../../../scripts/audit/browser/README.md)

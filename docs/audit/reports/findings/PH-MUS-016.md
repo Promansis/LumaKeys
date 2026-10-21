@@ -10,7 +10,7 @@
 - Affected runtime: both
 - Coverage rows: WF-009, WF-002
 - Related/duplicate findings: PH-MUS-002 (loop bars on non-4/4 meters, fixed); none duplicate
-- First observed against: `main` at source identity `6e549b6`, sitting 4 item 7 run 2026-10-20
+- First observed against: `main` at source identity `4466626`, sitting 4 item 7 run 2026-10-20
 
 ## User Impact
 
@@ -32,7 +32,7 @@ other note.
 
 ### Environment
 
-- Commit/patch identity: source `6e549b6`
+- Commit/patch identity: source `4466626`
 - OS/runtime/browser: the web build in Chromium and Electron 30.5.1 (`out/`), Linux; a
   scripted Web MIDI device ("Audit Keys 61")
 - Data profile/fixture: fresh profile and data directory; a 3/4 fixture with six

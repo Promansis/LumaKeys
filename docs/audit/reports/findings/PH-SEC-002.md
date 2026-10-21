@@ -10,7 +10,7 @@
 - Affected runtime: web
 - Coverage rows: OP-014, OP-018, MOD-010
 - Related/duplicate findings: PH-OPS-002 (deployment default)
-- First observed against: `main` at source identity `6e549b6`, Phase 11 baseline 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 baseline 2026-10-19
 
 ## User Impact
 
@@ -35,7 +35,7 @@ transport does not.
 
 ### Environment
 
-- Commit/patch identity: source `6e549b6`, docs `main`
+- Commit/patch identity: source `4466626`, docs `main`
 - OS/runtime/browser: Linux x86_64, Node 24.15.0, isolated `dist/server/index.cjs`
 - Data profile/fixture: empty `LUMAKEYS_DATA_DIR` under `$TMPDIR`, token `probe-token-123`
 - Hardware, if applicable: none
@@ -89,11 +89,11 @@ only.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: branch `remediation/p11-s02-web-access`, `b6aaf47` (fix) and `aae47b5` (probe and browser driver), slice 2, with review repairs in `3d5d963` and `ed31acb`. Merged to `main` in `4b72c98` on 2026-10-21; not deployed.
+- Fix branch/commit/issue: branch `remediation/p11-s02-web-access`, `07aa4f5` (fix) and `3a110a0` (probe and browser driver), slice 2, with review repairs in `05f33cb` and `3b344ca`. Merged to `main` in `ed07ce2` on 2026-10-21; not deployed.
   - What changed: the gate in `src/server/webSecurity.ts` reads the token from the `x-lumakeys-access-token` header or the cookie only. The `access_token` query parser is gone.
   - New sign-in: `GET /login` serves a static form (no script, `Cache-Control: no-store`) that posts `token` in the body to `POST /api/access`. A good token sets the same cookie as before (HttpOnly, SameSite=Strict, `Path=/api`, Secure on https) and redirects 303 to `/`. A wrong token gets the form back with 401 and no cookie. Scripts can post JSON `{"token":"..."}` (200 `{"ok":true}`) or keep sending the header. The sign-in route runs ahead of the gate, with a 4 KiB body limit. The cookie format is unchanged, so browsers that are already signed in stay signed in. The 401 message now says "Sign in at /login."
   - README section 5a documents `/login`, the script options, and that old `?access_token=` links stop working.
-  - Deviation, added at review (`3d5d963`): a browser without the session cookie got 401 from every `/api` call, and the app showed "PRACTICE DATA UNAVAILABLE" with no pointer to `/login`. The cookie ends when the browser closes, so the owner would meet this after every browser restart. `src/renderer/webBridge.ts` (the web shim only; Electron does not use it) now sends the browser to `/login` on the first 401, once per page load. README says "once per browser session". The Vite dev server now passes `/login` through to the server, like `/api`, so the sign-in also works under `npm run dev:web`.
+  - Deviation, added at review (`05f33cb`): a browser without the session cookie got 401 from every `/api` call, and the app showed "PRACTICE DATA UNAVAILABLE" with no pointer to `/login`. The cookie ends when the browser closes, so the owner would meet this after every browser restart. `src/renderer/webBridge.ts` (the web shim only; Electron does not use it) now sends the browser to `/login` on the first 401, once per page load. README says "once per browser session". The Vite dev server now passes `/login` through to the server, like `/api`, so the sign-in also works under `npm run dev:web`.
   - Also at review: a malformed access cookie (`lumakeys_web_access=%`) got 500 from `decodeURIComponent`; it now gets 401.
   - Beyond the boundary: `src/server/index.ts` changed too (it calls the new `installWebAccess`, shared with [PH-OPS-002](PH-OPS-002.md)), and `scripts/audit/web-security-probe.sh` now reads cookie flags from the body sign-in.
 - Verification evidence (agent run 2026-10-21, for the verifier; not a verification). Evidence files are under `$TMPDIR/p11-s02/`.

@@ -10,7 +10,7 @@
 - Affected runtime: both (renderer logic)
 - Coverage rows: WF-007
 - Related/duplicate findings: none
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane F (FB), 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 lane F (FB), 2026-10-19
 
 ## User Impact
 
@@ -32,7 +32,7 @@ zone marker (`"2026-10-19 14:24:46"`), so the renderer must parse it as UTC.
 
 ### Environment
 
-- Commit/patch identity: `6e549b6` web build
+- Commit/patch identity: `4466626` web build
 - OS/runtime/browser: headless Chromium 141, server host zone Australia/Perth (UTC+8); browser contexts created with an explicit `timezoneId`
 - Data profile/fixture: one song imported at 2026-10-19 14:24:46 UTC
 

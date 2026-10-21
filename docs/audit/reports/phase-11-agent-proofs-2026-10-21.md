@@ -4,7 +4,7 @@
   owed on the agent's side, and the OP-017 limits residual, ran on 2026-10-20 and
   2026-10-21. One proof failed (PH-DATA-001). Hardware, speaker, colour-vision and Windows
   checks stay with the owner ([user tests](phase-11-user-tests.md)).
-- Source identity: `main` at `d28a028` (source `6e549b6` plus audit-only commits). No
+- Source identity: `main` at `d208ee2` (source `4466626` plus audit-only commits). No
   product source changed.
 - New findings: [PH-MUS-017](findings/PH-MUS-017.md) (P2),
   [PH-DATA-010](findings/PH-DATA-010.md) (P3) and [PH-UI-020](findings/PH-UI-020.md) (P3).
@@ -22,7 +22,7 @@
 - Failures were injected with `chmod`, Playwright `page.route`, an IPC handler override and
   SQLite triggers on throwaway databases. No source edit injected a fault.
 - A Windows `.exe` cross-build also ran, in a throwaway copy made with `git archive` of
-  `f8bacb1` (product source `6e549b6`). The sandbox blocked electron-builder's temporary
+  `b73787f` (product source `4466626`). The sandbox blocked electron-builder's temporary
   file, so the build ran with an `LD_PRELOAD` shim that sends `tmpfile()` to a directory
   under `$TMPDIR`. The owner kept the build on 2026-10-21 for
   [sitting 2](phase-11-user-tests.md#sitting-2-windows-machine-25-min--ready). It is not

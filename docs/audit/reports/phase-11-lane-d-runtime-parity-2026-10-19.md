@@ -2,7 +2,7 @@
 
 - Lane owner: Claude Code (acting)
 - Reviewer/challenger: Claude Code (acting), self-challenge recorded below; the lead merges
-- Baseline identity: `main` at `6e549b6` (later commits are audit docs only); delta `0bd40f5..6e549b6`; `out/` and `dist/web/` built 2026-10-19 17:07 from this source and not rebuilt by this lane
+- Baseline identity: `main` at `4466626` (later commits are audit docs only); delta `0bd40f5..4466626`; `out/` and `dist/web/` built 2026-10-19 17:07 from this source and not rebuilt by this lane
 - Started: 2026-10-19
 - Last updated: 2026-10-19
 - Status: complete. No new findings. A packaged electron-builder artifact built from this source is still owed (sitting 1 and sitting 2).
@@ -51,7 +51,7 @@ Lane D outputs and scripts:
 
 | Script | Output (under `$TMPDIR/p11/D/`) | Purpose |
 |---|---|---|
-| [`bridge-contract-diff.mjs`](../../../scripts/audit/bridge-contract-diff.mjs) | `contract-head.out`, `contract-6e549b6.out`, `contract-0bd40f5.out`, `contract-mutation.out` | Scripted contract diff across six sources |
+| [`bridge-contract-diff.mjs`](../../../scripts/audit/bridge-contract-diff.mjs) | `contract-head.out`, `contract-4466626.out`, `contract-0bd40f5.out`, `contract-mutation.out` | Scripted contract diff across six sources |
 | [`browser/lane-d-parity.mjs`](../../../scripts/audit/browser/lane-d-parity.mjs) | `lane-d-parity.out`, `$TMPDIR/p11/D/shots/` | Web RPC re-run, static server, web video, PH-ARCH-001 on the web, Chromium `file://` approximation |
 | [`electron-renderer-asset-probe.mjs`](../../../scripts/audit/electron-renderer-asset-probe.mjs) | `electron-renderer-asset-probe.out`, `$TMPDIR/p11/D/electron-renderer/*.png` | Real Electron renderer: video from the `out/` tree and from an asar, asar `fs` reads, PH-ARCH-001 over IPC |
 | `electron-paths-probe.mts` (scratch only) | `electron-paths-probe.out` | Node replica of Electron per-file import and `saveGameResult` against `AppDatabase`; asset URL resolution |
@@ -62,7 +62,7 @@ Lane D outputs and scripts:
 
 | Surface | Oracle/invariant | Method/fixture | Runtime | Expected artifact |
 |---|---|---|---|---|
-| AppBridge contract | Each of the 69 methods appears once in the type, inventory, preload, IPC handlers, router validators and webBridge routing; nothing appears in one list but not another | `bridge-contract-diff.mjs` at the working tree, `6e549b6` and `0bd40f5`, plus a mutation run | both (source) | contract outputs |
+| AppBridge contract | Each of the 69 methods appears once in the type, inventory, preload, IPC handlers, router validators and webBridge routing; nothing appears in one list but not another | `bridge-contract-diff.mjs` at the working tree, `4466626` and `0bd40f5`, plus a mutation run | both (source) | contract outputs |
 | Delta methods | Same outcome, return shape and side effects across runtimes; web validation is deliberately stricter (Phase 4) | Web RPC against an isolated server; Electron Node replica plus source | both | `lane-d-parity.out`, `electron-paths-probe.out` |
 | Main-menu video (PH-PAR-001 policy) | The asset ships in Electron output, resolves under `file://`, and plays; the web server sends a correct type and supports byte ranges | Static GET and Range requests; Chromium and real Electron, with a negative control | both | video lines, screenshots |
 | `.mscz` import | A capability difference is documented and gated, or it is a finding | Source, README, UI copy, web upload | both | this report |
@@ -73,18 +73,18 @@ Lane D outputs and scripts:
 
 `bridge-contract-diff.mjs` checks every pairing in the brief and exits 1 on any mismatch.
 
-All checks pass at the working tree, `6e549b6` and `0bd40f5`:
+All checks pass at the working tree, `4466626` and `0bd40f5`:
 - Inventory 69, split into rpc 51, web-special 12 and web-stub 6.
 - The `AppBridge` type has 69 keys and the preload has 69 keys.
 - 68 `ipcMain.handle` channels plus one `send` channel (`import:progress`) for `onImportProgress`.
 - 51 router validators, equal to the RPC set.
 - The 12 web-special methods are each handled explicitly in webBridge. `resetUserData` is an RPC method that webBridge also overrides.
 
-Between `0bd40f5` and `6e549b6` the only extracted change is one new router special case, `saveGameResult` (the `piano-hero` alias).
+Between `0bd40f5` and `4466626` the only extracted change is one new router special case, `saveGameResult` (the `piano-hero` alias).
 
 The mutation run proves the script catches drift. Renaming one handler channel, removing one validator key and renaming one webBridge special method each produced a FAIL.
 
-`git diff 0bd40f5..6e549b6 -- src/shared src/main src/server/bridgeRouter.ts src/renderer/webBridge.ts` touches four files and adds or removes no method:
+`git diff 0bd40f5..4466626 -- src/shared src/main src/server/bridgeRouter.ts src/renderer/webBridge.ts` touches four files and adds or removes no method:
 
 | File | Delta change |
 |---|---|
@@ -143,7 +143,7 @@ Build and packaging:
 
 The Electron sample is darker than the Chromium sample because the 32x18 sample catches a different frame of the animation. All four columns are well above the black-frame level.
 
-Web server (`staticFiles.ts`, new in the delta, commit `6e549b6`):
+Web server (`staticFiles.ts`, new in the delta, commit `4466626`):
 - A full GET returns 200 `video/webm` with `Accept-Ranges: bytes` and `Cache-Control: public, max-age=3600`; the bytes equal `public/`.
 - `Range: bytes=0-1023` returns 206 `bytes 0-1023/7386798` with a matching slice.
 - `bytes=-16` and an open-ended tail return 206 with matching slices.
@@ -179,7 +179,7 @@ The replica forced a `.mscz` into the Electron import path, which the UI cannot 
 
 ## PH-PAR-002: Picker Cancellation
 
-`pickFiles` in `webBridge.ts:83-122` registers only `change` and `cancel` on the hidden input. The focus-based fallback timer was removed by commit `99adf7c` ("feat: support MSCZ uploads and fix imported song titles"), confirmed with `git log -S onWindowFocus`. The re-verification report names `1fbd73f`, which is not the commit that removed it; that report needs a correction.
+`pickFiles` in `webBridge.ts:83-122` registers only `change` and `cancel` on the hidden input. The focus-based fallback timer was removed by commit `4b2db33` ("feat: support MSCZ uploads and fix imported song titles"), confirmed with `git log -S onWindowFocus`. The re-verification report names `a7c907a`, which is not the commit that removed it; that report needs a correction.
 
 On a browser that never fires `cancel`, the import, reattach and backup-import promises stay pending, as in the original finding. The `cancel` event on file inputs ships in Chromium 113+ (Chrome and Edge), Firefox 91+ and Safari 16.4+.
 
@@ -253,7 +253,7 @@ No new candidate findings. Existing findings re-checked in this lane:
 
 | Coverage row | Missing proof | Why blocked | Owner | Next action |
 |---|---|---|---|---|
-| RT-012, WF-026, BR-060, BR-067 | Video and managed-pack install (same asar read path as curriculum capstones, which unlock only after every lesson in a tier) inside a real electron-builder package built from `6e549b6` | Packaging writes the shared `dist/`; a normal Electron window crashes in the sandbox | repository owner | Sitting 1 item D-1; sitting 2 item 1 expectation |
+| RT-012, WF-026, BR-060, BR-067 | Video and managed-pack install (same asar read path as curriculum capstones, which unlock only after every lesson in a tier) inside a real electron-builder package built from `4466626` | Packaging writes the shared `dist/`; a normal Electron window crashes in the sandbox | repository owner | Sitting 1 item D-1; sitting 2 item 1 expectation |
 | BR-008, BR-010, BR-058 (PH-PAR-002) | Native dialog cancel in Edge and Firefox (one shared `pickFiles` path) | No Edge or Firefox in the sandbox; Playwright cannot press a native Cancel | repository owner | Sitting 3 item D-2 |
 | PH-ARCH-001 | Automated GameScreen test with a rejected prerequisite | Not in the suite; writing it is remediation, not discovery | remediation | Named in the re-verification regression list |
 | OP-013, MOD-008 (MOD-014) | Child-window runtime probe | Lane A owns it | lane A | Sitting 0 item 1 |
@@ -272,7 +272,7 @@ No new candidate findings. Existing findings re-checked in this lane:
 - **Claims disproved or narrowed:**
   - "Electron cannot run in this sandbox" was narrowed: an offscreen window works and a normal window crashes.
   - "WF-006 proves PH-ARCH-001" was narrowed: it exercises only the MIDI-byte path, which was already handled.
-  - "The focus fallback was removed in `1fbd73f`" was corrected to `99adf7c`.
+  - "The focus fallback was removed in `a7c907a`" was corrected to `4b2db33`.
   - "The video may not load in packaged Electron" was disproved for an asar with the packaged layout; an electron-builder artifact is still owed.
   - The driver bug `song.id` (the field is `songId`) was caught and fixed before any result was used. It had produced a false 404 on reattach and a false 400 on save.
 - **Duplicates merged:** the forced Electron `.mscz` message is merged into PH-PAR-004; the legacy-profile path is left to lane B.
@@ -306,7 +306,7 @@ Links are written relative to `docs/audit/coverage-matrix.md`, where they will b
 |---|---|---|---|
 | OP-013 | covered | [P11-D](reports/phase-11-lane-d-runtime-parity-2026-10-19.md#op-013-mod-008-mod-009) | The delta does not touch `preload.ts` or any `webPreferences` or window-open code; lane A's PH-SEC-005 conclusion stands and MOD-014 runtime stays in sitting 0 item 1. |
 | MOD-008 | covered | [P11-D](reports/phase-11-lane-d-runtime-parity-2026-10-19.md#contract-diff) | `bridge-contract-diff.mjs` (mutation-tested) shows the preload exposes exactly 69 contract methods over 68 invoke channels plus one event channel, unchanged since `0bd40f5`. |
-| MOD-009 | covered | [P11-D](reports/phase-11-lane-d-runtime-parity-2026-10-19.md#op-013-mod-008-mod-009) | Stubs come from `WEB_STUB_BRIDGE_METHOD_SET` (not `desktopStubNames`); the picker now relies on `cancel` only (removed in `99adf7c`), with native-cancel proof owed in sitting 3. |
+| MOD-009 | covered | [P11-D](reports/phase-11-lane-d-runtime-parity-2026-10-19.md#op-013-mod-008-mod-009) | Stubs come from `WEB_STUB_BRIDGE_METHOD_SET` (not `desktopStubNames`); the picker now relies on `cancel` only (removed in `4b2db33`), with native-cancel proof owed in sitting 3. |
 | BR-008 | covered | [P11-D](reports/phase-11-lane-d-runtime-parity-2026-10-19.md#method-by-method-re-run) | Filename-derived title is equal in both runtimes; `.mscz` is web-only, documented in README and gated by `IS_WEB` copy; PH-PAR-002 is unchanged. |
 | BR-010 | covered | [P11-D](reports/phase-11-lane-d-runtime-parity-2026-10-19.md#method-by-method-re-run) | Reattach is MIDI-only in both runtimes; the web rejects `.mscz` with an explicit error. |
 | BR-013 | covered | [P11-D](reports/phase-11-lane-d-runtime-parity-2026-10-19.md#method-by-method-re-run) | The web accepts the `piano-hero` alias and stores `luma-keys`, and rejects `normal`; Electron IPC stores any mode until the startup migration rewrites it; no renderer sends a legacy mode. |

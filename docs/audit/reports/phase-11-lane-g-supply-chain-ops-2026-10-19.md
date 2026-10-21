@@ -2,7 +2,7 @@
 
 - Lane owner: Claude Code (acting)
 - Reviewer/challenger: Claude Code (acting), second pass 2026-10-19
-- Baseline identity: `main` at source identity `6e549b6`, [baseline](baseline-2026-10-19.md)
+- Baseline identity: `main` at source identity `4466626`, [baseline](baseline-2026-10-19.md)
 - Started: 2026-10-19
 - Last updated: 2026-10-19
 - Status: complete for static evidence; image build owed to sitting 0

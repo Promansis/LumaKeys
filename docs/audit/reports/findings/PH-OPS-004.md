@@ -10,7 +10,7 @@
 - Affected runtime: runtime-independent
 - Coverage rows: MOD-012, DATA-003, DATA-004
 - Related/duplicate findings: none
-- First observed against: `main` at source identity `6e549b6`, Phase 11 baseline 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 baseline 2026-10-19
 
 ## User Impact
 

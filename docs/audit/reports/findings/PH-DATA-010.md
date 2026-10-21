@@ -10,7 +10,7 @@
 - Affected runtime: both
 - Coverage rows: DATA-014, OP-009, WF-022
 - Related/duplicate findings: PH-DATA-002 (reset now removes packs; this is the copy gap that run found), PH-UI-006 (delete confirmation that omits practice history); none duplicate
-- First observed against: `main` at `d28a028` (source identity `6e549b6`), agent proof run for PH-DATA-002, 2026-10-20
+- First observed against: `main` at `d208ee2` (source identity `4466626`), agent proof run for PH-DATA-002, 2026-10-20
 
 ## User Impact
 
@@ -36,7 +36,7 @@ actual reset boundary"). Copy that says "this device" must be true of the runtim
 
 ### Environment
 
-- Commit/patch identity: `main` at `d28a028`; no product source changed since `6e549b6`.
+- Commit/patch identity: `main` at `d208ee2`; no product source changed since `4466626`.
 - OS/runtime/browser: web: `dist/server/index.cjs` with Chromium 141.0.7390.37 (Playwright
   1.56.1) and a second browser context; Electron 30.5.1 (`out/`) with a relaunch. Linux.
 - Data profile/fixture: a seeded throwaway library on each runtime (3 songs, a folder, a

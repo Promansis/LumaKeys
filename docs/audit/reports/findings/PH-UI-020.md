@@ -10,7 +10,7 @@
 - Affected runtime: both
 - Coverage rows: WF-009, RT-008, MOD-003
 - Related/duplicate findings: PH-ARCH-001 (the panel itself, fixed; this is the focus behaviour it left), PH-UI-017 (focus drops to the page body in another dialog), PH-UI-014 (invisible controls in the Tab order); none duplicate
-- First observed against: `main` at `d28a028` (source identity `6e549b6`), agent proof run for PH-ARCH-001, 2026-10-20
+- First observed against: `main` at `d208ee2` (source identity `4466626`), agent proof run for PH-ARCH-001, 2026-10-20
 
 ## User Impact
 
@@ -33,7 +33,7 @@ PH-ARCH-001 required proof ("the error can be read and exited with keyboard only
 
 ### Environment
 
-- Commit/patch identity: `main` at `d28a028`; no product source changed since `6e549b6`.
+- Commit/patch identity: `main` at `d208ee2`; no product source changed since `4466626`.
 - OS/runtime/browser: web build in Edge 155.0.4283.62 (unpacked, isolated HOME and
   profile), Playwright Firefox 142.0.1 and Playwright Chromium 141.0.7390.37, headless,
   Linux. The panel is shared renderer code, so Electron runs the same markup; it was not

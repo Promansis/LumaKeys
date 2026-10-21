@@ -10,7 +10,7 @@
 - Affected runtime: both (shared renderer code); reproduced in the web build and in Electron
 - Coverage rows: WF-003, WF-009, WF-014, WF-015, RT-008
 - Related/duplicate findings: PH-UI-001 (its focus-return fix makes this reachable in the game loop)
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane F, 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 lane F, 2026-10-19
 
 ## User Impact
 

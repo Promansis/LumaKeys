@@ -10,7 +10,7 @@
 - Affected runtime: both (shared `GameSession`, `ScoringEngine` and curriculum); reproduced in a deterministic engine probe and consistent with the Electron capstone run
 - Coverage rows: WF-011, MOD-011
 - Related/duplicate findings: PH-MUS-012 (a press before the count-in ends also scores the first note)
-- First observed against: `main` at source identity `6e549b6`, Phase 11 Electron runtime run, 2026-10-20
+- First observed against: `main` at source identity `4466626`, Phase 11 Electron runtime run, 2026-10-20
 
 ## User Impact
 
@@ -42,7 +42,7 @@ misleading; P2 is arguable because it is the curriculum's only skill gate.
 
 ### Environment
 
-- Commit/patch identity: working tree at `6e549b6` plus audit-only files.
+- Commit/patch identity: working tree at `4466626` plus audit-only files.
 - OS/runtime: Linux, Node 22 with `tsx`; Electron 30.5.1 headless harness for the
   real-app run.
 - Fixture: `public/curriculum-midis/ode-to-joy.mid`, filtered to the right hand

@@ -33,7 +33,7 @@ Compatibility code exists for some of these. Its comments say it lasts "one rele
 `version` was `0.1.0` before and after the rename, and no version gate, date or owner
 exists.
 
-The Phase 11 audit found, on `main` at `5017b8e`:
+The Phase 11 audit found, on `main` at `7cf0c62`:
 
 - The server fallback works.
 - The desktop migration never finds a real legacy profile
@@ -46,7 +46,7 @@ The Phase 11 audit found, on `main` at `5017b8e`:
   ([PH-DATA-004](../audit/reports/findings/PH-DATA-004.md),
   [PH-DATA-007](../audit/reports/findings/PH-DATA-007.md)).
 
-Slice 1 (merge `9e249ae`) and slice 15 (merge `7c9ec01`) fixed these five on `main` on
+Slice 1 (merge `c95586b`) and slice 15 (merge `8d73767`) fixed these five on `main` on
 2026-10-21. The desktop lookup now covers `luma-keys`, `piano-hero` and `PianoHero`,
 finishes an interrupted move, asks before replacing a library that holds data and shows a
 startup failure in a dialog; the browser stores are carried over. The findings are `fixed`,
@@ -117,7 +117,7 @@ check) is the removal release's own work.
 
 ### End By Calendar Date Only
 
-A date says nothing about whether the carry-over works. On `5017b8e` it does not on
+A date says nothing about whether the carry-over works. On `7cf0c62` it does not on
 desktop, so a date alone would strand every pre-rename desktop profile. The date is
 kept only as a floor.
 

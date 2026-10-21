@@ -10,7 +10,7 @@
 - Affected runtime: Electron (the export controls are hidden in the web build); the defective function runs in Chromium either way
 - Coverage rows: WF-015
 - Related/duplicate findings: none
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane F (FB), 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 lane F (FB), 2026-10-19
 
 ## User Impact
 
@@ -36,7 +36,7 @@ export is bound at import time (`node_modules/tone/build/esm/index.js:30`,
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`; probe bundles `src/lib/audio/audioEngine.ts` with the repo's esbuild into `$TMPDIR` (repository untouched)
+- Commit/patch identity: `4466626`; probe bundles `src/lib/audio/audioEngine.ts` with the repo's esbuild into `$TMPDIR` (repository untouched)
 - OS/runtime/browser: Linux, headless Chromium 141, Tone 15.1.22, page loaded from the web server on port 3788, a mouse click before `engine.init()` so the live AudioContext reports `running`
 - Data profile/fixture: three notes (C4 0.5 s, E4 1.0 s, G4 1.5 s, 0.3 s each), render duration 2 s
 - Hardware, if applicable: none; Offline rendering needs no audio device

@@ -10,7 +10,7 @@
 - Affected runtime: both (shared `GameSession` and `GameScreen`); reproduced in the Electron build and in a deterministic engine probe
 - Coverage rows: WF-009, WF-011, WF-014, MOD-003, MOD-011
 - Related/duplicate findings: none
-- First observed against: `main` at source identity `6e549b6`, Phase 11 Electron runtime run, 2026-10-20
+- First observed against: `main` at source identity `4466626`, Phase 11 Electron runtime run, 2026-10-20
 
 ## User Impact
 
@@ -39,7 +39,7 @@ audit's own lesson driver hit it).
 
 ### Environment
 
-- Commit/patch identity: working tree at `6e549b6` plus audit-only files.
+- Commit/patch identity: working tree at `4466626` plus audit-only files.
 - OS/runtime: Linux; Electron 30.5.1 headless harness (`scripts/audit/electron/`);
   Node 22 with `tsx` for the engine probe.
 - Fixture: lesson 1 ("Keyboard map") step 3 drill, eight middle-C quarter notes at

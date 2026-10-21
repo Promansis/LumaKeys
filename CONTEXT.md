@@ -101,9 +101,9 @@ Runtime-specific differences must be explicit in bridge categories or UI gating.
 LumaKeys ships two runtimes from one source tree. Both share `src/lib/` (game,
 theory, audio, input), the React screens under `src/renderer/`, and the single
 `AppDatabase` class. Only the transport between renderer and database differs. The
-facts below were checked against `main` at `5017b8e`; the web access, security
-header and CI facts were updated for `44024d0` after slices 2 and 0 merged, and the
-Electron desktop and browser carry-over facts for `ed40fa6` after slices 1, 15 and 3
+facts below were checked against `main` at `7cf0c62`; the web access, security
+header and CI facts were updated for `64a8160` after slices 2 and 0 merged, and the
+Electron desktop and browser carry-over facts for `a84acb0` after slices 1, 15 and 3
 merged. Remediation slices change some of these facts; the slice that changes one
 updates this section.
 

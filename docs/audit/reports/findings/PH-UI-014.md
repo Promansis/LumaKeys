@@ -10,7 +10,7 @@
 - Affected runtime: both (renderer; web, headless Electron, Edge 155 and Firefox 142 proven)
 - Coverage rows: RT-008, WF-015, WF-016, MOD-003, MOD-006
 - Related/duplicate findings: related to PH-UI-001 (focus on controls the user cannot see) but a different surface (collapsed HUD popouts, not modal dialogs).
-- First observed against: `main` at `6e549b6`
+- First observed against: `main` at `4466626`
 
 ## User Impact
 
@@ -25,7 +25,7 @@ On Free Play, Soundboard, and Game, the collapsed HUD popouts (instrument list, 
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`; headless Chromium 141, Playwright 1.56.1, built web server, 1480x960.
+- Commit/patch identity: `4466626`; headless Chromium 141, Playwright 1.56.1, built web server, 1480x960.
 
 ### Reproduction
 

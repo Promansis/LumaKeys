@@ -10,7 +10,7 @@
 - Affected runtime: both
 - Coverage rows: WF-007
 - Related/duplicate findings: none
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane F (FB), 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 lane F (FB), 2026-10-19
 
 ## User Impact
 
@@ -31,7 +31,7 @@ and 2.5.7 Dragging Movements).
 
 ### Environment
 
-- Commit/patch identity: `6e549b6` web build
+- Commit/patch identity: `4466626` web build
 - OS/runtime/browser: headless Chromium 141
 - Data profile/fixture: playlist of three songs
 

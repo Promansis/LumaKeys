@@ -1,7 +1,7 @@
 # Phase 11 Lane F: Electron Runtime Half
 
 - Status: complete for the rows below; the limits section lists what this run cannot prove.
-- Source identity: `main` at `6e549b6` plus audit-only commits. Desktop build: the existing
+- Source identity: `main` at `4466626` plus audit-only commits. Desktop build: the existing
   `out/` bundle (built 2026-10-19 17:07, after the last source commit); the audit did not
   rebuild it.
 - Runner: Claude Code (acting)

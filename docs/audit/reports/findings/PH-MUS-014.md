@@ -10,7 +10,7 @@
 - Affected runtime: both
 - Coverage rows: WF-015, WF-016, WF-018, WF-009
 - Related/duplicate findings: PH-MUS-006 (the metronome is also affected); none duplicate
-- First observed against: `main` at source identity `6e549b6`, sitting 1 audio run 2026-10-20. The code dates from `ce84dd4` (2026-04-02), before the Phase 11 baseline.
+- First observed against: `main` at source identity `4466626`, sitting 1 audio run 2026-10-20. The code dates from `ce84dd4` (2026-04-02), before the Phase 11 baseline.
 
 ## User Impact
 
@@ -34,7 +34,7 @@ and the fallbacks the caller passes (`App.tsx:621-623`).
 
 ### Environment
 
-- Commit/patch identity: source `6e549b6`
+- Commit/patch identity: source `4466626`
 - OS/runtime/browser: Electron 30.5.1 (`out/`, offscreen) and the web build in Chromium,
   Linux; audio recorded from a PulseAudio null sink with `parec --monitor-stream`
 - Data profile/fixture: fresh profile and fresh `LUMAKEYS_DATA_DIR`; setup guide skipped
@@ -105,7 +105,7 @@ for the same pattern. `src/renderer/App.tsx`.
   18 runs in wave 1, after slice 0
   ([Owner Selection](../phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20)).
 - Fix branch/commit/issue: `remediation/p11-s18-audio-defaults`, slice 18, implemented and
-  independently reviewed 2026-10-21; merged to `main` in `b1a4742` on 2026-10-21. The finding is
+  independently reviewed 2026-10-21; merged to `main` in `db86adc` on 2026-10-21. The finding is
   `fixed`, not `verified`: the two PulseAudio drivers and the speaker check are owed.
 - What changed: `parseStoredAudioNumber` in `src/renderer/App.tsx` now returns the
   fallback for a `null`, empty or blank value, so a fresh profile starts the engine at
@@ -118,7 +118,7 @@ for the same pattern. `src/renderer/App.tsx`.
   `setMasterVolume(0)` was called) and pass after it. `parseStoredAudioNumber > keeps a
   stored number, including a saved zero` and `App > keeps saved audio levels, including a
   saved zero, over the defaults` pass before and after, and guard against over-correcting.
-  Source identity for the reproduction: product code equal to `6e549b6`.
+  Source identity for the reproduction: product code equal to `4466626`.
 - Driver result: not run. `sitting1-audio-desktop.mjs` (`VOLUMES=fresh`) and
   `sitting1-audio-web.mjs` need a PulseAudio null sink, and the sandbox has no access to
   the PulseAudio socket. Owed, see below.

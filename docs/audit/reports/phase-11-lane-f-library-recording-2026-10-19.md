@@ -2,7 +2,7 @@
 
 - Lane owner: Claude Code (acting), agent tag FB
 - Reviewer/challenger: Claude Code (acting), second pass in each finding's Challenge Record
-- Baseline identity: `main` at `6e549b6` (later commits are audit docs only); web build `dist/server/index.cjs` and `dist/web/` from 2026-10-19 17:07, not rebuilt
+- Baseline identity: `main` at `4466626` (later commits are audit docs only); web build `dist/server/index.cjs` and `dist/web/` from 2026-10-19 17:07, not rebuilt
 - Started: 2026-10-19
 - Last updated: 2026-10-19
 - Status: complete for the web runtime; Electron halves and the Docker conversion half owed (see Evidence Gaps)

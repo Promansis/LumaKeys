@@ -1,6 +1,6 @@
 # Phase 11 Web Security Probe Evidence
 
-Command: `scripts/audit/web-security-probe.sh http://127.0.0.1:3777` against `node dist/server/index.cjs` built from `6e549b6`, isolated empty `LUMAKEYS_DATA_DIR` under `$TMPDIR`, `LUMAKEYS_WEB_ACCESS_TOKEN` set to a throwaway value. Every WARN and INFO line is a lead in the [Phase 11 plan](../reports/phase-11-plan-2026-10-19.md#leads-register), not a finding.
+Command: `scripts/audit/web-security-probe.sh http://127.0.0.1:3777` against `node dist/server/index.cjs` built from `4466626`, isolated empty `LUMAKEYS_DATA_DIR` under `$TMPDIR`, `LUMAKEYS_WEB_ACCESS_TOKEN` set to a throwaway value. Every WARN and INFO line is a lead in the [Phase 11 plan](../reports/phase-11-plan-2026-10-19.md#leads-register), not a finding.
 
 ```text
 # Web security probe against http://127.0.0.1:3777 on 2026-10-19T17:16:51+08:00

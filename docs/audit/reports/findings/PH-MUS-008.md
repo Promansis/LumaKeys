@@ -10,7 +10,7 @@
 - Affected runtime: runtime-independent (shared parser, used by import metadata in both runtimes and by every practice screen)
 - Coverage rows: WF-004, WF-008, MOD-011
 - Related/duplicate findings: PH-MUS-002 (canonical for tempo-change measure symptoms; this root cause is in the parser's tempo map, not in the measure-boundary code, see Challenge Record)
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane C
+- First observed against: `main` at source identity `4466626`, Phase 11 lane C
 
 ## User Impact
 
@@ -39,7 +39,7 @@ tick durations at the tempo in force for each segment.
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`; `@tonejs/midi` 2.0.28
+- Commit/patch identity: `4466626`; `@tonejs/midi` 2.0.28
 - OS/runtime/browser: Linux, Node 24 with tsx
 - Data profile/fixture: `scripts/audit/fixtures/midi/late-first-tempo.mid` (ppq 480; 4/4 at tick 0; no tempo at tick 0; 60 BPM at tick 1920; eight quarter notes from tick 0), sha256 `2af80503be853306a1be213f334213999e986ea018282ee3f4981124cdffb63b`
 - Hardware, if applicable: none

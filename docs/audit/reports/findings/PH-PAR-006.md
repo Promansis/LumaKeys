@@ -10,7 +10,7 @@
 - Affected runtime: web (Electron installs and loads the same pack correctly)
 - Coverage rows: WF-019
 - Related/duplicate findings: PH-MUS-007 (also builds a sampler from `customSamplerBaseUrl ?? undefined`)
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane F (FA run 2026-10-19; source and desktop check 2026-10-20)
+- First observed against: `main` at source identity `4466626`, Phase 11 lane F (FA run 2026-10-19; source and desktop check 2026-10-20)
 
 ## User Impact
 
@@ -32,7 +32,7 @@ status card's "installed" claim implies the pack is in use.
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`; web bundle from `dist/`; desktop `out/`
+- Commit/patch identity: `4466626`; web bundle from `dist/`; desktop `out/`
 - OS/runtime/browser: Linux, headless Chromium 141 (web); Electron 30.5.1 offscreen (desktop)
 - Data profile/fixture: fresh data directories under `$TMPDIR`
 

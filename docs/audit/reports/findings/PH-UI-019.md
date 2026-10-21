@@ -10,7 +10,7 @@
 - Affected runtime: both
 - Coverage rows: RT-006
 - Related/duplicate findings: PH-UI-002 (Settings at desktop zoom), PH-UI-012 (HUD overlaps at zoom); none duplicate
-- First observed against: `main` at source identity `6e549b6`, sitting 1 visual run 2026-10-20
+- First observed against: `main` at source identity `4466626`, sitting 1 visual run 2026-10-20
 
 ## User Impact
 
@@ -30,7 +30,7 @@ global handler already treats Ctrl and Meta as shortcuts (`App.tsx:1264`), not n
 
 ### Environment
 
-- Commit/patch identity: source `6e549b6`
+- Commit/patch identity: source `4466626`
 - OS/runtime/browser: real Chrome 151 and the packaged Linux app (built from HEAD in a
   throwaway copy), on `Xvfb` with `xfwm4`; real key events through XTEST
 - Data profile/fixture: fresh profiles under `$TMPDIR/p11/S1V`

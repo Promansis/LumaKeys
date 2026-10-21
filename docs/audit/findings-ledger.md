@@ -92,8 +92,8 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-MUS-017 | Changing a track assignment silently deletes every saved fingering for the song | MUS | P2 | high | both | accepted | WF-008, DATA-007, BR-034, MOD-003 | [PH-MUS-017](reports/findings/PH-MUS-017.md) | Claude Code (acting) |
 | PH-DATA-010 | The reset confirmation does not name packs, practice history or fingerings, and on the web says "from this device" for server-side data | DATA | P3 | high | both | accepted | DATA-014, OP-009, WF-022 | [PH-DATA-010](reports/findings/PH-DATA-010.md) | Claude Code (acting) |
 | PH-UI-020 | The song-load error panel does not take focus, and Retry is about 54 Tab presses away | UI | P3 | high | both | accepted | WF-009, RT-008, MOD-003 | [PH-UI-020](reports/findings/PH-UI-020.md) | Claude Code (acting) |
-| PH-MUS-018 | On a fresh profile the count-in after the 3-2-1 countdown is lost while Settings shows 2 lead-in beats | MUS | P3 | high | both | reproduced | WF-009, WF-018, MOD-002, MOD-003 | [PH-MUS-018](reports/findings/PH-MUS-018.md) | Claude Code (acting) |
-| PH-UI-021 | Since the Electron 44 upgrade every desktop file dialog opens in Downloads and forgets the last folder | UI | P3 | high | Electron | reproduced | WF-004, WF-005, WF-006, WF-020, MOD-008 | [PH-UI-021](reports/findings/PH-UI-021.md) | Claude Code (acting) |
+| PH-MUS-018 | On a fresh profile the count-in after the 3-2-1 countdown is lost while Settings shows 2 lead-in beats | MUS | P3 | high | both | accepted | WF-009, WF-018, MOD-002, MOD-003 | [PH-MUS-018](reports/findings/PH-MUS-018.md) | Claude Code (acting) |
+| PH-UI-021 | Since the Electron 44 upgrade every desktop file dialog opens in Downloads and forgets the last folder | UI | P3 | high | Electron | accepted | WF-004, WF-005, WF-006, WF-020, MOD-008 | [PH-UI-021](reports/findings/PH-UI-021.md) | Claude Code (acting) |
 
 ## Status Notes
 
@@ -122,7 +122,7 @@ in the detailed report.
   review keeps six P0/P1 findings at `fixed` because required runtime/manual proof
   remains; PH-OPS-001 reached `verified`. See
   [the Phase 10 report](reports/phase-10-verification-2026-08-07.md).
-- Phase 11 re-audited the delta from `0bd40f5` to `6e549b6` on `main`. All 18
+- Phase 11 re-audited the delta from `0bd40f5` to `4466626` on `main`. All 18
   earlier findings still hold. PH-SEC-001 moved to `verified` after its desktop and
   web runtime proof on 2026-10-20. 44 new findings were raised: PH-SEC-002 to 005,
   PH-OPS-002 to 006, PH-DATA-004 to 009, PH-MUS-005 to 013, PH-PAR-004 to 007,
@@ -162,7 +162,7 @@ in the detailed report.
   PH-DATA-010 and PH-UI-020 (P3). The OP-017 residual is closed: the MuseScore timeout,
   CPU and output limits all fired through real uploads. Coverage stays 154 of 156.
 - Phase 11 wave 1 merges, 2026-10-21: the owner gave the go-ahead for wave 1, and slices
-  2, 0 and 18 and task D1 merged to `main` (`4b72c98`, `c66b25a`, `b1a4742`, `44024d0`)
+  2, 0 and 18 and task D1 merged to `main` (`ed07ce2`, `d49b8a6`, `db86adc`, `64a8160`)
   after independent review. PH-OPS-002, PH-SEC-002, PH-SEC-003, PH-OPS-005 and PH-MUS-014
   moved from `accepted` to `fixed`; each still owes runtime or owner proof (deploy with
   the token and repeat user tests A1, a green and a red GitHub run, the PulseAudio drivers
@@ -172,9 +172,9 @@ in the detailed report.
   PH-MUS-018 (P3), found during slice 18's review, `reproduced` and awaiting the owner's
   decision. Counts: 70 findings (11 verified, 11 fixed, 46 accepted, 1 reproduced,
   1 accepted-risk). See [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#remediation-progress-2026-10-21).
-- Phase 11 wave 1 merges, 2026-10-21, second half: slice 0's follow-up `04f0ef9` (a
-  `TheoryHubScreen` test race that failed one in three full `verify` runs), slice 1 (`9e249ae`),
-  slice 15 (`7c9ec01`) and slice 3 (`ed40fa6`) merged after independent review; slice 1 passed
+- Phase 11 wave 1 merges, 2026-10-21, second half: slice 0's follow-up `a7517ae` (a
+  `TheoryHubScreen` test race that failed one in three full `verify` runs), slice 1 (`c95586b`),
+  slice 15 (`8d73767`) and slice 3 (`a84acb0`) merged after independent review; slice 1 passed
   its re-review after repairs for a blocker (an orphan WAL could overwrite the current
   library with no backup). PH-DATA-005, PH-DATA-006, PH-OPS-006, PH-DATA-004, PH-DATA-007,
   PH-OPS-003 and PH-SEC-005 moved from `accepted` to `fixed`. None is `verified`: each still
@@ -188,6 +188,13 @@ in the detailed report.
   headless Electron run of the preset carry-over on a carried-over profile: 12 verified,
   17 fixed. See
   [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#remediation-progress-2026-10-21).
+- Owner decisions, 2026-10-21: PH-MUS-018 and PH-UI-021 moved from `reproduced` to
+  `accepted`, both to be fixed at once as wave 1 follow-ups (PH-UI-021 remembers each
+  dialog's folder until the app closes). Counts: 71 findings (12 verified, 17 fixed,
+  41 accepted, 1 accepted-risk). The same day the five unpushed commits that recorded a
+  personal author address were rewritten to the GitHub noreply address, which gave all 78
+  unpushed commits new hashes; tracked files cite the new ones
+  ([lookup table](reports/commit-hash-rewrite-2026-10-21.md)).
 
 - PH-DATA-001 is the canonical cross-store atomicity finding for backup restore,
   song deletion, and full reset. Do not create separate findings for the same

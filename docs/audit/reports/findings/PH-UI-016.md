@@ -10,7 +10,7 @@
 - Affected runtime: both (CSS); web proven
 - Coverage rows: RT-010, WF-010
 - Related/duplicate findings: none
-- First observed against: `main` at `6e549b6`
+- First observed against: `main` at `4466626`
 
 ## User Impact
 
@@ -25,7 +25,7 @@ The large grade letter on the results screen (S, A, B, C, D, F) is the headline 
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`; headless Chromium 141, Playwright 1.56.1, default theme (`data-theme="dark"`), 1480x960.
+- Commit/patch identity: `4466626`; headless Chromium 141, Playwright 1.56.1, default theme (`data-theme="dark"`), 1480x960.
 
 ### Reproduction
 

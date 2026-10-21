@@ -10,7 +10,7 @@
 - Affected runtime: both (layout depends only on CSS pixel width); web emulation, real Chrome 151 zoom and packaged desktop zoom proven
 - Coverage rows: RT-006, RT-003, MOD-007
 - Related/duplicate findings: same class as PH-UI-002 (required-zoom layout failure), different component. PH-UI-002 itself holds (see lane report).
-- First observed against: `main` at `6e549b6`
+- First observed against: `main` at `4466626`
 
 ## User Impact
 
@@ -26,7 +26,7 @@ At 150 percent and 175 percent browser or Electron zoom of the default 1480x960 
 
 ### Environment
 
-- Commit/patch identity: `6e549b6`
+- Commit/patch identity: `4466626`
 - Runtime: headless Chromium 141, Playwright 1.56.1. **This is emulation**: the CSS viewport was shrunk to the size real zoom would give and `deviceScaleFactor` raised to match. Layout depends on CSS pixels, so the same collision is expected under real zoom, but that stays unproven until sitting 1.
 - Sizes: 1180x780@1, 1184x768@1.25, 987x640@1.5, 846x549@1.75, 740x480@2
 

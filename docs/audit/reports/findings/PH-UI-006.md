@@ -10,7 +10,7 @@
 - Affected runtime: both (same renderer code; web and headless Electron proven)
 - Coverage rows: WF-007
 - Related/duplicate findings: none (PH-UI-004 covers the Settings reset dialog, not the library)
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane F (FB), 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 lane F (FB), 2026-10-19
 
 ## User Impact
 
@@ -38,7 +38,7 @@ asks for a product decision against the design rule, not a regression fix.
 
 ### Environment
 
-- Commit/patch identity: `6e549b6` web build (`dist/server/index.cjs`, built 2026-10-19 17:07)
+- Commit/patch identity: `4466626` web build (`dist/server/index.cjs`, built 2026-10-19 17:07)
 - OS/runtime/browser: Linux, headless Chromium 141 via Playwright 1.56.1, web server on port 3785
 - Data profile/fixture: five generated MIDI files, one game result saved through `saveGameResult`, one playlist
 - Hardware, if applicable: none

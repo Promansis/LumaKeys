@@ -10,7 +10,7 @@
 - Affected runtime: both (shared formatter)
 - Coverage rows: WF-025, WF-004
 - Related/duplicate findings: PH-PAR-004 (same message line, different defect)
-- First observed against: `main` at source identity `6e549b6`, Phase 11 lane F (FB), 2026-10-19
+- First observed against: `main` at source identity `4466626`, Phase 11 lane F (FB), 2026-10-19
 
 ## User Impact
 
@@ -32,7 +32,7 @@ so the sentence belongs to the success case only.
 
 ### Environment
 
-- Commit/patch identity: `6e549b6` web build
+- Commit/patch identity: `4466626` web build
 - OS/runtime/browser: headless Chromium 141; four server configurations (converter unset, missing path, `/bin/true` and `/bin/false` stand-ins)
 - Data profile/fixture: a minimal zip renamed `.mscz`, a non-zip `.mscz`, an empty `.mscz`
 
