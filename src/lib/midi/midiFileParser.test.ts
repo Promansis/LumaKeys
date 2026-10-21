@@ -1,6 +1,22 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Midi } from '@tonejs/midi';
 import { describe, expect, it } from 'vitest';
+import { getLoopRangeSeconds, getMeasureCount, getMeasureIndexForTime } from '../game/songUtils';
 import { parseMidiFile } from './midiFileParser';
+
+// The fixtures are byte copies of the Phase 11 lane C files in
+// scripts/audit/fixtures/midi/, with the hand-written expectations from
+// measure-fixtures.oracle.json (120 BPM, 480 ticks per quarter note).
+function parseFixture(name: string) {
+  const bytes = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', `${name}.mid`));
+  return parseMidiFile(new Uint8Array(bytes).buffer, { songId: name, title: name });
+}
+
+function boundaryTuples(song: ReturnType<typeof parseFixture>) {
+  return (song.measureBoundaries ?? []).map((b) => [b.startTick, b.endTick, b.startSec, b.endSec]);
+}
 
 describe('parseMidiFile', () => {
   it('extracts bpm, tracks, and note metadata', () => {
@@ -57,5 +73,65 @@ describe('parseMidiFile', () => {
 
     expect(parsed.measureBoundaries).toHaveLength(2);
     expect(parsed.measureBoundaries?.[1]).toMatchObject({ startTick: 1440 });
+  });
+
+  describe('meter fixtures', () => {
+    it('splits a pure 6/8 song into 1.5 s measures', () => {
+      const song = parseFixture('pure-6-8');
+
+      expect(boundaryTuples(song)).toEqual([
+        [0, 1440, 0, 1.5],
+        [1440, 2880, 1.5, 3],
+        [2880, 4320, 3, 4.5],
+      ]);
+      expect(getMeasureCount(song)).toBe(3);
+      expect(song.notes.map((note) => getMeasureIndexForTime(song, note.startSec))).toEqual([
+        ...Array(6).fill(0),
+        ...Array(6).fill(1),
+        ...Array(6).fill(2),
+      ]);
+      expect(getLoopRangeSeconds(song, { startMeasure: 1, endMeasure: 1 })).toEqual({ startSec: 1.5, endSec: 3 });
+    });
+
+    it('moves the measure boundary when 6/8 changes to 3/4', () => {
+      const song = parseFixture('6-8-then-3-4-reached');
+
+      expect(boundaryTuples(song)).toEqual([
+        [0, 1440, 0, 1.5],
+        [1440, 2880, 1.5, 3],
+        [2880, 4320, 3, 4.5],
+        [4320, 5760, 4.5, 6],
+      ]);
+      // The last 6/8 note (tick 2640) is still in measure 1; the first 3/4 note (tick 2880) opens measure 2.
+      const measureOf = (tick: number) => {
+        const note = song.notes.find((candidate) => candidate.ticks === tick);
+        return note ? getMeasureIndexForTime(song, note.startSec) : -1;
+      };
+      expect(measureOf(2640)).toBe(1);
+      expect(measureOf(2880)).toBe(2);
+      expect(measureOf(4320)).toBe(3);
+      expect(getLoopRangeSeconds(song, { startMeasure: 2, endMeasure: 3 })).toEqual({ startSec: 3, endSec: 6 });
+    });
+
+    it('follows 3/4 then 4/4 with a tempo change inside a measure', () => {
+      const song = parseFixture('3-4-to-4-4-tempo');
+      const boundaries = boundaryTuples(song);
+
+      // Tempo drops from 120 to 60 BPM at tick 3840, in the middle of the first 4/4 measure.
+      expect(boundaries.map(([startTick, endTick]) => [startTick, endTick])).toEqual([
+        [0, 1440],
+        [1440, 2880],
+        [2880, 4800],
+        [4800, 6240],
+      ]);
+      const seconds = boundaries.map(([, , startSec, endSec]) => [startSec, endSec]);
+      [[0, 1.5], [1.5, 3], [3, 6], [6, 9]].forEach(([startSec, endSec], index) => {
+        expect(seconds[index][0]).toBeCloseTo(startSec, 6);
+        expect(seconds[index][1]).toBeCloseTo(endSec, 6);
+      });
+      // The final measure stops at the last note-off (tick 6240), not at the 4/4 barline (tick 6720).
+      expect(song.durationSec).toBeCloseTo(9, 6);
+      expect(getMeasureCount(song)).toBe(4);
+    });
   });
 });
