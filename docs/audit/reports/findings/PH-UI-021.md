@@ -135,9 +135,7 @@ This is not implementation authorization.
 ## Resolution
 
 - Accepted/rejected rationale: accepted by the owner on 2026-10-21; each dialog remembers the last folder until the app closes (in memory), as a follow-up to slice 3 (user tests decision 7).
-- Fix branch/commit/issue: none. Proposed placement: a small follow-up to slice 3 (in
-  memory, one file and one test), or slice 14 "Settings values" if the folders are
-  persisted. The owner decides both the placement and in-memory against persisted.
-- Verification evidence: none yet beyond the documentation and the code reading above.
-- Residual risk: as stated in User Impact.
+- Fix branch/commit/issue: branch `remediation/p11-f2-dialog-folders` (in-memory design, `src/main/dialogDefaults.ts` and `src/main/dialogDefaults.test.ts`, wired in `src/main/index.ts`); commit hash recorded at merge.
+- Verification evidence: `src/main/dialogDefaults.test.ts` (15 tests; failed before the module existed, passes after): remember and recall per kind, kinds independent, a missing or non-folder path ignored, a cancel remembers nothing, an absolute save `defaultPath` built from the remembered folder and the suggested name, the bare name kept when nothing is remembered. Both typechecks, the full vitest suite and `npm run verify` pass. No test drives the handlers in `src/main/index.ts` (it starts the app on import); the 8 open and 3 save call sites were checked by reading the diff. The real-display check (user tests B15, sitting 2 item 4) is still the owner's.
+- Residual risk: the folders are forgotten when the app closes (the accepted in-memory design); whether the Linux desktop portal keeps its own last folder is settled by B15.
 - Revisit trigger: the owner's decision on acceptance, design and placement.

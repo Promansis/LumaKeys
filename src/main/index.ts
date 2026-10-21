@@ -37,6 +37,7 @@ import {
   legacyLibraryPrompt,
   runDesktopStartup,
 } from './desktopStartup';
+import { lastDirectory, rememberPath, saveDefaultPath } from './dialogDefaults';
 import { installWindowGuard } from './windowGuard';
 
 // Electron derives the default userData from package.json before this module runs,
@@ -140,6 +141,7 @@ async function startDesktopApp(): Promise<void> {
 
   ipcMain.handle('dialog:pick-midi-file', async () => {
     const options: OpenDialogOptions = {
+      defaultPath: lastDirectory('midiFile'),
       properties: ['openFile'],
       filters: [{ name: 'MIDI Files', extensions: ['mid', 'midi'] }],
     };
@@ -152,6 +154,7 @@ async function startDesktopApp(): Promise<void> {
     }
 
     const selectedPath = result.filePaths[0];
+    rememberPath('midiFile', selectedPath);
     const data = new Uint8Array(await readFile(selectedPath));
     return {
       name: selectedPath.split(/[\\/]/).pop() ?? 'Imported MIDI',
@@ -180,6 +183,7 @@ async function startDesktopApp(): Promise<void> {
 
   ipcMain.handle('songs:import-midi-files', async (event) => {
     const options: OpenDialogOptions = {
+      defaultPath: lastDirectory('midiFile'),
       properties: ['openFile', 'multiSelections'],
       filters: [{ name: 'MIDI Files', extensions: ['mid', 'midi'] }],
     };
@@ -191,6 +195,7 @@ async function startDesktopApp(): Promise<void> {
       return { songs: [], errors: [], skipped: 0 };
     }
 
+    rememberPath('midiFile', result.filePaths[0]);
     const songs = [];
     const errors = [];
     let skipped = 0;
@@ -218,6 +223,7 @@ async function startDesktopApp(): Promise<void> {
 
   ipcMain.handle('songs:import-folder', async (event) => {
     const options: OpenDialogOptions = {
+      defaultPath: lastDirectory('midiFolder'),
       properties: ['openDirectory'],
     };
     const result = mainWindow
@@ -228,6 +234,7 @@ async function startDesktopApp(): Promise<void> {
       return null;
     }
 
+    rememberPath('midiFolder', result.filePaths[0]);
     const filePaths = collectMidiFiles(result.filePaths[0]);
     const importedSongs = [];
     const errors = [];
@@ -261,6 +268,7 @@ async function startDesktopApp(): Promise<void> {
     }
 
     const options: OpenDialogOptions = {
+      defaultPath: lastDirectory('midiFile'),
       properties: ['openFile'],
       filters: [{ name: 'MIDI Files', extensions: ['mid', 'midi'] }],
     };
@@ -273,6 +281,7 @@ async function startDesktopApp(): Promise<void> {
     }
 
     const selectedPath = result.filePaths[0];
+    rememberPath('midiFile', selectedPath);
     const title = selectedPath.split(/[\\/]/).pop()?.replace(/\.(mid|midi)$/i, '') ?? song.title;
     try {
       const buffer = await readFile(selectedPath);
@@ -385,7 +394,7 @@ async function startDesktopApp(): Promise<void> {
 
   ipcMain.handle('library:export', async () => {
     const options: SaveDialogOptions = {
-      defaultPath: `lumakeys-library-${new Date().toISOString().slice(0, 10)}.json`,
+      defaultPath: saveDefaultPath('libraryJson', `lumakeys-library-${new Date().toISOString().slice(0, 10)}.json`),
       filters: [{ name: 'JSON Files', extensions: ['json'] }],
     };
     const result = mainWindow
@@ -396,6 +405,7 @@ async function startDesktopApp(): Promise<void> {
       return null;
     }
 
+    rememberPath('libraryJson', result.filePath);
     const { backup, exportResult } = await buildLibraryBackup(db, midiStorage);
     writeFileSync(result.filePath, JSON.stringify(backup, null, 2), 'utf8');
     return {
@@ -408,6 +418,7 @@ async function startDesktopApp(): Promise<void> {
 
   ipcMain.handle('library:import', async () => {
     const options: OpenDialogOptions = {
+      defaultPath: lastDirectory('libraryJson'),
       properties: ['openFile'],
       filters: [{ name: 'JSON Files', extensions: ['json'] }],
     };
@@ -419,6 +430,7 @@ async function startDesktopApp(): Promise<void> {
       return null;
     }
 
+    rememberPath('libraryJson', result.filePaths[0]);
     const raw = JSON.parse(await readFile(result.filePaths[0], 'utf8')) as unknown;
     if (!isLibraryBackup(raw)) {
       throw new Error('Invalid library backup file.');
@@ -446,7 +458,7 @@ async function startDesktopApp(): Promise<void> {
 
   ipcMain.handle('file:save-midi', async (_event, suggestedName: string, data: Uint8Array) => {
     const options: SaveDialogOptions = {
-      defaultPath: suggestedName,
+      defaultPath: saveDefaultPath('midiExport', suggestedName),
       filters: [{ name: 'MIDI Files', extensions: ['mid'] }],
     };
     const result = mainWindow
@@ -457,13 +469,14 @@ async function startDesktopApp(): Promise<void> {
       return null;
     }
 
+    rememberPath('midiExport', result.filePath);
     writeFileSync(result.filePath, Buffer.from(data));
     return result.filePath;
   });
 
   ipcMain.handle('file:save-wav', async (_event, suggestedName: string, data: Uint8Array) => {
     const options: SaveDialogOptions = {
-      defaultPath: suggestedName,
+      defaultPath: saveDefaultPath('wavExport', suggestedName),
       filters: [{ name: 'WAV Audio', extensions: ['wav'] }],
     };
     const result = mainWindow
@@ -474,12 +487,14 @@ async function startDesktopApp(): Promise<void> {
       return null;
     }
 
+    rememberPath('wavExport', result.filePath);
     writeFileSync(result.filePath, Buffer.from(data));
     return result.filePath;
   });
 
   ipcMain.handle('file:pick-audio', async () => {
     const options: OpenDialogOptions = {
+      defaultPath: lastDirectory('audioFile'),
       properties: ['openFile'],
       filters: [{ name: 'Audio Files', extensions: ['mp3', 'wav', 'ogg', 'flac', 'm4a'] }],
     };
@@ -492,12 +507,14 @@ async function startDesktopApp(): Promise<void> {
     }
 
     const filePath = result.filePaths[0];
+    rememberPath('audioFile', filePath);
     const name = filePath.split(/[\\/]/).pop() ?? 'audio';
     return { path: filePath, name };
   });
 
   ipcMain.handle('file:pick-sample-dir', async () => {
     const options: OpenDialogOptions = {
+      defaultPath: lastDirectory('samplePackFolder'),
       properties: ['openDirectory'],
     };
     const result = mainWindow
@@ -508,6 +525,7 @@ async function startDesktopApp(): Promise<void> {
       return null;
     }
 
+    rememberPath('samplePackFolder', result.filePaths[0]);
     return result.filePaths[0];
   });
 
@@ -536,6 +554,7 @@ async function startDesktopApp(): Promise<void> {
     }
 
     const options: OpenDialogOptions = {
+      defaultPath: lastDirectory('samplePackFolder'),
       properties: ['openDirectory'],
     };
     const result = mainWindow
@@ -545,6 +564,8 @@ async function startDesktopApp(): Promise<void> {
     if (result.canceled || result.filePaths.length === 0) {
       return getDesktopInstrumentSamplePackStatuses(db);
     }
+
+    rememberPath('samplePackFolder', result.filePaths[0]);
 
     return installDesktopInstrumentSamplePack(db, userDataPath, getDesktopAssetRoot(), instrumentId, result.filePaths[0]);
   });
