@@ -97,7 +97,12 @@ the helper with the rest of the legacy fallback (see the lane H ADR draft).
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue:
+- Fix branch/commit/issue: branch `remediation/p11-s15-browser-legacy`, commit f3b1fb8 (slice 15; ships in the carry-over release with slice 1). No issue.
 - Verification evidence:
-- Residual risk:
+
+  What changed: new `src/renderer/legacyFilterPresets.ts`. `LibraryScreen` calls `carryOverLegacyFilterPresets()` in its preset state initialiser. When `lumakeys-filter-presets` is absent and `pianohero-filter-presets` exists, the value is copied across and the old key is removed once the copy reads back equal. When the current key exists it wins and the legacy key is left until reset. Storage errors are swallowed. `LibraryScreen` keeps its original key literals and gains only the one call, so removal is deleting that file and that call. Marked for removal no earlier than 2027-01-31 (owner decision 3). "Reset all user data" already calls `localStorage.clear()`, which clears both names, so reset needed no change and has no new test.
+  Tests. Failed before the fix, pass after: `LibraryScreen.test.tsx` "lists a preset saved under the pre-rename key and moves it to the current key". Guard: "keeps the current presets and leaves the legacy key alone when both exist".
+  Driver `legacy-filter-presets.mjs` (headless Chromium, isolated data): case L before `userChips: []`, `presetKeys: [pianohero-filter-presets]`; after `userChips: [Legacy Preset]`, `presetKeys: [lumakeys-filter-presets]`; case C (control) unchanged.
+  Electron half: the renderer code is the same, so it follows the web result. A headless Electron run is owed after slice 1 lands (sitting 2 or an Electron probe on a carried-over profile).
+- Residual risk: A user who saved presets under the current key after the rename and still has a legacy key keeps both until reset or the removal release. The carry-over runs when the library opens, so a legacy key lingers until then.
 - Revisit trigger, if accepted-risk:

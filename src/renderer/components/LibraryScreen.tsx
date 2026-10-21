@@ -3,6 +3,7 @@ import { AudioEngine } from '../../lib/audio/audioEngine';
 import type { ScoredSessionMode } from '../../lib/game/types';
 import { parseMidiFile } from '../../lib/midi/midiFileParser';
 import type { FolderRow, LibrarySnapshot, PlaylistRow, RecommendationResult, SongRow, UserStatsRow } from '../../shared/dbTypes';
+import { carryOverLegacyFilterPresets } from '../legacyFilterPresets';
 import { AdvancedFilters, type LibraryAdvancedFilters } from './AdvancedFilters';
 import { BulkActionBar } from './BulkActionBar';
 import { LibrarySidebar, type LibraryActiveView } from './LibrarySidebar';
@@ -190,6 +191,7 @@ export function LibraryScreen({
   const refreshRequestRef = useRef(0);
   const [userPresets, setUserPresets] = useState<FilterPreset[]>(() => {
     try {
+      carryOverLegacyFilterPresets();
       const raw = localStorage.getItem('lumakeys-filter-presets');
       return raw ? (JSON.parse(raw) as FilterPreset[]) : [];
     } catch {

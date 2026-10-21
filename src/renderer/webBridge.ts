@@ -18,6 +18,10 @@ import type {
 import type { LibraryBackup, LibraryExportResult, LibraryImportResult } from '../shared/dbTypes';
 
 const WEB_PACK_DB_NAME = 'lumakeys-instrument-sample-packs';
+// Pre-rename (PianoHero) database name, read only to carry packs over and to clear on reset.
+// Remove the carry-over no earlier than 2027-01-31 (owner decision 3), in the same release as the
+// Node-side legacy fallback in src/persistence/legacyBrandMigration.ts.
+const LEGACY_WEB_PACK_DB_NAME = 'pianohero-instrument-sample-packs';
 const WEB_PACK_DB_VERSION = 1;
 const WEB_PACK_OBJECT_STORE = 'packs';
 
@@ -186,7 +190,7 @@ function revokeObjectUrls(instrumentId: string): void {
   objectUrlCache.delete(instrumentId);
 }
 
-function openPackDatabase(): Promise<IDBDatabase> {
+function openCurrentPackDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = window.indexedDB.open(WEB_PACK_DB_NAME, WEB_PACK_DB_VERSION);
     request.onupgradeneeded = () => {
@@ -200,6 +204,119 @@ function openPackDatabase(): Promise<IDBDatabase> {
   });
 }
 
+/** Opens the pre-rename pack database, or resolves null without creating it when there is none. */
+function openLegacyPackDatabase(): Promise<IDBDatabase | null> {
+  return new Promise((resolve, reject) => {
+    const request = window.indexedDB.open(LEGACY_WEB_PACK_DB_NAME);
+    let missing = false;
+    request.onupgradeneeded = () => {
+      // An upgrade on an unversioned open means the database did not exist. Abort so it is not created.
+      missing = true;
+      request.transaction?.abort();
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = (event) => {
+      if (missing) {
+        event.preventDefault();
+        resolve(null);
+        return;
+      }
+      reject(request.error ?? new Error('Unable to open the legacy instrument pack database.'));
+    };
+  });
+}
+
+function waitForTransaction(tx: IDBTransaction): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error('IndexedDB transaction failed.'));
+    tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction was aborted.'));
+  });
+}
+
+function deletePackDatabase(name: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = window.indexedDB.deleteDatabase(name);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error ?? new Error('Unable to clear instrument sample packs.'));
+    request.onblocked = () => reject(new Error('Unable to clear instrument sample packs because the store is busy.'));
+  });
+}
+
+/**
+ * Copies packs installed before the PianoHero -> LumaKeys rename into the current database, then
+ * deletes the legacy one. Copies only while the current database holds no packs, and deletes the
+ * legacy database only after the copy transaction has committed. When both hold packs the current
+ * ones win and the legacy database is left untouched until reset.
+ */
+async function copyLegacyPacks(): Promise<void> {
+  const current = await openCurrentPackDatabase();
+  try {
+    const currentStore = current.transaction(WEB_PACK_OBJECT_STORE, 'readonly').objectStore(WEB_PACK_OBJECT_STORE);
+    if ((await readRequest(currentStore.count())) > 0) {
+      return;
+    }
+
+    const legacy = await openLegacyPackDatabase();
+    if (!legacy) {
+      return;
+    }
+    let records: StoredWebInstrumentPack[] = [];
+    try {
+      if (legacy.objectStoreNames.contains(WEB_PACK_OBJECT_STORE)) {
+        const legacyStore = legacy.transaction(WEB_PACK_OBJECT_STORE, 'readonly').objectStore(WEB_PACK_OBJECT_STORE);
+        records = await readRequest(legacyStore.getAll() as IDBRequest<StoredWebInstrumentPack[]>);
+      }
+    } finally {
+      legacy.close();
+    }
+
+    if (records.length > 0) {
+      const tx = current.transaction(WEB_PACK_OBJECT_STORE, 'readwrite');
+      const committed = waitForTransaction(tx);
+      const store = tx.objectStore(WEB_PACK_OBJECT_STORE);
+      try {
+        for (const record of records) {
+          store.put(record);
+        }
+      } catch (error) {
+        // A put can throw synchronously (DataError); abort so the earlier puts do not auto-commit.
+        tx.abort();
+        committed.catch(() => undefined);
+        throw error;
+      }
+      await committed;
+    }
+  } finally {
+    current.close();
+  }
+  await deletePackDatabase(LEGACY_WEB_PACK_DB_NAME);
+}
+
+// Keyed by the factory so each page (and each test's fake) runs the carry-over once.
+const legacyPackCarryOvers = new WeakMap<IDBFactory, Promise<void>>();
+
+/** Runs the legacy carry-over once per page. A failure keeps the legacy data and is not fatal. */
+function carryOverLegacyPacks(): Promise<void> {
+  const factory = window.indexedDB;
+  if (!factory) {
+    return Promise.resolve();
+  }
+  let carryOver = legacyPackCarryOvers.get(factory);
+  if (!carryOver) {
+    carryOver = copyLegacyPacks().catch((error) => {
+      console.warn('Unable to carry sample packs over from the pre-rename browser database.', error);
+    });
+    legacyPackCarryOvers.set(factory, carryOver);
+  }
+  return carryOver;
+}
+
+async function openPackDatabase(): Promise<IDBDatabase> {
+  await carryOverLegacyPacks();
+  return openCurrentPackDatabase();
+}
+
 async function withPackStore<T>(
   mode: IDBTransactionMode,
   run: (store: IDBObjectStore) => Promise<T>,
@@ -209,11 +326,7 @@ async function withPackStore<T>(
     const tx = db.transaction(WEB_PACK_OBJECT_STORE, mode);
     const store = tx.objectStore(WEB_PACK_OBJECT_STORE);
     const result = await run(store);
-    await new Promise<void>((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error ?? new Error('IndexedDB transaction failed.'));
-      tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction was aborted.'));
-    });
+    await waitForTransaction(tx);
     return result;
   } finally {
     db.close();
@@ -253,12 +366,9 @@ function clearWebInstrumentPackDatabase(): Promise<void> {
   if (!window.indexedDB) {
     return Promise.resolve();
   }
-  return new Promise((resolve, reject) => {
-    const request = window.indexedDB.deleteDatabase(WEB_PACK_DB_NAME);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error ?? new Error('Unable to clear instrument sample packs.'));
-    request.onblocked = () => reject(new Error('Unable to clear instrument sample packs because the store is busy.'));
-  });
+  // The legacy name goes first. If another tab holds it open the reset rejects as busy; that delete
+  // stays queued and completes when the tab lets go, and a retry then clears the current name too.
+  return deletePackDatabase(LEGACY_WEB_PACK_DB_NAME).then(() => deletePackDatabase(WEB_PACK_DB_NAME));
 }
 
 function toInstalledRecordMap(
