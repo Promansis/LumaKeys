@@ -11,6 +11,10 @@ files:
   - package.json
   - node_modules/**/*
 
+# better-sqlite3 13 ships N-API prebuilds that load in Node and Electron alike, so
+# electron-builder must not recompile it from source (that needs a C++ toolchain).
+npmRebuild: false
+
 asarUnpack:
   - node_modules/better-sqlite3/**/*
 
