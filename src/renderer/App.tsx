@@ -648,7 +648,8 @@ export function App() {
           setBeatsVisible(parsedBeatsVisible);
         }
 
-        const parsedLeadIn = Number(rawLeadInBeats);
+        // Number(null) and Number('') are 0, which would pass as a saved zero-beat count-in.
+        const parsedLeadIn = rawLeadInBeats == null || rawLeadInBeats.trim() === '' ? NaN : Number(rawLeadInBeats);
         if (Number.isFinite(parsedLeadIn) && parsedLeadIn >= 0) {
           setLeadInBeats(Math.round(parsedLeadIn));
         }

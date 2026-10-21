@@ -129,13 +129,14 @@ vi.mock('./components/GameScreen', () => ({
     source,
   }: {
     onOpenKeyboardSetup: () => void;
-    initialSessionConfig: { mode: string; waitForInput: boolean };
+    initialSessionConfig: { mode: string; waitForInput: boolean; leadInBeats?: number };
     source: { kind: string };
   }) => (
     <>
       <div>Game</div>
       <div data-testid="game-session-mode">{initialSessionConfig.mode}</div>
       <div data-testid="game-session-wait">{String(initialSessionConfig.waitForInput)}</div>
+      <div data-testid="game-session-lead-in">{String(initialSessionConfig.leadInBeats)}</div>
       <div data-testid="game-source-kind">{source.kind}</div>
       <button onClick={onOpenKeyboardSetup}>Open Keyboard Setup</button>
     </>
@@ -475,6 +476,32 @@ describe('App', () => {
     expect(setMasterVolumeSpy).toHaveBeenCalledWith(35);
     expect(setMetronomeVolumeSpy).toHaveBeenCalledWith(0);
     expect(setReverbLevelSpy).toHaveBeenCalledWith(50);
+  });
+
+  it('starts a fresh profile with the two lead-in beats the settings screen shows', async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByText('Start Recommended Song'));
+
+    expect(screen.getByTestId('game-session-lead-in')).toHaveTextContent('2');
+  });
+
+  it('keeps a saved lead-in of zero over the default', async () => {
+    vi.mocked(window.appBridge!.getSetting).mockImplementation(async (category: string, key: string) => {
+      if (category === 'onboarding' && key === 'setupComplete') {
+        return 'true';
+      }
+      if (category === 'gameplay' && key === 'leadInBeats') {
+        return '0';
+      }
+      return null;
+    });
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByText('Start Recommended Song'));
+
+    expect(screen.getByTestId('game-session-lead-in')).toHaveTextContent('0');
   });
 
   it('keeps the shell usable with defaults when startup settings fail', async () => {
