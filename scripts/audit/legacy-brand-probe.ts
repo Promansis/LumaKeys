@@ -91,7 +91,7 @@ function main() {
     const dest = join(base, 'lumakeys');
     seedWalOnly(legacy);
     mkdirSync(join(dest, 'Crashpad'), { recursive: true }); // Electron creates this before ready
-    const run = attempt(() => migrateLegacyBrand({ destinationDir: dest, legacyDir: legacy }));
+    const run = attempt(() => migrateLegacyBrand({ destinationDir: dest, legacyDirs: [legacy] }));
     record('H0-profile-control', { run, dest: inspect(dest), legacy: inspect(legacy, 'pianohero.db') });
   }
 
@@ -103,7 +103,7 @@ function main() {
     seedWalOnly(legacy);
     mkdirSync(dest, { recursive: true });
     renameSync(join(legacy, 'midi-files'), join(dest, 'midi-files'));
-    const run = attempt(() => migrateLegacyBrand({ destinationDir: dest, legacyDir: legacy }));
+    const run = attempt(() => migrateLegacyBrand({ destinationDir: dest, legacyDirs: [legacy] }));
     record('H1-after-midi-files', { run, dest: inspect(dest), legacy: inspect(legacy, 'pianohero.db') });
   }
 
@@ -116,8 +116,8 @@ function main() {
     mkdirSync(dest, { recursive: true });
     renameSync(join(legacy, 'midi-files'), join(dest, 'midi-files'));
     renameSync(join(legacy, 'pianohero.db'), join(dest, 'lumakeys.db'));
-    const run = attempt(() => migrateLegacyBrand({ destinationDir: dest, legacyDir: legacy }));
-    const second = attempt(() => migrateLegacyBrand({ destinationDir: dest, legacyDir: legacy }));
+    const run = attempt(() => migrateLegacyBrand({ destinationDir: dest, legacyDirs: [legacy] }));
+    const second = attempt(() => migrateLegacyBrand({ destinationDir: dest, legacyDirs: [legacy] }));
     // What the app does next: open the destination database.
     const appOpen = attempt(() => { const db = new AppDatabase(join(dest, 'lumakeys.db')); db.close(); return 'opened'; });
     record('H2-after-db-before-wal', { run, second, appOpen, dest: inspect(dest), legacyLeft: readdirSync(legacy).sort() });
@@ -128,22 +128,26 @@ function main() {
     const base = fresh('H3');
     seedWalOnly(base);
     renameSync(join(base, 'pianohero.db'), join(base, 'lumakeys.db'));
+    // The manual variants start from the interrupted state, taken before the run changes it.
+    const pristine = join(ROOT, 'H3-pristine');
+    rmSync(pristine, { recursive: true, force: true });
+    cpSync(base, pristine, { recursive: true });
     const run = attempt(() => migrateLegacyBrand({ destinationDir: base }));
-    // Operator follows the message literally: removes the legacy-named file(s).
+    // Operator follows the old refusal message literally: removes the legacy-named file(s).
     const literal = join(ROOT, 'H3-literal-advice');
     rmSync(literal, { recursive: true, force: true });
-    cpSync(base, literal, { recursive: true });
+    cpSync(pristine, literal, { recursive: true });
     for (const n of ['pianohero.db-wal', 'pianohero.db-shm']) unlinkSync(join(literal, n));
     const literalRun = attempt(() => migrateLegacyBrand({ destinationDir: literal }));
     // Correct manual recovery: finish the rename.
     const manual = join(ROOT, 'H3-manual-finish');
     rmSync(manual, { recursive: true, force: true });
-    cpSync(base, manual, { recursive: true });
+    cpSync(pristine, manual, { recursive: true });
     renameSync(join(manual, 'pianohero.db-wal'), join(manual, 'lumakeys.db-wal'));
     renameSync(join(manual, 'pianohero.db-shm'), join(manual, 'lumakeys.db-shm'));
     const manualRun = attempt(() => migrateLegacyBrand({ destinationDir: manual }));
     record('H3-same-dir-after-db', {
-      run, stateAfterRefusal: readdirSync(base).sort(),
+      run, stateAfterRun: readdirSync(base).sort(), dbAfterRun: inspect(base),
       literalAdvice: { run: literalRun, db: inspect(literal) },
       manualFinish: { run: manualRun, db: inspect(manual) },
     });
@@ -155,8 +159,11 @@ function main() {
     seedWalOnly(base);
     renameSync(join(base, 'pianohero.db'), join(base, 'lumakeys.db'));
     renameSync(join(base, 'pianohero.db-wal'), join(base, 'lumakeys.db-wal'));
+    const pristine = join(ROOT, 'H4-pristine');
+    rmSync(pristine, { recursive: true, force: true });
+    cpSync(base, pristine, { recursive: true });
     const run = attempt(() => migrateLegacyBrand({ destinationDir: base }));
-    record('H4-same-dir-before-shm', { run, entries: readdirSync(base).sort(), dbIfShmRemoved: (() => { const c = join(ROOT, 'H4-copy'); rmSync(c, { recursive: true, force: true }); cpSync(base, c, { recursive: true }); unlinkSync(join(c, 'pianohero.db-shm')); return { run: attempt(() => migrateLegacyBrand({ destinationDir: c })), db: inspect(c) }; })() });
+    record('H4-same-dir-before-shm', { run, entries: readdirSync(base).sort(), dbAfterRun: inspect(base), dbIfShmRemoved: (() => { const c = join(ROOT, 'H4-copy'); rmSync(c, { recursive: true, force: true }); cpSync(pristine, c, { recursive: true }); unlinkSync(join(c, 'pianohero.db-shm')); return { run: attempt(() => migrateLegacyBrand({ destinationDir: c })), db: inspect(c) }; })() });
   }
 
   // H5: profile move where the destination already holds a conflicting entry (Local Storage) but no db.
@@ -167,9 +174,9 @@ function main() {
     seedWalOnly(legacy);
     mkdirSync(join(legacy, 'Local Storage', 'leveldb'), { recursive: true });
     mkdirSync(join(dest, 'Local Storage', 'leveldb'), { recursive: true });
-    const first = attempt(() => migrateLegacyBrand({ destinationDir: dest, legacyDir: legacy }));
+    const first = attempt(() => migrateLegacyBrand({ destinationDir: dest, legacyDirs: [legacy] }));
     const afterFirst = { dest: readdirSync(dest).sort(), legacy: readdirSync(legacy).sort() };
-    const second = attempt(() => migrateLegacyBrand({ destinationDir: dest, legacyDir: legacy }));
+    const second = attempt(() => migrateLegacyBrand({ destinationDir: dest, legacyDirs: [legacy] }));
     record('H5-conflicting-entry', { first, afterFirst, second, afterSecond: { dest: readdirSync(dest).sort(), legacy: readdirSync(legacy).sort() } });
   }
   rmSync(join(ROOT, '.inspect'), { recursive: true, force: true });

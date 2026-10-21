@@ -57,6 +57,11 @@ function getInstrumentSamplePackDir(userDataPath: string, instrumentId: string):
   return destination;
 }
 
+/** The `file:` base URL the renderer's sampler loads a desktop pack from. */
+function desktopPackBaseUrl(packDir: string): string {
+  return `file:///${packDir.replace(/\\/g, '/').replace(/\/?$/, '/')}`;
+}
+
 function resolveBundledFilePath(assetRoot: string, assetPath: string): string {
   const relativePath = assetPath.replace(/^\//, '');
   const absolutePath = join(assetRoot, relativePath);
@@ -98,7 +103,7 @@ function installManagedDesktopInstrumentSamplePack(
     packLabel: manifest.packLabel,
     version: manifest.version,
     installedAt: new Date().toISOString(),
-    baseUrl: `file:///${destinationDir.replace(/\\/g, '/').replace(/\/?$/, '/')}`,
+    baseUrl: desktopPackBaseUrl(destinationDir),
     urls: Object.fromEntries(manifest.assets.map((asset) => [asset.note, asset.fileName])),
   };
   saveInstalledPacks(db, installedPacks);
@@ -136,7 +141,7 @@ function installManualDesktopInstrumentSamplePack(
     packLabel: definition.packLabel,
     version: 'manual',
     installedAt: new Date().toISOString(),
-    baseUrl: `file:///${destinationDir.replace(/\\/g, '/').replace(/\/?$/, '/')}`,
+    baseUrl: desktopPackBaseUrl(destinationDir),
     urls,
   };
   saveInstalledPacks(db, installedPacks);
@@ -147,11 +152,21 @@ export function getDesktopInstrumentSamplePackStatuses(db: AppDatabase): Instrum
   return buildInstrumentSamplePackStatuses('desktop', getInstalledPacks(db));
 }
 
+/**
+ * The stored `baseUrl` is the absolute pack directory at install time, which goes stale
+ * when the profile moves (for example by the legacy profile migration). The pack always
+ * lives in the current profile, so the URL is derived from `userDataPath` on each read.
+ */
 export function resolveDesktopInstrumentSampleSource(
   db: AppDatabase,
+  userDataPath: string,
   instrumentId: string,
 ): ResolvedInstrumentSampleSource | null {
-  return resolveInstalledInstrumentSampleSource(getInstalledPacks(db), instrumentId);
+  const source = resolveInstalledInstrumentSampleSource(getInstalledPacks(db), instrumentId);
+  if (!source || !getInstrumentSamplePackDefinition(instrumentId)) {
+    return source;
+  }
+  return { ...source, baseUrl: desktopPackBaseUrl(getInstrumentSamplePackDir(userDataPath, instrumentId)) };
 }
 
 export function installDesktopInstrumentSamplePack(
