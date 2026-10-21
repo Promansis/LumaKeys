@@ -4,6 +4,7 @@ import type { AudioEngine } from '../../lib/audio/audioEngine';
 import type { ComputerKeyboardInputService } from '../../lib/input/computerKeyboardInputService';
 import type { InputEvent, KeyboardInputState } from '../../lib/input/types';
 import type { ParsedSong, SessionConfig } from '../../lib/game/types';
+import type { SongRow } from '../../shared/dbTypes';
 import type { MidiInputService } from '../../lib/midi/midiInputService';
 import type { MidiInputDevice } from '../../lib/midi/types';
 import { GameScreen } from './GameScreen';
@@ -126,6 +127,26 @@ function buildSong(): ParsedSong {
   };
 }
 
+function buildLibrarySong(): SongRow {
+  return {
+    id: 'song-1',
+    title: 'Etude',
+    artist: 'Test',
+    genre: '',
+    filePath: 'song-1.mid',
+    difficulty: 1,
+    durationSec: 2,
+    bpm: 120,
+    noteCount: 1,
+    dateAdded: '2026-01-01T00:00:00.000Z',
+    timesPlayed: 0,
+    tags: [],
+    isFavorite: false,
+    folderId: null,
+    trackAssignments: {},
+  };
+}
+
 function buildSessionConfig(overrides: Partial<SessionConfig> = {}): SessionConfig {
   return {
     mode: 'luma-keys',
@@ -151,6 +172,8 @@ function renderGameScreen(options: {
   keyboardInputService?: MockKeyboardInputService;
   isRhythmClapping?: boolean;
   sessionConfig?: SessionConfig;
+  librarySong?: boolean;
+  onExit?: () => void;
 } = {}) {
   const audioEngine = options.audioEngine ?? buildAudioEngineStub();
   const midiInputService = options.midiInputService ?? new MockMidiInputService();
@@ -162,13 +185,15 @@ function renderGameScreen(options: {
       inputMode="both"
       keyboardInputService={keyboardInputService as unknown as ComputerKeyboardInputService}
       midiInputService={midiInputService as unknown as MidiInputService}
-      source={{
-        kind: 'lesson-drill',
-        lessonId: 'lesson-1',
-        stepIndex: 0,
-        parsedSong: buildSong(),
-        isRhythmClapping: options.isRhythmClapping,
-      }}
+      source={options.librarySong
+        ? { kind: 'library-song', song: buildLibrarySong(), playlistQueue: null }
+        : {
+          kind: 'lesson-drill',
+          lessonId: 'lesson-1',
+          stepIndex: 0,
+          parsedSong: buildSong(),
+          isRhythmClapping: options.isRhythmClapping,
+        }}
       initialSessionConfig={options.sessionConfig ?? buildSessionConfig()}
       colorBlindMode={false}
       noteLabels="alphabetic"
@@ -179,7 +204,7 @@ function renderGameScreen(options: {
       onGameFinished={vi.fn()}
       onLessonDrillFinished={vi.fn()}
       onInstrumentChange={vi.fn()}
-      onExit={vi.fn()}
+      onExit={options.onExit ?? vi.fn()}
       onOpenKeyboardSetup={vi.fn()}
     />,
   );
@@ -314,5 +339,50 @@ describe('GameScreen', () => {
       expect(learningButton).toHaveClass('primary-button');
       expect(screen.getByText('Session setup changed. This run restarted.')).toBeInTheDocument();
     });
+  });
+
+  describe('prerequisite failures while opening a library song', () => {
+    function stubBridge(overrides: Record<string, unknown>) {
+      window.appBridge = {
+        getSetting: vi.fn().mockResolvedValue(null),
+        setSetting: vi.fn().mockResolvedValue(undefined),
+        getUserStats: vi.fn().mockResolvedValue(null),
+        getCustomFingerings: vi.fn().mockResolvedValue([]),
+        loadMidiFileData: vi.fn().mockRejectedValue(new Error('song unavailable')),
+        ...overrides,
+      } as unknown as typeof window.appBridge;
+    }
+
+    it('shows Retry and Main Menu when the song bytes fail to load', async () => {
+      stubBridge({});
+      const onExit = vi.fn();
+      renderGameScreen({ librarySong: true, onExit });
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent('Unable to load song: song unavailable');
+
+      const loadMidiFileData = window.appBridge?.loadMidiFileData as ReturnType<typeof vi.fn>;
+      expect(loadMidiFileData).toHaveBeenCalledTimes(1);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      await waitFor(() => expect(loadMidiFileData).toHaveBeenCalledTimes(2));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load song: song unavailable');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Main Menu' }));
+      expect(onExit).toHaveBeenCalledOnce();
+    });
+
+    it.each(['getUserStats', 'getCustomFingerings', 'getSetting'])(
+      'shows the recovery panel when %s rejects',
+      async (method) => {
+        stubBridge({ [method]: vi.fn().mockRejectedValue(new Error(`${method} failed`)) });
+        renderGameScreen({ librarySong: true });
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(`Unable to load song: ${method} failed`);
+        expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Main Menu' })).toBeInTheDocument();
+        expect(window.appBridge?.loadMidiFileData).not.toHaveBeenCalled();
+      },
+    );
   });
 });

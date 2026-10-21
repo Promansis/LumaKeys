@@ -87,13 +87,15 @@ pointer-hit-testable.
 
 Make the tab row reserve its actual control height at every supported zoom. Keep
 horizontal scrolling only if necessary, ensure vertical overflow remains visible
-or non-scrolling, and add a deterministic visual/layout assertion that every tab
-has a hit-testable center at 125-200% zoom in both runtimes.
+or non-scrolling. Prove at runtime that every tab has a hit-testable center at
+125-200% zoom in both runtimes (jsdom cannot measure layout, so there is no
+automated height assertion).
 
 ## Required Regression Proof
 
-- Deterministic unit/integration proof: tablist reports a client height at least
-  the tab control height; every tab center resolves to that tab at each zoom.
+- Layout proof (runtime only): every tab center resolves to that tab at each
+  zoom, and the tablist reports a client height at least the tab control height.
+  There is no automated assertion for this: jsdom does not measure layout.
 - Electron proof: 150%, 175%, and 200% Settings tabs are visible, pointer
   reachable, and keyboard operable in a fresh renderer profile.
 - Web proof: same conditions in Chrome, Edge, and Firefox.
@@ -122,4 +124,5 @@ has a hit-testable center at 125-200% zoom in both runtimes.
 - Verification evidence: Settings tests, independent CSS/source review, and Linux package launch pass; actual 125-200% Electron/Chrome/Edge/Firefox hit-testing remains in [Phase 10](../phase-10-verification-2026-08-07.md).
   Owner sittings run by the agent, 2026-10-20. [Sitting 1](../phase-11-owner-sittings-2026-10-20.md#sitting-1-linux-display-and-speakers) item 2: in real Chrome 151, real Ctrl+= reached exactly 125, 150, 175 and 200 % (devicePixelRatio confirmed), and all 5 tabs opened by real clicks at each step. In the packaged desktop app (zoom in is Ctrl+Shift+=), all 5 tabs opened at 110, 120, 131, 144, 158, 173, 189 and 207 %. [Sitting 3](../phase-11-owner-sittings-2026-10-20.md#sitting-3-edge-and-firefox) item 2: all 5 tabs opened at 150 and 200 % in Edge 155 (emulated zoom), Firefox 142 (emulated) and Firefox 142 (genuine `layout.css.devPixelsPerPx`).
 - Residual risk: Edge's own browser zoom was not used ([user test D1](../phase-11-user-tests.md)); it is the same Chromium zoom proven in Chrome 151. The HUD buttons covered at 150 to 189 % are a separate finding, [PH-UI-012](PH-UI-012.md).
+- Slice 0 (2026-10-21, `remediation/p11-s00-ci`): the claim of an automated tab-row height assertion is removed from the remediation boundary and the required proof above, as the re-verification suggested. Layout stays runtime proof (sittings 1 and 3). No code or test changed.
 - Revisit trigger: before accessibility sign-off or release readiness.
