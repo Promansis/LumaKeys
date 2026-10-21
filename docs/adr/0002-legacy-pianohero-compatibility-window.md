@@ -7,7 +7,10 @@
 
 The owner settled the date floor and the release order on 2026-10-20 (Phase 11 owner
 decision 3). The draft this ADR comes from is in
-[lane H](../audit/reports/phase-11-lane-h-documentation-2026-10-19.md).
+[lane H](../audit/reports/phase-11-lane-h-documentation-2026-10-19.md). The
+`accepted` status rests on decision 3's wording "as in lane H's draft ADR"
+([consolidation](../audit/reports/consolidation-2026-10-20.md), decision 3). This
+ADR was written on 2026-10-21 from the 2026-10-20 decision.
 
 ## Context
 
@@ -83,7 +86,8 @@ library and no message.
 
 Items 1 and 2 are settled by the owner. Items 3, 4, 6 and 7 are obligations of the
 carry-over release or earlier, and the Phase 11 remediation plan does not schedule
-them yet. The removal release is blocked until they are done.
+them yet. The removal release is blocked until they are done. Item 5 (the tombstone
+check) is the removal release's own work.
 
 ## Consequences
 

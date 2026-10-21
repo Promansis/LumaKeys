@@ -101,8 +101,8 @@ Runtime-specific differences must be explicit in bridge categories or UI gating.
 LumaKeys ships two runtimes from one source tree. Both share `src/lib/` (game,
 theory, audio, input), the React screens under `src/renderer/`, and the single
 `AppDatabase` class. Only the transport between renderer and database differs. The
-facts below were checked against `main` at `5017b8e`; the Phase 11 remediation plan
-changes some of them, and the plan says which.
+facts below were checked against `main` at `5017b8e`. Remediation slices change some
+of these facts; the slice that changes one updates this section.
 
 Commands live in `package.json` scripts. Docker and Cloudflare Tunnel host setup
 lives in [`README.md`](README.md) ("Where Data Is Stored", "Protect the Web APIs");
@@ -143,7 +143,8 @@ do not copy it here.
   - `midiRouter.ts`: `POST /api/midi/upload` (`.mid`, `.midi` and `.mscz`),
     `POST /api/midi/:songId/reattach`, and `GET /api/midi/:songId` to stream bytes.
 - **MuseScore**: `src/server/museScore.ts` converts `.mscz` to MIDI one score at a
-  time, through the executable named by `LUMAKEYS_MUSESCORE_PATH`.
+  time, through the executable named by `LUMAKEYS_MUSESCORE_PATH`. It works on Linux
+  only and needs `prlimit`; on any other platform the import fails.
 - **Client shim** (`src/renderer/webBridge.ts`): installs a `window.appBridge` proxy.
   RPC methods `fetch` `/api/bridge/{method}` with `{ args }`. Desktop-only methods
   (`WEB_STUB_BRIDGE_METHODS` in `src/shared/bridgeMethods.ts`: native file dialogs
@@ -155,9 +156,9 @@ do not copy it here.
   `src/persistence`, `src/storage`, `src/shared`, and the `src/lib` modules the
   server imports (`achievements`, `game`, `recommendations`, `midiFileParser.ts` and
   `importMetadata.ts`).
-- **Docker**: `Dockerfile` starts from `node:22-bookworm`. On amd64 it installs
-  MuseScore Studio 4.7.5 from a checksummed AppImage and sets
-  `LUMAKEYS_MUSESCORE_PATH`. It builds with `npm run build:web`, sets `PORT=3001`
+- **Docker**: `Dockerfile` starts from `node:22-bookworm`. The image build
+  requires amd64. It installs the MuseScore Studio version pinned in the
+  Dockerfile from a checksummed AppImage and sets `LUMAKEYS_MUSESCORE_PATH`. It builds with `npm run build:web`, sets `PORT=3001`
   and `LUMAKEYS_DATA_DIR=/data`, and runs `npm run start:web`. `docker-compose.yml`
   bind-mounts host `/media/storage/lumakeys` to `/data`.
 
@@ -180,7 +181,7 @@ do not copy it here.
   `ComputerKeyboardInputService` are held as `useRef` in `App.tsx` and passed down as
   props. `GameSession` is created per run inside `GameScreen.tsx`.
 - **Canvas for visuals**: gameplay and free-play visuals use Canvas 2D, not DOM. A
-  `requestAnimationFrame` loop (about 60 fps) drives canvas updates and session ticks.
+  `requestAnimationFrame` loop (once per display frame) drives canvas updates and session ticks.
 - **Time-based gameplay**: callers pass a `performance.now()` timestamp to
   `GameSession`, which derives song time from it. While the session is not playing the
   song clock is frozen (`GameSession.getCurrentTimeSec`).

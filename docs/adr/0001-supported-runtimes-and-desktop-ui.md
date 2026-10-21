@@ -33,8 +33,8 @@ are not identical. These differences are intended and must stay explicit in brid
 categories or UI gating (see `CONTEXT.md`, "Runtime Architecture"):
 
 - `.mscz` (MuseScore) import exists only in the web runtime, and only where a
-  MuseScore executable is available: the Linux x86-64 Docker image, or any server
-  with `LUMAKEYS_MUSESCORE_PATH` set. Electron imports MIDI only.
+  MuseScore executable is available: the Linux x86-64 Docker image, or any Linux web
+  server with MuseScore 4, `prlimit` and `LUMAKEYS_MUSESCORE_PATH`. Electron imports MIDI only.
 - Native file dialogs and the sample-directory picker exist only in Electron. In the
   browser those bridge methods (`WEB_STUB_BRIDGE_METHODS` in
   `src/shared/bridgeMethods.ts`) resolve to `null`.
@@ -66,7 +66,7 @@ UI audits and regression proof must cover:
 
 - The interface may be unusable on phones by design.
 - Any future mobile direction requires a deliberate product and architecture change.
-- Windows smaller than 1180x780 are unsupported by design.
+- Window sizes below 1180x780 are unsupported by design.
 
 ## Alternatives Considered
 
