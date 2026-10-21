@@ -8,9 +8,10 @@
 #   LUMAKEYS_WEB_ACCESS_TOKEN (env, optional): the token the server was started with,
 #     used only to document token transport behavior.
 #
-# Every probe is a GET, a HEAD, or a POST that the server rejects before mutation
-# (unknown method, oversize body, empty upload). Output lines are PASS, WARN, or INFO
-# with the observed status; a WARN is a lead to investigate, not a finding.
+# Every probe is a GET, a HEAD, the sign-in POST (it only sets a cookie), or a POST that
+# the server rejects before mutation (unknown method, oversize body, empty upload).
+# Output lines are PASS, WARN, or INFO with the observed status; a WARN is a lead to
+# investigate, not a finding.
 set -uo pipefail
 
 BASE="${1:-http://127.0.0.1:3001}"
@@ -79,7 +80,7 @@ echo
 echo "## API access gate"
 access_status=$(status_of "$BASE/api/access")
 if [ "$access_status" = 200 ]; then
-  report WARN "/api/access is open without a token (expected only when LUMAKEYS_WEB_ACCESS_TOKEN is unset AND an upstream gate such as Cloudflare Access exists)"
+  report WARN "/api/access is open without a token (expected only with LUMAKEYS_TRUST_UPSTREAM_AUTH=1 behind an upstream gate such as Cloudflare Access)"
 elif [ "$access_status" = 401 ]; then
   report PASS "/api/access requires a token (401)"
 else
@@ -90,10 +91,15 @@ if [ -n "$TOKEN" ]; then
   q=$(headers_of "$BASE/api/access?access_token=$TOKEN")
   if echo "$q" | grep -q '^HTTP/[0-9.]* 200'; then
     report INFO "query-string token accepted; note it will appear in proxy/tunnel access logs (OP-018 lead)"
+  elif echo "$q" | grep -q '^HTTP/[0-9.]* 401' && ! echo "$q" | grep -qi '^Set-Cookie:'; then
+    report PASS "query-string token rejected (401, no cookie)"
   fi
-  if echo "$q" | grep -qi '^Set-Cookie:.*HttpOnly'; then report PASS "cookie is HttpOnly"; else report WARN "access cookie not HttpOnly or not set"; fi
-  if echo "$q" | grep -qi '^Set-Cookie:.*SameSite=Strict'; then report PASS "cookie is SameSite=Strict"; else report WARN "access cookie not SameSite=Strict"; fi
-  if echo "$q" | grep -qi '^Set-Cookie:.*Secure'; then report PASS "cookie is Secure"; else report INFO "cookie lacks Secure (expected on plain http; verify behind TLS)"; fi
+  # Cookie flags come from the body sign-in, the path the browser login form uses.
+  login=$(headers_of -X POST -H 'Content-Type: application/json' -d "{\"token\":\"$TOKEN\"}" "$BASE/api/access")
+  expect "body sign-in accepted (POST /api/access)" "200" "$(echo "$login" | head -1 | cut -d' ' -f2)"
+  if echo "$login" | grep -qi '^Set-Cookie:.*HttpOnly'; then report PASS "cookie is HttpOnly"; else report WARN "access cookie not HttpOnly or not set"; fi
+  if echo "$login" | grep -qi '^Set-Cookie:.*SameSite=Strict'; then report PASS "cookie is SameSite=Strict"; else report WARN "access cookie not SameSite=Strict"; fi
+  if echo "$login" | grep -qi '^Set-Cookie:.*Secure'; then report PASS "cookie is Secure"; else report INFO "cookie lacks Secure (expected on plain http; verify behind TLS)"; fi
   expect "wrong token rejected" "401" "$(status_of -H 'x-lumakeys-access-token: definitely-wrong' "$BASE/api/access")"
 fi
 echo

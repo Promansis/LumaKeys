@@ -1,8 +1,9 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { contentSecurityPolicyMeta } from './src/shared/contentSecurityPolicy';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), contentSecurityPolicyMeta()],
   root: 'src/renderer',
   publicDir: '../../public',
   define: {
@@ -15,6 +16,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:3100',
+      // The server's sign-in form (token mode).
+      '/login': 'http://localhost:3100',
     },
   },
 });

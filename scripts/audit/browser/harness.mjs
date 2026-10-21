@@ -14,7 +14,9 @@ export function launchBrowser(extra = {}) {
 export async function withServer(dataDir, fn, opts = {}) {
   fs.mkdirSync(dataDir, { recursive: true });
   const port = opts.port ?? 3777;
-  const env = { ...process.env, PORT: String(port), LUMAKEYS_DATA_DIR: dataDir, ...(opts.env ?? {}) };
+  // The server refuses to start without an access gate (PH-OPS-002). These loopback test
+  // servers opt out explicitly; pass opts.env to test the token gate instead.
+  const env = { ...process.env, PORT: String(port), LUMAKEYS_DATA_DIR: dataDir, LUMAKEYS_TRUST_UPSTREAM_AUTH: '1', ...(opts.env ?? {}) };
   const log = fs.createWriteStream(path.join(dataDir, 'server.log'), { flags: 'a' });
   let srv = spawn('node', ['/media/storage/LumaKeys/dist/server/index.cjs'], { env, stdio: ['ignore', 'pipe', 'pipe'], cwd: '/media/storage/LumaKeys' });
   srv.stdout.pipe(log); srv.stderr.pipe(log);

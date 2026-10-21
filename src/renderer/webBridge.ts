@@ -5,6 +5,7 @@ import {
   isValidPackManifest,
 } from '../lib/audio/instrumentSamplePacks';
 import { resolvePublicAssetUrl } from '../lib/audio/publicAssetUrl';
+import { navigateToLogin } from './loginRedirect';
 import type {
   AppBridge,
   ImportProgressEvent,
@@ -37,6 +38,22 @@ interface StoredWebInstrumentPack {
 
 const objectUrlCache = new Map<string, string[]>();
 const importProgressListeners = new Set<(event: ImportProgressEvent) => void>();
+let loginRedirectStarted = false;
+
+/**
+ * fetch for /api/* routes. With the server's token gate on, a browser without the
+ * session cookie gets 401 from every call; the first one sends it to the sign-in page.
+ * Not from /login itself: without the gate that path is the app, and a 401 from a proxy
+ * would otherwise loop.
+ */
+async function apiFetch(...args: Parameters<typeof fetch>): Promise<Response> {
+  const response = await fetch(...args);
+  if (response.status === 401 && !loginRedirectStarted && window.location.pathname !== '/login') {
+    loginRedirectStarted = true;
+    navigateToLogin();
+  }
+  return response;
+}
 
 async function parseRpcResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -57,7 +74,7 @@ async function parseRpcResponse<T>(response: Response): Promise<T> {
 }
 
 async function callRpc(method: string, args: unknown[]): Promise<unknown> {
-  const response = await fetch(`/api/bridge/${method}`, {
+  const response = await apiFetch(`/api/bridge/${method}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -141,7 +158,7 @@ async function uploadMidiFiles(
     const formData = new FormData();
     formData.append('files', file);
     try {
-      const response = await fetch(url, { method: 'POST', body: formData });
+      const response = await apiFetch(url, { method: 'POST', body: formData });
       if (!response.ok) {
         const payload = await response.json().catch(() => ({ error: `Status ${response.status}` }));
         throw new Error(typeof payload.error === 'string' ? payload.error : 'Upload failed.');
@@ -347,7 +364,7 @@ export const webBridge = new Proxy({} as AppBridge, {
 
     if (property === 'loadMidiFileData') {
       return async (songId: string): Promise<Uint8Array> => {
-        const response = await fetch(`/api/midi/${encodeURIComponent(songId)}`);
+        const response = await apiFetch(`/api/midi/${encodeURIComponent(songId)}`);
         if (!response.ok) {
           throw new Error(`Unable to load MIDI: ${response.status}`);
         }
@@ -396,7 +413,7 @@ export const webBridge = new Proxy({} as AppBridge, {
 
     if (property === 'exportLibrary') {
       return async (): Promise<LibraryExportResult> => {
-        const response = await fetch('/api/library/export');
+        const response = await apiFetch('/api/library/export');
         if (!response.ok) {
           let message = `Export failed with status ${response.status}`;
           try {
@@ -421,7 +438,7 @@ export const webBridge = new Proxy({} as AppBridge, {
         }
 
         const backup = JSON.parse(await file.text()) as unknown;
-        const response = await fetch('/api/library/import', {
+        const response = await apiFetch('/api/library/import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(backup),

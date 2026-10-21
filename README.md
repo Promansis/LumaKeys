@@ -53,6 +53,8 @@ mkdir -p /media/storage/lumakeys
 
 ## 3. Build and Start the Container
 
+Set the access token first (section 5a). The server will not start without it.
+
 From inside the project folder:
 
 ```bash
@@ -122,26 +124,30 @@ Minimum Cloudflare Access smoke checklist:
 - Confirm a private browser window redirects to Cloudflare login before the app loads.
 - Confirm these API paths are not reachable without Access: `/api/bridge/getAllSongs`, `/api/midi/upload`, `/api/library/import`.
 
-Optional app-level gate:
+App-level token:
 
-Set `LUMAKEYS_WEB_ACCESS_TOKEN` in `docker-compose.yml`. API requests must include `x-lumakeys-access-token: <token>` once; successful token requests set an HttpOnly cookie scoped to `/api`.
-
-Browser login check:
+The server refuses to start until you choose a gate, so a missing or broken Access policy cannot leave the library open. Add a long random token to a `.env` file next to `docker-compose.yml` (create the file if it does not exist; `openssl rand -hex 32` makes a good token):
 
 ```text
-https://piano.a173d20e27.com/api/access?access_token=change-this-long-random-token
+LUMAKEYS_WEB_ACCESS_TOKEN=paste-your-long-random-token-here
 ```
 
-After that returns `{"ok":true}`, reload the app in the same browser.
+Then run `docker compose up -d`. The placeholder in `docker-compose.yml` is refused. Keep `.env` private and out of Git.
 
-Example:
+Browser sign-in, once per browser session:
 
-```yml
-environment:
-  PORT: 3001
-  LUMAKEYS_DATA_DIR: /data
-  LUMAKEYS_WEB_ACCESS_TOKEN: "change-this-long-random-token"
-```
+1. Open `https://piano.a173d20e27.com/login`.
+2. Enter the token and select Sign in.
+
+The form sends the token in the request body, never in the address. The server sets an HttpOnly cookie scoped to `/api` and returns you to the app. The cookie lasts until the browser closes; after that the app sends you back to `/login`. Old `/api/access?access_token=...` links no longer work.
+
+Scripts can send the header `x-lumakeys-access-token: <token>` with each request, or `POST /api/access` with the JSON body `{"token":"<token>"}` to get the cookie.
+
+Cloudflare Access only, with no token:
+
+Delete the `LUMAKEYS_WEB_ACCESS_TOKEN` line from `docker-compose.yml` and set `LUMAKEYS_TRUST_UPSTREAM_AUTH: "1"`. Do this only when Access protects the host. The server logs a warning at start in this mode.
+
+Local runs (`npm run start:web`, `npm run dev:web`) need one of the two settings too, for example `LUMAKEYS_WEB_ACCESS_TOKEN=<token> npm run start:web`, then sign in at `/login` on the address you opened (the Vite dev server passes `/login` and `/api` through to the server).
 
 ## 6. Open the Site
 
@@ -250,6 +256,8 @@ Check logs:
 ```bash
 docker compose logs -f lumakeys
 ```
+
+If the log says no web access gate is set, or that the token is still the placeholder, set the token as described in section 5a. With `restart: unless-stopped`, Docker keeps restarting the container, with growing delays, and the log repeats the error each time until the setting is fixed.
 
 ### Cloudflare works but the site does not load
 

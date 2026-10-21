@@ -10,12 +10,7 @@ import { createBridgeRouter } from './bridgeRouter';
 import { createLibraryRouter } from './libraryRouter';
 import { createMidiRouter } from './midiRouter';
 import { createStaticFileHandler } from './staticFiles';
-import { createApiAccessGate } from './webSecurity';
-
-/** New env first, legacy env as a one-release fallback. */
-function resolveAccessToken(): string | undefined {
-  return process.env.LUMAKEYS_WEB_ACCESS_TOKEN ?? process.env.PIANOHERO_WEB_ACCESS_TOKEN;
-}
+import { htmlSecurityHeaders, installWebAccess, resolveWebAccessPolicy } from './webSecurity';
 
 /** Legacy-first env precedence so a pre-rename deployment keeps its data during one release. */
 function resolveDataDir(): string {
@@ -37,6 +32,12 @@ function resolveDataDir(): string {
 }
 
 async function startServer(): Promise<void> {
+  // Checked before any data is touched: no gate and no upstream trust means no server.
+  const accessPolicy = resolveWebAccessPolicy(process.env);
+  if (accessPolicy.mode === 'trust-upstream') {
+    console.warn('LUMAKEYS_TRUST_UPSTREAM_AUTH=1: /api/* has no app-level gate. Cloudflare Access or another login must protect this host.');
+  }
+
   const port = Number(process.env.PORT ?? 3100);
   const dataDir = resolveDataDir();
   const midiFilesDir = join(dataDir, 'midi-files');
@@ -60,9 +61,9 @@ async function startServer(): Promise<void> {
     c.header('Permissions-Policy', 'midi=(self)');
     await next();
   });
+  app.use('*', htmlSecurityHeaders());
 
-  app.use('/api/*', createApiAccessGate(resolveAccessToken()));
-  app.get('/api/access', (c) => c.json({ ok: true }));
+  installWebAccess(app, accessPolicy);
 
   app.route('/api/bridge', createBridgeRouter({ db, midiFilesDir, midiStorage }));
   app.route('/api/library', createLibraryRouter({ db, midiFilesDir, midiStorage }));
