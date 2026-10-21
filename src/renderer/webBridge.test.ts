@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { webBridge } from './webBridge';
+import { FakeIndexedDb } from './testUtils/fakeIndexedDb';
 
 type FetchMock = ReturnType<typeof vi.fn>;
 
@@ -40,6 +41,27 @@ function mockPicker(actions: Array<{ event: 'change' | 'cancel' | 'focus'; files
 
 function mockPickedFile(file: { text: () => Promise<string> }): void {
   mockPicker([{ event: 'change', files: [file] }]);
+}
+
+const CURRENT_PACK_DB = 'lumakeys-instrument-sample-packs';
+const LEGACY_PACK_DB = 'pianohero-instrument-sample-packs';
+
+function packRecord(instrumentId: string, version = '1') {
+  return {
+    instrumentId,
+    packLabel: `${instrumentId} pack`,
+    version,
+    installedAt: '2026-05-01T00:00:00.000Z',
+    sourceName: 'Test source',
+    licenseLabel: 'CC0',
+    attributionUrl: 'https://example.test',
+    assets: [{ note: 'C4', fileName: 'c4.mp3', blob: new Blob([`${instrumentId}-c4`]) }],
+  };
+}
+
+async function installedInstrumentIds(): Promise<string[]> {
+  const statuses = await webBridge.getInstrumentSamplePackStatuses();
+  return statuses.filter((status) => status.isInstalled).map((status) => status.instrumentId).sort();
 }
 
 describe('webBridge', () => {
@@ -233,6 +255,84 @@ describe('webBridge', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ args: [] }),
+    });
+  });
+
+  describe('legacy sample pack carry-over (PH-DATA-004)', () => {
+    let fakeIndexedDb: FakeIndexedDb;
+
+    beforeEach(() => {
+      fakeIndexedDb = new FakeIndexedDb();
+      vi.stubGlobal('indexedDB', fakeIndexedDb);
+    });
+
+    it('installs packs saved under the pre-rename database name and deletes the legacy database', async () => {
+      const flute = packRecord('flute');
+      fakeIndexedDb.seed(LEGACY_PACK_DB, 'packs', 'instrumentId', [flute, packRecord('marimba')]);
+
+      await expect(installedInstrumentIds()).resolves.toEqual(['flute', 'marimba']);
+
+      expect(fakeIndexedDb.has(LEGACY_PACK_DB)).toBe(false);
+      const copied = fakeIndexedDb.read(CURRENT_PACK_DB, 'packs') as Array<ReturnType<typeof packRecord>>;
+      expect(copied.map((record) => record.instrumentId).sort()).toEqual(['flute', 'marimba']);
+      expect(copied.find((record) => record.instrumentId === 'flute')?.assets[0].blob).toBe(flute.assets[0].blob);
+    });
+
+    it('carries packs into a current database that exists but holds no packs', async () => {
+      fakeIndexedDb.seed(CURRENT_PACK_DB, 'packs', 'instrumentId', []);
+      fakeIndexedDb.seed(LEGACY_PACK_DB, 'packs', 'instrumentId', [packRecord('cello')]);
+
+      await expect(installedInstrumentIds()).resolves.toEqual(['cello']);
+
+      expect(fakeIndexedDb.has(LEGACY_PACK_DB)).toBe(false);
+    });
+
+    it('keeps the current packs and leaves the legacy database untouched when both hold packs', async () => {
+      fakeIndexedDb.seed(CURRENT_PACK_DB, 'packs', 'instrumentId', [packRecord('flute', '2')]);
+      fakeIndexedDb.seed(LEGACY_PACK_DB, 'packs', 'instrumentId', [packRecord('flute', '1'), packRecord('cello')]);
+
+      await expect(installedInstrumentIds()).resolves.toEqual(['flute']);
+
+      expect(fakeIndexedDb.has(LEGACY_PACK_DB)).toBe(true);
+      expect(fakeIndexedDb.read(LEGACY_PACK_DB, 'packs')).toHaveLength(2);
+      expect((fakeIndexedDb.read(CURRENT_PACK_DB, 'packs') as Array<{ version: string }>)[0].version).toBe('2');
+    });
+
+    it('does not create the legacy database when there is none', async () => {
+      await expect(installedInstrumentIds()).resolves.toEqual([]);
+
+      expect(fakeIndexedDb.has(LEGACY_PACK_DB)).toBe(false);
+      expect(fakeIndexedDb.has(CURRENT_PACK_DB)).toBe(true);
+    });
+
+    it('deletes a legacy database with no pack store without copying anything', async () => {
+      fakeIndexedDb.seed(LEGACY_PACK_DB, 'other', 'id', [{ id: 'x' }]);
+
+      await expect(installedInstrumentIds()).resolves.toEqual([]);
+
+      expect(fakeIndexedDb.has(LEGACY_PACK_DB)).toBe(false);
+    });
+
+    it('clears both filter preset keys when user data is reset', async () => {
+      window.localStorage.setItem('lumakeys-filter-presets', '[]');
+      window.localStorage.setItem('pianohero-filter-presets', '[]');
+      mockFetch(jsonResponse({ result: null }));
+
+      await webBridge.resetUserData();
+
+      expect(window.localStorage.getItem('lumakeys-filter-presets')).toBeNull();
+      expect(window.localStorage.getItem('pianohero-filter-presets')).toBeNull();
+    });
+
+    it('clears both database names when user data is reset', async () => {
+      fakeIndexedDb.seed(CURRENT_PACK_DB, 'packs', 'instrumentId', [packRecord('flute', '2')]);
+      fakeIndexedDb.seed(LEGACY_PACK_DB, 'packs', 'instrumentId', [packRecord('cello')]);
+      mockFetch(jsonResponse({ result: null }));
+
+      await expect(webBridge.resetUserData()).resolves.toBeNull();
+
+      expect(fakeIndexedDb.has(CURRENT_PACK_DB)).toBe(false);
+      expect(fakeIndexedDb.has(LEGACY_PACK_DB)).toBe(false);
     });
   });
 });
