@@ -104,7 +104,29 @@ for the same pattern. `src/renderer/App.tsx`.
 - Accepted/rejected rationale: accepted 2026-10-20. Owner decision 5 (2026-10-21): slice
   18 runs in wave 1, after slice 0
   ([Owner Selection](../phase-11-remediation-plan-2026-10-20.md#owner-selection-2026-10-20)).
-- Fix branch/commit/issue: none yet; planned on `remediation/p11-s18-audio-defaults`.
-- Verification evidence: none yet.
-- Residual risk: as stated in User Impact.
-- Revisit trigger: the owner's go-ahead for wave 1.
+- Fix branch/commit/issue: `remediation/p11-s18-audio-defaults` (implemented 2026-10-21;
+  not yet reviewed).
+- What changed: `parseStoredAudioNumber` in `src/renderer/App.tsx` now returns the
+  fallback for a `null`, empty or blank value, so a fresh profile starts the engine at
+  master 80, metronome 65 and reverb 20. A saved number, including a saved `0`, is kept.
+  The function is exported for its unit test. No stored data changes and no settings rows
+  are seeded.
+- Tests (`src/renderer/App.test.tsx`): `parseStoredAudioNumber > returns the fallback for a
+  missing, empty or non-numeric value` and `App > starts a fresh profile at the audio
+  defaults the settings screen shows` both failed before the fix (`null` gave 0 and
+  `setMasterVolume(0)` was called) and pass after it. `parseStoredAudioNumber > keeps a
+  stored number, including a saved zero` and `App > keeps saved audio levels, including a
+  saved zero, over the defaults` pass before and after, and guard against over-correcting.
+  Source identity for the reproduction: product code equal to `6e549b6`.
+- Driver result: not run. `sitting1-audio-desktop.mjs` (`VOLUMES=fresh`) and
+  `sitting1-audio-web.mjs` need a PulseAudio null sink, and the sandbox has no access to
+  the PulseAudio socket. Owed, see below.
+- Other reads in the same effect: hit window and beats visible ignore values that are not
+  above 0, and latency compensation defaults to 0, so a missing value gives the right
+  result for those three. `leadInBeats` does not: a missing value becomes `0`, but the
+  Settings screen shows 2. That is outside this finding and is left for the lead to triage.
+- Proof owed (agent-runnable, needs PulseAudio outside the sandbox): `VOLUMES=fresh` desktop
+  run and the first-launch pass of the web run; the fresh peak should be within 1 dB of the
+  saved-slider run. Human-only: user tests B1, a fresh install is audible on speakers.
+- Residual risk: none expected beyond the owed runtime proof.
+- Revisit trigger: reviewer verification and the runtime proofs above.
