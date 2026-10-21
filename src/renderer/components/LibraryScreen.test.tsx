@@ -443,4 +443,54 @@ describe('LibraryScreen', () => {
     expect(screen.getByText('Next Challenge')).toBeInTheDocument();
     expect(screen.getByText('A ready-made routine for your next practice slot.')).toBeInTheDocument();
   });
+
+  describe('filter presets saved before the rename (PH-DATA-007)', () => {
+    const presetJson = (label: string) =>
+      JSON.stringify([
+        {
+          label,
+          difficulty: 'all',
+          advanced: {
+            durationMin: '',
+            durationMax: '',
+            scoreMin: '',
+            scoreMax: '',
+            playedState: 'unplayed',
+            dateAddedFrom: '',
+            dateAddedTo: '',
+          },
+        },
+      ]);
+
+    const renderLibrary = () =>
+      render(
+        <LibraryScreen
+          audioEngine={createAudioEngineStub() as unknown as import('../../lib/audio/audioEngine').AudioEngine}
+          onStartSession={vi.fn()}
+          onStartPlaylistQueue={vi.fn()}
+          onStartTheoryPractice={vi.fn()}
+        />,
+      );
+
+    it('lists a preset saved under the pre-rename key and moves it to the current key', async () => {
+      localStorage.setItem('pianohero-filter-presets', presetJson('Legacy Preset'));
+
+      renderLibrary();
+
+      expect(await screen.findByRole('button', { name: 'Legacy Preset' })).toBeInTheDocument();
+      expect(localStorage.getItem('lumakeys-filter-presets')).toBe(presetJson('Legacy Preset'));
+      expect(localStorage.getItem('pianohero-filter-presets')).toBeNull();
+    });
+
+    it('keeps the current presets and leaves the legacy key alone when both exist', async () => {
+      localStorage.setItem('lumakeys-filter-presets', presetJson('Current Preset'));
+      localStorage.setItem('pianohero-filter-presets', presetJson('Legacy Preset'));
+
+      renderLibrary();
+
+      expect(await screen.findByRole('button', { name: 'Current Preset' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Legacy Preset' })).not.toBeInTheDocument();
+      expect(localStorage.getItem('pianohero-filter-presets')).toBe(presetJson('Legacy Preset'));
+    });
+  });
 });
