@@ -24,7 +24,7 @@
     "pretest:watch": "node scripts/ensure-native-module.cjs node",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run typecheck && tsc --noEmit -p tsconfig.server.json && vitest run && npm run build && npm run build:web && node scripts/assert-electron-assets.mjs",
+    "verify": "npm run typecheck && tsc --noEmit -p tsconfig.server.json && npm test && npm run build && npm run build:web && node scripts/assert-electron-assets.mjs",
     "normalize:samples": "node scripts/normalize-audio-assets.mjs",
     "postinstall": "node scripts/postinstall.cjs",
     "rebuild": "electron-rebuild -f -w better-sqlite3"

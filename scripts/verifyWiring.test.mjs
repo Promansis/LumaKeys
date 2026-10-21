@@ -18,7 +18,7 @@ describe('PH-OPS-005 verify script', () => {
     expect(splitSteps(packageJson.scripts.verify)).toEqual([
       'npm run typecheck',
       'tsc --noEmit -p tsconfig.server.json',
-      'vitest run',
+      'npm test',
       'npm run build',
       'npm run build:web',
       ASSERT_ASSETS,
@@ -27,18 +27,21 @@ describe('PH-OPS-005 verify script', () => {
 });
 
 describe('PH-OPS-005 workflow', () => {
-  it('runs on push and pull request, installs without the Electron rebuild, then verifies', () => {
+  it('runs on main pushes and pull requests, installs without the Electron rebuild, then verifies', () => {
     expect(existsSync(workflowPath)).toBe(true);
     const workflow = readFileSync(workflowPath, 'utf8');
 
-    expect(workflow).toMatch(/^on:\s*\n\s+push:/m);
+    expect(workflow).toMatch(/^on:\s*\n\s+push:\s*\n\s+branches:\s*\[main\]\s*$/m);
     expect(workflow).toMatch(/^\s+pull_request:/m);
-    expect(workflow).toMatch(/LUMAKEYS_SKIP_ELECTRON_REBUILD:\s*['"]?1['"]?/);
+    expect(workflow).toMatch(/^\s+LUMAKEYS_SKIP_ELECTRON_REBUILD:\s*['"]?1['"]?\s*$/m);
+    expect(workflow).not.toMatch(/continue-on-error/);
 
-    const order = ['npm ci', 'npm run verify', 'node scripts/audit/recount-coverage.mjs --check']
-      .map((command) => workflow.indexOf(`run: ${command}`));
-    expect(order.every((index) => index >= 0)).toBe(true);
-    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    const runLines = ['npm ci', 'npm run verify', 'node scripts/audit/recount-coverage.mjs --check'].map((command) => {
+      const escaped = command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return workflow.search(new RegExp(`^\\s+run: ${escaped}\\s*$`, 'm'));
+    });
+    expect(runLines.every((index) => index >= 0)).toBe(true);
+    expect([...runLines].sort((a, b) => a - b)).toEqual(runLines);
   });
 });
 
