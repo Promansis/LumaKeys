@@ -24,3 +24,4 @@ findings, or choices already dictated by an accepted ADR.
 | ADR | Status | Decision |
 |---|---|---|
 | [0001](0001-supported-runtimes-and-desktop-ui.md) | accepted | Support Electron and desktop web; exclude mobile UI requirements |
+| [0002](0002-legacy-pianohero-compatibility-window.md) | accepted | Legacy PianoHero fallback ends by release, after carry-over is verified and no earlier than 2027-01-31, with a tombstone check |

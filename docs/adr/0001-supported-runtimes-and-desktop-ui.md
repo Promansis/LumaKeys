@@ -28,9 +28,23 @@ Mobile browsers, narrow phone viewports, touch-first flows, and mobile-specific
 performance or responsive layout are out of scope unless a future ADR changes the
 product boundary.
 
+The two runtimes share one source tree and one `window.appBridge` contract, but they
+are not identical. These differences are intended and must stay explicit in bridge
+categories or UI gating (see `CONTEXT.md`, "Runtime Architecture"):
+
+- `.mscz` (MuseScore) import exists only in the web runtime, and only where a
+  MuseScore executable is available: the Linux x86-64 Docker image, or any server
+  with `LUMAKEYS_MUSESCORE_PATH` set. Electron imports MIDI only.
+- Native file dialogs and the sample-directory picker exist only in Electron. In the
+  browser those bridge methods (`WEB_STUB_BRIDGE_METHODS` in
+  `src/shared/bridgeMethods.ts`) resolve to `null`.
+- The web runtime has an optional API access gate (`LUMAKEYS_WEB_ACCESS_TOKEN`);
+  Electron has no HTTP API.
+
 UI audits and regression proof must cover:
 
-- The supported minimum desktop window once confirmed in the audit charter.
+- The minimum desktop window, 1180x780 (`minWidth` and `minHeight` in
+  `src/main/index.ts`; confirmed in `docs/audit/charter.md`).
 - The default 1480x960 layout and a larger desktop window.
 - 125%, 150%, 175%, and 200% zoom where the workflow remains usable.
 - High-DPI canvas rendering and nonblank pixel evidence.
@@ -52,7 +66,7 @@ UI audits and regression proof must cover:
 
 - The interface may be unusable on phones by design.
 - Any future mobile direction requires a deliberate product and architecture change.
-- The minimum supported desktop window still needs an explicit measured value.
+- Windows smaller than 1180x780 are unsupported by design.
 
 ## Alternatives Considered
 
