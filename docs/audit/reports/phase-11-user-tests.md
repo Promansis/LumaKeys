@@ -32,6 +32,10 @@ sandbox), and sitting 2 needs a new Windows build. Every B row below that starts
 app uses the post-merge Linux build in `/tmp/claude-1000/p11-owner-build` (built from
 `ed40fa6`; see section B). Decisions 7 to 9 are new.
 
+Revised again 2026-10-21, after your `npm ci` and redeploy. G1 passed. The agent checked
+the image you deployed in throwaway containers (note under section A's table); A2 gains a
+cookie check; A4 and section E no longer point at builds that are out of date.
+
 **Never point a test at your real data.** Every command below uses a throwaway data
 directory or container. Do not use `docker compose up` or your normal desktop profile
 for these tests. `~/.config/PianoHero` on this machine holds a copy of your old desktop
@@ -44,9 +48,25 @@ data, and a desktop build run without an isolated profile migrates it.
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
 | A1 | OP-014, PH-OPS-002 | Deploy `main` with the token. Put `LUMAKEYS_WEB_ACCESS_TOKEN=<long random value>` (for example from `openssl rand -hex 32`) in the `.env` next to the compose file, which your untracked compose override already reads, then rebuild and recreate the container the way you normally deploy. On a phone with Wi-Fi off (mobile data), open `https://<your hostname>/` in a private tab. Then, from any machine, `curl -s -o /dev/null -w '%{http_code}\n' -X POST https://<your hostname>/api/bridge/getAllSongs` | The phone is sent to `/login` (not the app); signing in with the token loads the app; the `curl` prints 401, and `/api/*` answers 401 to anything without the cookie. If the container stops instead of starting, `docker compose logs` names the missing or placeholder token ([PH-OPS-002](findings/PH-OPS-002.md)) | 2026-10-20, before the fix: **fail**. The app opened over mobile data with no login. The owner said it looks like an old version; the image was built from `6e549b6`, the code this audit tested. Repeat after the deploy | owner, phone, 2026-10-20 (before the fix) |
-| A2 | OP-014, PH-SEC-002 | A private window on a computer. Open `https://<your hostname>/`, sign in at `/login` with the token. Close the whole browser, reopen it and visit the site again. Then, in a new private window, open the old style link `https://<your hostname>/api/access?access_token=<token>` | You land on `/login`; the token is not in the address bar; the app loads after sign-in. After the browser closes, the site sends you to `/login` again (the cookie ends with the browser session). The old link returns 401 and the next visit to `/` still goes to `/login` ([PH-SEC-002](findings/PH-SEC-002.md)) | | |
+| A2 | OP-014, PH-SEC-002 | A private window on a computer. Open `https://<your hostname>/`, sign in at `/login` with the token. Close the whole browser, reopen it and visit the site again. Then, in a new private window, open the old style link `https://<your hostname>/api/access?access_token=<token>` | You land on `/login`; the token is not in the address bar; the app loads after sign-in. After the browser closes, the site sends you to `/login` again (the cookie ends with the browser session). The old link returns 401 and the next visit to `/` still goes to `/login` ([PH-SEC-002](findings/PH-SEC-002.md)). While signed in, F12, Application, Cookies: write down whether `lumakeys_web_access` has Secure ticked (the agent expects it unticked behind the tunnel, plan lead (j)) | | |
 | A3 | OP-016, PH-SEC-003, PH-OPS-002 | Still signed in, in the private window with the browser console open (F12): upload any `.mid`, play it; Free Play, press Z, X, C; Soundboard, press several keys; Settings, Audio, Instrument Flute, "Install Better Sounds" | Everything plays with sound. The console shows no Content-Security-Policy error, except the `undefinedblob:` ones that "Install Better Sounds" raises and the web pack never playing ([PH-PAR-006](findings/PH-PAR-006.md)). Write down any other CSP error with its blocked URL ([PH-SEC-003](findings/PH-SEC-003.md)) | | |
-| A4 | OP-016, PH-SEC-003, MOD-014 | The same play-through as A3 on the built desktop app, in the throwaway profile from section B (the package must be rebuilt from `main` first; ask the agent), with the console open where the build allows it | Song, Free Play, Soundboard and Install Better Sounds work with sound, and no Content-Security-Policy error appears beyond the one A3 allows | | |
+| A4 | OP-016, PH-SEC-003, MOD-014 | The same play-through as A3 on the built desktop app, in the throwaway profile from section B (its post-merge build holds all of wave 1), with the console open where the build allows it | Song, Free Play, Soundboard and Install Better Sounds work with sound, and no Content-Security-Policy error appears beyond the one A3 allows | | |
+
+Agent check of the deployed image, 2026-10-21. You redeployed at 12:34 (image
+`lumakeys-lumakeys`, `sha256:8c3a0bf9…`, built from the main checkout at `5b101a2`), and
+the `lumakeys` container stays up, so it started with a real token. The agent ran the same
+image in throwaway containers, with an empty in-memory `/data`, a made-up token and
+loopback port 3297; your container and `/media/storage/lumakeys` were not touched:
+
+- With no token, and with the compose placeholder, it exits 1 with the message naming the fix.
+- With a token: `/login` 200; `POST /api/bridge/getAllSongs` 401 without the cookie; the old
+  `?access_token=` link 401; a wrong token 401; the right one 303 to `/` with the cookie
+  `Path=/api; HttpOnly; SameSite=Strict`, after which the bridge answers 200.
+- `GET /` answers 200 without the cookie by design: the page loads, and its first refused API
+  call sends the browser to `/login`. A1 on the phone is the real check of that.
+- The cookie never gets `Secure`, not even with `X-Forwarded-Proto: https` (plan lead (j)).
+- The image holds better-sqlite3 13.0.3 and hono 4.13.0. Evidence:
+  `/tmp/claude-1000/p11-docker-check/check2.out` (SHA-256 `4559b106…b4a59108`).
 
 Cloudflare note for A2 and A3: if the zone injects scripts into your pages (Web Analytics or
 Rocket Loader), the new policy blocks them, and the console shows CSP errors that are about
@@ -125,8 +145,8 @@ and web server from B. Write the keyboard's make and model in C1's Seen column.
 
 ### E. Windows
 
-Sitting 2 below. The agent has cross-built the `.exe`; copy it off this machine before
-a reboot.
+Sitting 2 below. It needs a new Windows build from `main` (see its first paragraph): the
+kept `.exe` predates slices 1 and 3.
 
 ### F. GitHub, after you push (~10 min)
 
@@ -147,7 +167,7 @@ for sitting 2 predates that script, so it is not a test of it.
 
 | # | Coverage row / finding | Steps (already prepared) | Expected | Result | Seen |
 |---|---|---|---|---|---|
-| G1 | MOD-012, PH-OPS-003 | The main checkout's installed `node_modules` still holds Electron 30.5.1 and better-sqlite3 12.8.0. Before `npm run dev` or a desktop build there: `cd /media/storage/LumaKeys && npm ci`. It needs Python 3, `make`, a C++ compiler and access to nodejs.org, because better-sqlite3 13 runs node-gyp at install; without them use `npm ci --ignore-scripts` and then `node scripts/postinstall.cjs` (`BUILD_PORTABLE.md`). Then `node_modules/.bin/electron --version` | `npm ci` exits 0 and Electron prints `v44.9.2`. `npm run dev` opens your normal profile, so use `XDG_CONFIG_HOME=$(mktemp -d) npm run dev` for anything that is a test | | |
+| G1 | MOD-012, PH-OPS-003 | The main checkout's installed `node_modules` still holds Electron 30.5.1 and better-sqlite3 12.8.0. Before `npm run dev` or a desktop build there: `cd /media/storage/LumaKeys && npm ci`. It needs Python 3, `make`, a C++ compiler and access to nodejs.org, because better-sqlite3 13 runs node-gyp at install; without them use `npm ci --ignore-scripts` and then `node scripts/postinstall.cjs` (`BUILD_PORTABLE.md`). Then `node_modules/.bin/electron --version` | `npm ci` exits 0 and Electron prints `v44.9.2`. `npm run dev` opens your normal profile, so use `XDG_CONFIG_HOME=$(mktemp -d) npm run dev` for anything that is a test | pass | Owner ran `npm ci` in the main checkout, 2026-10-21; the postinstall printed "better-sqlite3 is ready for electron". The agent then read Electron 44.9.2 and better-sqlite3 13.0.3 from `node_modules` (it loads in the host's Node 24.15.0); both typechecks pass; vitest 73 files, 471 tests pass. npm's deprecation and advisory warnings: plan lead (k) |
 | G2 | OP-015, PH-DATA-005, PH-DATA-006, PH-OPS-006 | The packaged binary with the real single-instance lock, which the agent sandbox blocks (`process_singleton_posix.cc: socket() failed: Operation not permitted`). Either allow the agent to run `node scripts/audit/electron-userdata-probe.mjs --packaged` against the post-merge build outside the sandbox (`/sandbox`), or treat B10 to B14, which run the same binary and lock on your display, as covering it | Case P1 shows the legacy song count in `lumakeys/lumakeys.db` and no `pianohero.db` left in the earlier folder; the two-profile case exits with code 1. If B10 to B14 pass, record "covered by B10 to B14" here | | |
 
 ## Sitting 0: Host terminal on this machine — done (agent)

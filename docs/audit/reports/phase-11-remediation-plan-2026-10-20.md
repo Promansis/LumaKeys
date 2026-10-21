@@ -134,11 +134,13 @@ in `44024d0` (ADR 0002, `CONTEXT.md`, and the audit's citations):
   | `7c9ec01` | Slice 15, browser rename carry-over | PH-DATA-004, PH-DATA-007 | PH-DATA-004 `fixed`, optional pack profile (B6) owed; PH-DATA-007 `verified` after the headless Electron run. Held until slice 1 merged, as the two ship together. Review passed after repairs |
   | `ed40fa6` | Slice 3, Electron upgrade and window-open guard | PH-OPS-003, PH-SEC-005 | `fixed`. Electron 30.5.1 to 44.9.2 and better-sqlite3 12.8.0 to 13.0.3 (N-API). The review passed; a follow-up added a file-host check, passes the normalised URL to `openExternal`, tightened the test and documented the install-time node-gyp step. Merge check: a clean `npm ci` on Node 22.23.3 with the workflow's variables, then `npm run verify`, exits 0 (73 files, 471 tests, asset inventory 647). Real-display and Windows checks owed |
 
-- The main checkout's installed `node_modules` still holds Electron 30.5.1 and
-  better-sqlite3 12.8.0. The owner should run `npm ci` in `/media/storage/LumaKeys` before
-  using `npm run dev` or building the desktop app there. Since better-sqlite3 13, `npm ci`
-  runs node-gyp at install, which needs Python, `make`, a C++ compiler and access to
+- The owner ran `npm ci` in the main checkout on 2026-10-21, so its `node_modules` now holds
+  Electron 44.9.2 and better-sqlite3 13.0.3 (user tests G1, pass). Since better-sqlite3 13,
+  `npm ci` runs node-gyp at install, which needs Python, `make`, a C++ compiler and access to
   nodejs.org (see `BUILD_PORTABLE.md`).
+- The owner redeployed the web app from the main checkout the same day. The agent's check of
+  that image in throwaway containers passed, apart from lead (j) below (user tests
+  section A); the live checks A1 to A3 are the owner's.
 - Post-merge Electron 44 proofs (audit lead, 2026-10-21). A separate agent re-ran these on a
   clean copy of `ed40fa6` (its own `npm ci` on Node 22.23.3, Electron 44.9.2,
   better-sqlite3 13.0.3), one Electron process at a time, all on throwaway profiles. Every
@@ -224,6 +226,30 @@ the owner or the audit lead decides which become one.
   in the data folder or in `PianoHero`, is still attached. The original is kept in
   `before-legacy-migration-*`, but only the console says so. Recorded in the residual risk
   of [PH-DATA-006](findings/PH-DATA-006.md).
+- (j) The web access cookie never gets `Secure` behind the Cloudflare Tunnel.
+  `setAccessCookie` in `src/server/webSecurity.ts` adds it only when
+  `new URL(c.req.url).protocol` is `https:`, and the tunnel reaches the container over plain
+  HTTP. Seen on 2026-10-21 in throwaway containers of the deployed image (`8c3a0bf9…`): no
+  `Secure` with no header, with `X-Forwarded-Proto: https`, or with `Cf-Visitor`
+  (evidence in [user tests](phase-11-user-tests.md) section A). `HttpOnly`,
+  `SameSite=Strict` and `Path=/api` limit the exposure, but a browser still sends the cookie
+  on a plain-HTTP request to `/api` that the user opens directly. A fix that cannot weaken
+  anything: also add `Secure` when `X-Forwarded-Proto` is `https`, since a forged header
+  only adds the flag. The live behaviour is the owner's check (user tests A2).
+- (k) `npm ci` warns about advisories. `npm audit --omit=dev` finds only two shipped
+  packages, `hono` 4.13.0 and `@hono/node-server` 2.1.0 (five moderate `hono` advisories);
+  the rest are build and test tools (electron-builder, vite, vitest, jsdom, concurrently,
+  electron-rebuild) that never run in the app or the server. Wave 1 lowered the full
+  `npm audit` count from 74 to 68 (both lockfiles audited on 2026-10-21). Lane G's OP-011
+  row is out of date on two points:
+  - Fixed versions exist. `hono` 4.13.11 (released 2026-09-29) fixes all five, and the
+    latest, 4.13.13, is inside the declared `^4.13.0`.
+  - Slice 2 now calls `c.req.parseBody()` for the sign-in form. It uses the default
+    `dot: false`, so the nesting advisory (GHSA-g6gw-c38x-mqfc) still does not apply, and
+    `bodyLimit` caps the body. No server code uses `serveStatic` (GHSA-5r4p-p66f-jhc7).
+
+  OP-011's revisit trigger ("re-check when hono publishes a fix") is met: the fix is a
+  lockfile bump of `hono`.
 
 ## Shared Rules For Every Slice
 
