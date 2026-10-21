@@ -3,7 +3,7 @@ import { AudioEngine } from '../../lib/audio/audioEngine';
 import type { ScoredSessionMode } from '../../lib/game/types';
 import { parseMidiFile } from '../../lib/midi/midiFileParser';
 import type { FolderRow, LibrarySnapshot, PlaylistRow, RecommendationResult, SongRow, UserStatsRow } from '../../shared/dbTypes';
-import { carryOverLegacyFilterPresets, FILTER_PRESETS_STORAGE_KEY } from '../legacyFilterPresets';
+import { carryOverLegacyFilterPresets } from '../legacyFilterPresets';
 import { AdvancedFilters, type LibraryAdvancedFilters } from './AdvancedFilters';
 import { BulkActionBar } from './BulkActionBar';
 import { LibrarySidebar, type LibraryActiveView } from './LibrarySidebar';
@@ -192,7 +192,7 @@ export function LibraryScreen({
   const [userPresets, setUserPresets] = useState<FilterPreset[]>(() => {
     try {
       carryOverLegacyFilterPresets();
-      const raw = localStorage.getItem(FILTER_PRESETS_STORAGE_KEY);
+      const raw = localStorage.getItem('lumakeys-filter-presets');
       return raw ? (JSON.parse(raw) as FilterPreset[]) : [];
     } catch {
       return [];
@@ -645,14 +645,14 @@ export function LibraryScreen({
     const preset: FilterPreset = { label: name, difficulty: difficultyFilter, advanced: advancedFilters };
     const next = [...userPresets.filter((p) => p.label !== name), preset];
     setUserPresets(next);
-    localStorage.setItem(FILTER_PRESETS_STORAGE_KEY, JSON.stringify(next));
+    localStorage.setItem('lumakeys-filter-presets', JSON.stringify(next));
     setNewPresetName('');
   };
 
   const handleDeletePreset = (label: string) => {
     const next = userPresets.filter((p) => p.label !== label);
     setUserPresets(next);
-    localStorage.setItem(FILTER_PRESETS_STORAGE_KEY, JSON.stringify(next));
+    localStorage.setItem('lumakeys-filter-presets', JSON.stringify(next));
   };
 
   const stopPreview = () => {
