@@ -313,15 +313,17 @@ describe('webBridge', () => {
       expect(fakeIndexedDb.has(LEGACY_PACK_DB)).toBe(false);
     });
 
-    it('clears both filter preset keys when user data is reset', async () => {
-      window.localStorage.setItem('lumakeys-filter-presets', '[]');
-      window.localStorage.setItem('pianohero-filter-presets', '[]');
-      mockFetch(jsonResponse({ result: null }));
+    it('keeps the legacy database, warns and copies nothing when the copy transaction fails', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const malformed = { ...packRecord('cello'), instrumentId: undefined };
+      fakeIndexedDb.seed(LEGACY_PACK_DB, 'packs', 'instrumentId', [packRecord('flute'), malformed]);
 
-      await webBridge.resetUserData();
+      await expect(installedInstrumentIds()).resolves.toEqual([]);
 
-      expect(window.localStorage.getItem('lumakeys-filter-presets')).toBeNull();
-      expect(window.localStorage.getItem('pianohero-filter-presets')).toBeNull();
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(fakeIndexedDb.has(LEGACY_PACK_DB)).toBe(true);
+      expect(fakeIndexedDb.read(LEGACY_PACK_DB, 'packs')).toHaveLength(2);
+      expect(fakeIndexedDb.read(CURRENT_PACK_DB, 'packs')).toEqual([]);
     });
 
     it('clears both database names when user data is reset', async () => {

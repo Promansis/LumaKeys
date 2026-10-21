@@ -258,8 +258,15 @@ async function copyLegacyPacks(): Promise<void> {
       const tx = current.transaction(WEB_PACK_OBJECT_STORE, 'readwrite');
       const committed = waitForTransaction(tx);
       const store = tx.objectStore(WEB_PACK_OBJECT_STORE);
-      for (const record of records) {
-        store.put(record);
+      try {
+        for (const record of records) {
+          store.put(record);
+        }
+      } catch (error) {
+        // A put can throw synchronously (DataError); abort so the earlier puts do not auto-commit.
+        tx.abort();
+        committed.catch(() => undefined);
+        throw error;
       }
       await committed;
     }
@@ -269,6 +276,7 @@ async function copyLegacyPacks(): Promise<void> {
   await deletePackDatabase(LEGACY_WEB_PACK_DB_NAME);
 }
 
+// Keyed by the factory so each page (and each test's fake) runs the carry-over once.
 const legacyPackCarryOvers = new WeakMap<IDBFactory, Promise<void>>();
 
 /** Runs the legacy carry-over once per page. A failure keeps the legacy data and is not fatal. */
@@ -341,7 +349,8 @@ function clearWebInstrumentPackDatabase(): Promise<void> {
   if (!window.indexedDB) {
     return Promise.resolve();
   }
-  // The legacy name goes first: if it cannot be cleared, nothing is deleted and the reset can be retried.
+  // The legacy name goes first. If another tab holds it open the reset rejects as busy; that delete
+  // stays queued and completes when the tab lets go, and a retry then clears the current name too.
   return deletePackDatabase(LEGACY_WEB_PACK_DB_NAME).then(() => deletePackDatabase(WEB_PACK_DB_NAME));
 }
 

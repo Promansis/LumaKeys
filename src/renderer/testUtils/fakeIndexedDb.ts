@@ -1,6 +1,7 @@
 // Small in-memory IndexedDB for unit tests. It models only what webBridge uses:
 // versioned databases, keyPath object stores, request/transaction events, an
-// abortable upgrade transaction, and `blocked` when a connection is still open.
+// abortable upgrade transaction, and a synchronous DataError from `put` when the
+// key path yields no key.
 
 type Handler = ((event?: unknown) => void) | null;
 
@@ -51,18 +52,18 @@ class FakeObjectStore {
     return this.request(() => [...this.data.records.values()]);
   }
 
-  get(key: unknown): FakeRequest<unknown> {
-    return this.request(() => this.data.records.get(key));
-  }
-
   count(): FakeRequest<number> {
     return this.request(() => this.data.records.size);
   }
 
   put(value: unknown): FakeRequest<unknown> {
+    this.transaction.assertWritable();
+    const key = (value as Record<string, unknown> | null)?.[this.data.keyPath];
+    if (key === undefined) {
+      // Real IndexedDB throws this synchronously, before any request is queued.
+      throw new DOMException('The key path yielded no key.', 'DataError');
+    }
     return this.request(() => {
-      this.transaction.assertWritable();
-      const key = (value as Record<string, unknown>)[this.data.keyPath];
       this.data.records.set(key, value);
       return key;
     });
@@ -119,6 +120,9 @@ class FakeTransaction {
     this.pending += 1;
     later(() => {
       try {
+        if (this.aborted) {
+          throw new DOMException('The transaction was aborted.', 'AbortError');
+        }
         run();
         request.onsuccess?.(fakeEvent(request));
       } catch (error) {
