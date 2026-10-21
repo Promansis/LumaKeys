@@ -6,11 +6,12 @@ import { join } from 'node:path';
 import { Hono } from 'hono';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createStaticFileHandler, parseByteRange } from './staticFiles';
+import { htmlSecurityHeaders } from './webSecurity';
 
 const tempDirs: string[] = [];
 const VIDEO_BYTES = Uint8Array.from({ length: 100 }, (_, index) => index);
 
-async function makeServer() {
+async function makeServer({ withSecurityHeaders = false } = {}) {
   const webRoot = await mkdtemp(join(tmpdir(), 'lumakeys-static-'));
   tempDirs.push(webRoot);
   await mkdir(join(webRoot, 'assets', 'main-menu'), { recursive: true });
@@ -18,6 +19,10 @@ async function makeServer() {
   await writeFile(join(webRoot, 'assets', 'main-menu', 'loop.webm'), VIDEO_BYTES);
 
   const app = new Hono();
+  if (withSecurityHeaders) {
+    // Same order as src/server/index.ts: the header middleware wraps every route.
+    app.use('*', htmlSecurityHeaders());
+  }
   app.get('*', createStaticFileHandler(webRoot));
   return app;
 }
@@ -65,6 +70,19 @@ describe('createStaticFileHandler', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('text/html; charset=utf-8');
     expect(await response.text()).toContain('<title>LumaKeys</title>');
+  });
+
+  // PH-SEC-003: HTML must refuse framing and foreign scripts.
+  it.each(['/', '/library'])('sends the HTML security headers on %s', async (path) => {
+    const app = await makeServer({ withSecurityHeaders: true });
+
+    const response = await app.request(path);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Security-Policy')).toMatch(/default-src 'self'.*frame-ancestors 'none'/);
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(response.headers.get('Referrer-Policy')).toBe('no-referrer');
+    expect(response.headers.get('X-Frame-Options')).toBe('DENY');
   });
 });
 

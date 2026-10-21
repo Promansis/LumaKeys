@@ -8,8 +8,12 @@ services:
     environment:
       PORT: 3001
       LUMAKEYS_DATA_DIR: /data
-      # Optional: require this token for /api/* until browser receives a scoped access cookie.
-      # LUMAKEYS_WEB_ACCESS_TOKEN: "change-this-long-random-token"
+      # Required gate for /api/* (README section 5a). Put a long random token in a .env file
+      # next to this file. The server refuses to start with this placeholder.
+      LUMAKEYS_WEB_ACCESS_TOKEN: "${LUMAKEYS_WEB_ACCESS_TOKEN:-change-this-long-random-token}"
+      # Only if Cloudflare Access protects the host and you want no token: delete the line
+      # above and uncomment this one.
+      # LUMAKEYS_TRUST_UPSTREAM_AUTH: "1"
     volumes:
       - /media/storage/lumakeys:/data
     ports:

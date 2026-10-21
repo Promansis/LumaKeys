@@ -1,8 +1,9 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { contentSecurityPolicyMeta } from './src/shared/contentSecurityPolicy';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), contentSecurityPolicyMeta()],
   root: 'src/renderer',
   publicDir: '../../public',
   define: {
