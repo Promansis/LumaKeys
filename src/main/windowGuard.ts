@@ -16,9 +16,10 @@ function parseUrl(value: string): URL | null {
 
 /** Never opens an app window. Only https: links go on to the system browser. */
 export function handleWindowOpen(url: string, openExternal: (url: string) => unknown): { action: 'deny' } {
-  if (parseUrl(url)?.protocol === 'https:') {
+  const parsed = parseUrl(url);
+  if (parsed?.protocol === 'https:') {
     try {
-      Promise.resolve(openExternal(url)).catch(() => undefined);
+      Promise.resolve(openExternal(parsed.href)).catch(() => undefined);
     } catch {
       // A missing or failing browser launcher must not break the renderer.
     }
@@ -34,7 +35,8 @@ export function isAppNavigation(targetUrl: string, appUrl: string): boolean {
     return false;
   }
   if (app.protocol === 'file:') {
-    return target.protocol === 'file:' && target.pathname === app.pathname;
+    // The host check rejects file://server/<app path> (a UNC share on Windows).
+    return target.protocol === 'file:' && target.host === app.host && target.pathname === app.pathname;
   }
   return target.origin === app.origin;
 }

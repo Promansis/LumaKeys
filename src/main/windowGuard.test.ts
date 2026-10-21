@@ -27,6 +27,15 @@ describe('handleWindowOpen', () => {
     expect(openExternal).toHaveBeenCalledWith('https://freesound.org/people/someone/sounds/1/');
   });
 
+  it('passes the normalised URL to the system browser', () => {
+    const openExternal = vi.fn(() => Promise.resolve());
+
+    expect(handleWindowOpen('  https://Example.com/a b ', openExternal)).toEqual({ action: 'deny' });
+
+    expect(openExternal).toHaveBeenCalledTimes(1);
+    expect(openExternal).toHaveBeenCalledWith('https://example.com/a%20b');
+  });
+
   it('does not throw when the system browser cannot be launched', async () => {
     const openExternal = vi.fn(() => Promise.reject(new Error('no browser')));
 
@@ -40,6 +49,7 @@ describe('isAppNavigation', () => {
     expect(isAppNavigation(FILE_APP, FILE_APP)).toBe(true);
     expect(isAppNavigation(`${FILE_APP}#/settings`, FILE_APP)).toBe(true);
     expect(isAppNavigation('file:///etc/passwd', FILE_APP)).toBe(false);
+    expect(isAppNavigation('file://evil/opt/LumaKeys/resources/app.asar/out/renderer/index.html', FILE_APP)).toBe(false);
     expect(isAppNavigation('https://example.com/', FILE_APP)).toBe(false);
     expect(isAppNavigation('http://localhost:5173/', FILE_APP)).toBe(false);
   });
@@ -67,8 +77,10 @@ describe('installWindowGuard', () => {
         setWindowOpenHandler: (handler: typeof openHandler) => {
           openHandler = handler;
         },
-        on: (_event: 'will-navigate', listener: typeof navigateListener) => {
-          navigateListener = listener;
+        on: (event: string, listener: typeof navigateListener) => {
+          if (event === 'will-navigate') {
+            navigateListener = listener;
+          }
         },
       },
       open: (url: string) => openHandler?.({ url }),
