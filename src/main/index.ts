@@ -1,9 +1,10 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import type { OpenDialogOptions, SaveDialogOptions } from 'electron';
 import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import type { Dirent } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import type {
   BridgeAddSongPayload,
   BridgeUpdateSongPayload,
@@ -30,6 +31,7 @@ import {
   recoverDesktopInstrumentSamplePackReset,
   resolveDesktopInstrumentSampleSource,
 } from './instrumentSamplePackStore';
+import { installWindowGuard } from './windowGuard';
 
 let mainWindow: BrowserWindow | null = null;
 let db: AppDatabase;
@@ -81,15 +83,22 @@ async function createMainWindow(): Promise<void> {
       preload: join(__dirname, '../preload/preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
     },
   });
 
-  if (process.env.ELECTRON_RENDERER_URL) {
-    await mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
+  const rendererUrl = process.env.ELECTRON_RENDERER_URL;
+  const rendererFile = join(__dirname, '../renderer/index.html');
+  installWindowGuard(mainWindow.webContents, rendererUrl ?? pathToFileURL(rendererFile).href, (url) =>
+    shell.openExternal(url),
+  );
+
+  if (rendererUrl) {
+    await mainWindow.loadURL(rendererUrl);
     return;
   }
 
-  await mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+  await mainWindow.loadFile(rendererFile);
 }
 
 app.whenReady().then(async () => {
