@@ -7,10 +7,13 @@
 
 The owner settled the date floor and the release order on 2026-10-20 (Phase 11 owner
 decision 3). The draft this ADR comes from is in
-[lane H](../audit/reports/phase-11-lane-h-documentation-2026-10-19.md). The
-`accepted` status rests on decision 3's wording "as in lane H's draft ADR"
-([consolidation](../audit/reports/consolidation-2026-10-20.md), decision 3). This
-ADR was written on 2026-10-21 from the 2026-10-20 decision.
+[lane H](../audit/reports/phase-11-lane-h-documentation-2026-10-19.md). This ADR was
+written on 2026-10-21 from the 2026-10-20 decision. Its `accepted` status first rested
+on decision 3's wording "as in lane H's draft ADR"
+([consolidation](../audit/reports/consolidation-2026-10-20.md), decision 3). On
+2026-11-02 the owner confirmed items 3 to 7 as written and placed items 3, 4, 6 and 7
+(Phase 11 owner decisions 9 and 8, in the
+[user tests](../audit/reports/phase-11-user-tests.md#owner-decisions-not-tests)).
 
 ## Context
 
@@ -93,10 +96,13 @@ library and no message.
    became `/media/storage/lumakeys`), the environment names, and the desktop profile
    location.
 
-Items 1 and 2 are settled by the owner. Items 3, 4, 6 and 7 are obligations of the
-carry-over release or earlier, and the Phase 11 remediation plan does not schedule
-them yet. The removal release is blocked until they are done. Item 5 (the tombstone
-check) is the removal release's own work.
+The owner settled items 1 and 2 on 2026-10-20 and confirmed items 3 to 7 on
+2026-11-02. Items 3, 4, 6 and 7 gate the removal release only (owner decision 8,
+2026-11-02): the carry-over release may ship without them, but each must ship in a
+release before the removal release, and item 3's warning must have been in the
+current release for at least one full release cycle before removal. The Phase 11
+remediation plan does not schedule them yet. Item 5 (the tombstone check) is the
+removal release's own work.
 
 ## Consequences
 
