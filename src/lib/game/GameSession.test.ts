@@ -448,4 +448,57 @@ describe('GameSession', () => {
       expect(session.getSnapshot(2950).score.totalScore).toBe(0);
     });
   });
+  describe('falling-note lead time follows the tempo in force (PH-MUS-019)', () => {
+    // 40 BPM for the first 6 s, 160 BPM from 6 s. Eight visible beats are 12 s of lane at 40 BPM
+    // and 3 s at 160 BPM.
+    const TEMPO_SONG: ParsedSong = {
+      ...SONG,
+      // Stored (dominant) tempo differs from both tempos in the map, so only the tempo in force can pass.
+      bpm: 100,
+      durationSec: 30,
+      tempoMap: [
+        { ticks: 0, bpm: 40, timeSec: 0 },
+        { ticks: 1920, bpm: 160, timeSec: 6 },
+      ],
+      notes: [8, 10, 11.5, 20].map((startSec, index) => ({
+        ...SONG.notes[0],
+        id: `tempo-note-${index}`,
+        startSec,
+        durationSec: 0.25,
+      })),
+    };
+    const HIT_LINE_RATIO = 0.86;
+
+    it('shows eight beats of lane in the fast body, not eight beats at the intro tempo', () => {
+      const session = new GameSession(TEMPO_SONG, DEFAULT_SESSION);
+      session.seek(7, 0);
+
+      const visible = session.getSnapshot(0).visibleNotes;
+      // At 160 BPM the lane holds 3 s: the note at 8 s is inside it, 10 s is on its edge and 11.5 s and 20 s are not.
+      expect(visible.map((note) => note.id)).toEqual(['tempo-note-0']);
+      expect(visible[0].topRatio + visible[0].heightRatio).toBeCloseTo(HIT_LINE_RATIO - (1 / 3) * HIT_LINE_RATIO, 6);
+    });
+
+    it('keeps the long lane while the slow intro plays', () => {
+      const session = new GameSession(TEMPO_SONG, DEFAULT_SESSION);
+
+      const visible = session.getSnapshot(0).visibleNotes;
+      // At 40 BPM the lane holds 12 s: the notes at 8, 10 and 11.5 s are inside it, 20 s is not.
+      expect(visible.map((note) => note.id)).toEqual(['tempo-note-0', 'tempo-note-1', 'tempo-note-2']);
+      expect(visible[0].topRatio + visible[0].heightRatio).toBeCloseTo(HIT_LINE_RATIO - (8 / 12) * HIT_LINE_RATIO, 6);
+    });
+
+    it('scales the lane by the practice tempo', () => {
+      const session = new GameSession(TEMPO_SONG, { ...DEFAULT_SESSION, tempoMultiplier: 0.5 });
+
+      const visible = session.getSnapshot(0).visibleNotes;
+      // 8 beats at 40 BPM x 0.5 are 24 s: every note is inside the lane.
+      expect(visible.map((note) => note.id)).toEqual([
+        'tempo-note-0',
+        'tempo-note-1',
+        'tempo-note-2',
+        'tempo-note-3',
+      ]);
+    });
+  });
 });
