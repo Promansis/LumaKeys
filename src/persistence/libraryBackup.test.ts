@@ -447,6 +447,57 @@ describe('library backups', () => {
     targetDb.close();
   });
 
+  it('names the song whose backed-up MIDI the parser refuses, and restores nothing (PH-MUS-019)', async () => {
+    const targetDir = await makeTempDir();
+    const targetMidiDir = join(targetDir, 'midi-files');
+    const targetDb = new AppDatabase(join(targetDir, 'target.db'));
+    // Format 0, one track, SMPTE division 0xE728 (-25 fps x 40 ticks), one note.
+    const track = [0x00, 0xff, 0x51, 0x03, 0x07, 0xa1, 0x20, 0x00, 0x90, 0x3c, 0x64, 0x28, 0x80, 0x3c, 0x00, 0x00, 0xff, 0x2f, 0x00];
+    const bytes = new Uint8Array([
+      0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 0xe7, 0x28,
+      0x4d, 0x54, 0x72, 0x6b, 0, 0, 0, track.length, ...track,
+    ]);
+    const id = await createSongId(bytes);
+    const backup: LibraryBackupV2 = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      songs: [{
+        id,
+        title: 'Frames',
+        artist: '',
+        genre: '',
+        filePath: '',
+        difficulty: 1,
+        durationSec: 1,
+        bpm: 120,
+        noteCount: 1,
+        dateAdded: new Date().toISOString(),
+        timesPlayed: 0,
+        tags: [],
+        isFavorite: false,
+        folderId: null,
+        trackAssignments: {},
+      }],
+      folders: [],
+      playlists: [],
+      fingerings: [],
+      settings: [],
+      midiFiles: [{
+        songId: id,
+        filename: `${id}.mid`,
+        dataBase64: Buffer.from(bytes).toString('base64'),
+        byteLength: bytes.byteLength,
+      }],
+    };
+
+    const failure = importLibraryBackup(targetDb, backup, new FileSystemMidiStorageAdapter(targetMidiDir));
+    await expect(failure).rejects.toThrow(/MIDI backup file for "Frames" \(id [0-9a-f]{64}\) cannot be read: .*SMPTE/);
+    await expect(failure).rejects.toThrow(/Nothing was restored, and your library is unchanged\.$/);
+    expect(targetDb.getAllSongs()).toEqual([]);
+    expect(existsSync(targetMidiDir)).toBe(false);
+    targetDb.close();
+  });
+
   it('keeps v1 backup support while reporting missing MIDI files', async () => {
     const targetDir = await makeTempDir();
     const targetDb = new AppDatabase(join(targetDir, 'target.db'));

@@ -209,7 +209,17 @@ export async function importLibraryBackup(
             + 'export a fresh backup from the original library, then try the import again.',
           );
         }
-        computeSongMetadata(bytes, midiFile.songId);
+        try {
+          computeSongMetadata(bytes, midiFile.songId);
+        } catch (error) {
+          // The bytes match their id but the parser refuses them (for example an SMPTE time
+          // division, PH-MUS-019). Name the song so the user knows which one blocks the restore.
+          const reason = (error instanceof Error ? error.message : String(error)).trim().replace(/\.$/, '');
+          throw new Error(
+            `MIDI backup file for ${describeBackupSong(backup.songs, midiFile.songId)} cannot be read: ${reason}. `
+            + 'Nothing was restored, and your library is unchanged.',
+          );
+        }
         midiFilesBySongId.set(midiFile.songId, bytes);
       }
 
