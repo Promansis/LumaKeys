@@ -60,10 +60,20 @@ function decodeBase64(value: string, songId: string): Uint8Array {
   return new Uint8Array(bytes);
 }
 
-// Names the song the user can recognise; the id alone when the backup has no title.
+const MAX_MESSAGE_TITLE_LENGTH = 80;
+
+// Names the song the user can recognise; the id alone when the backup has no usable title.
+// A backup file can be hand-edited, so the title is not trusted to be a string.
 function describeBackupSong(songs: SongRow[], songId: string): string {
-  const title = songs.find((song) => song.id === songId)?.title?.trim();
-  return title ? `"${title}" (id ${songId})` : songId;
+  const rawTitle: unknown = songs.find((song) => song.id === songId)?.title;
+  const title = typeof rawTitle === 'string' ? rawTitle.trim() : '';
+  if (!title) {
+    return songId;
+  }
+  const shown = title.length > MAX_MESSAGE_TITLE_LENGTH
+    ? `${title.slice(0, MAX_MESSAGE_TITLE_LENGTH - 1)}…`
+    : title;
+  return `"${shown}" (id ${songId})`;
 }
 
 function assertBackupSongIdIsSafe(song: SongRow): void {
