@@ -253,6 +253,43 @@ describe('webBridge', () => {
     }
   });
 
+  it('returns the reattached song from the reattach route response (PH-PAR-008)', async () => {
+    const file = new File(['midi'], 'Fixed.mid', { type: 'audio/midi' });
+    const song = { songId: 'song-1', title: 'Fixed' };
+    // The real route returns { reattached, skipped, errors } with no `songs` field.
+    const fetchMock = mockFetch(jsonResponse({ reattached: [song], skipped: 0, errors: [] }));
+    mockPicker([{ event: 'change', files: [file] }]);
+    const onProgress = vi.fn();
+    const unsubscribe = webBridge.onImportProgress(onProgress);
+    try {
+      await expect(webBridge.reattachMidiFile('song/1')).resolves.toEqual({
+        reattached: [song],
+        skipped: 0,
+        errors: [],
+      });
+      expect(fetchMock).toHaveBeenCalledWith('/api/midi/song%2F1/reattach', {
+        method: 'POST',
+        body: expect.any(FormData),
+      });
+      expect(onProgress).toHaveBeenCalledWith({ current: 1, total: 1, filename: 'Fixed' });
+    } finally {
+      unsubscribe();
+    }
+  });
+
+  it('reports reattach route errors without reattached songs (PH-PAR-008)', async () => {
+    const file = new File(['midi'], 'Bad.mid', { type: 'audio/midi' });
+    const errors = [{ filename: 'Bad', message: 'The file is empty.' }];
+    mockFetch(jsonResponse({ reattached: [], skipped: 0, errors }));
+    mockPicker([{ event: 'change', files: [file] }]);
+
+    await expect(webBridge.reattachMidiFile('song-1')).resolves.toEqual({
+      reattached: [],
+      skipped: 0,
+      errors,
+    });
+  });
+
   it('settles JSON picker cancellation without importing or leaving input state', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);

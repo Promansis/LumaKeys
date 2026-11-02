@@ -147,6 +147,7 @@ async function uploadMidiFiles(
   files: File[],
   url: string,
   onProgress?: (current: number, total: number, filename: string) => void,
+  songsKey: 'songs' | 'reattached' = 'songs',
 ): Promise<ImportResult> {
   const songs: ImportResult['songs'] = [];
   const errors: ImportResult['errors'] = [];
@@ -167,8 +168,9 @@ async function uploadMidiFiles(
         const payload = await response.json().catch(() => ({ error: `Status ${response.status}` }));
         throw new Error(typeof payload.error === 'string' ? payload.error : 'Upload failed.');
       }
-      const batch = await response.json() as ImportResult;
-      songs.push(...batch.songs);
+      // The upload route answers with `songs`, the reattach route with `reattached`.
+      const batch = await response.json() as Partial<ImportResult & ReattachMidiResult> & Pick<ImportResult, 'errors'>;
+      songs.push(...(batch[songsKey] as ImportResult['songs']));
       errors.push(...batch.errors);
       skipped += batch.skipped ?? 0;
     } catch (error) {
@@ -512,6 +514,8 @@ export const webBridge = new Proxy({} as AppBridge, {
         const result = await uploadMidiFiles(
           files.slice(0, 1),
           `/api/midi/${encodeURIComponent(songId)}/reattach`,
+          undefined,
+          'reattached',
         );
         return {
           reattached: result.songs,
