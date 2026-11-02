@@ -12,7 +12,12 @@ const SOURCE_ID = 'computer-keyboard';
 type InputListener = (event: InputEvent) => void;
 type StateListener = (state: KeyboardInputState) => void;
 
-function isEditableTarget(target: EventTarget | null): boolean {
+// A focused button only claims the keys that would activate it. Every other key, including
+// the note keys, still reaches the keyboard service, so a click on Resume (or any HUD button)
+// does not silence the computer keyboard.
+const BUTTON_ACTIVATION_CODES = new Set(['Space', 'Enter', 'NumpadEnter']);
+
+function isEditableTarget(target: EventTarget | null, code: string): boolean {
   if (!(target instanceof HTMLElement)) {
     return false;
   }
@@ -21,7 +26,16 @@ function isEditableTarget(target: EventTarget | null): boolean {
   }
 
   const tagName = target.tagName;
-  return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || tagName === 'BUTTON';
+  if (tagName === 'BUTTON') {
+    return BUTTON_ACTIVATION_CODES.has(code);
+  }
+  return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+}
+
+// Ctrl, Meta and Alt chords are browser or window shortcuts (Ctrl+0 resets the zoom), not
+// notes. Shift stays a velocity modifier.
+function hasShortcutModifier(event: KeyboardEvent): boolean {
+  return event.ctrlKey || event.metaKey || event.altKey;
 }
 
 export class ComputerKeyboardInputService {
@@ -151,7 +165,11 @@ export class ComputerKeyboardInputService {
       return;
     }
 
-    if (isEditableTarget(event.target)) {
+    if (hasShortcutModifier(event)) {
+      return;
+    }
+
+    if (isEditableTarget(event.target, event.code)) {
       return;
     }
 
@@ -216,7 +234,9 @@ export class ComputerKeyboardInputService {
       return;
     }
 
-    if (!this.suspended) {
+    // A chord key-up still releases the note this service took on key-down, so a held note
+    // cannot get stuck when Ctrl is pressed before the key comes up. It just is not swallowed.
+    if (!this.suspended && !hasShortcutModifier(event)) {
       event.preventDefault();
     }
 

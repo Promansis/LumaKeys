@@ -22,6 +22,18 @@ interface ScheduledGameNote extends ScheduledNote {
 const HIT_LINE_RATIO = 0.86;
 const BLOCKING_NOTE_EPSILON_SEC = 0.005;
 
+// A press that landed within the hit window before the loop seam and answers a note at the
+// start of the loop. The wrap resets the schedule, so the press is held here and judged
+// against the fresh first pass the moment the playhead wraps.
+interface SeamPress {
+  midi: number;
+  // Song time of the press relative to the loop end, always <= 0.
+  offsetSec: number;
+  // Wall-clock time after which the wrap is too late for this press to still be the one that
+  // caused it, so a stale press is dropped instead of scoring a pass the player never reached.
+  expiresAtMs: number;
+}
+
 export class GameSession {
   private song: ParsedSong;
   private scheduledNotes: ScheduledGameNote[] = [];
@@ -34,6 +46,7 @@ export class GameSession {
   private sustainSources = new Set<string>();
   private physicalInputNotes = new Map<number, Set<string>>();
   private activeInputNotes = new Map<number, Set<string>>();
+  private seamPresses: SeamPress[] = [];
   private sessionConfig: SessionConfig;
   private customFingerings: FingeringRow[];
 
@@ -53,6 +66,7 @@ export class GameSession {
     this.currentTimeSec = Math.min(currentTime, this.getLoopEndSec());
     this.playbackAnchorSec = this.currentTimeSec;
     this.playbackAnchorMs = nowMs;
+    this.seamPresses = [];
     this.resetScheduledNotes();
   }
 
@@ -64,6 +78,7 @@ export class GameSession {
       sessionConfig.loopRange?.endMeasure !== this.sessionConfig.loopRange?.endMeasure;
     const handSizeChanged = sessionConfig.handSize !== this.sessionConfig.handSize;
     this.sessionConfig = sessionConfig;
+    this.seamPresses = [];
     this.currentTimeSec = Math.max(this.getLoopStartSec(), Math.min(currentTime, this.getLoopEndSec()));
     this.playbackAnchorSec = this.currentTimeSec;
     this.playbackAnchorMs = nowMs;
@@ -95,6 +110,7 @@ export class GameSession {
   }
 
   pause(nowMs: number): void {
+    this.seamPresses = [];
     this.currentTimeSec = this.getCurrentTimeSec(nowMs);
     this.playbackAnchorSec = this.currentTimeSec;
     this.playbackAnchorMs = nowMs;
@@ -110,6 +126,7 @@ export class GameSession {
     this.sustainSources.clear();
     this.physicalInputNotes.clear();
     this.activeInputNotes.clear();
+    this.seamPresses = [];
     this.resetScheduledNotes();
   }
 
@@ -118,6 +135,7 @@ export class GameSession {
     this.currentTimeSec = clampedTarget;
     this.playbackAnchorSec = this.currentTimeSec;
     this.playbackAnchorMs = nowMs;
+    this.seamPresses = [];
     this.resetScheduledNotes();
     for (const note of this.scheduledNotes) {
       if (note.startSec < this.currentTimeSec - this.sessionConfig.hitWindowMs / 1000) {
@@ -159,8 +177,10 @@ export class GameSession {
     const loopEndSec = this.getLoopEndSec();
     if (nextTime >= loopEndSec) {
       if (this.sessionConfig.loopRange) {
+        const seamPresses = this.seamPresses.filter((press) => press.expiresAtMs >= nowMs);
         this.restart(nowMs);
         this.play(nowMs);
+        this.judgeSeamPresses(seamPresses);
         return this.currentTimeSec;
       }
       return Math.min(nextTime, this.song.durationSec);
@@ -191,7 +211,12 @@ export class GameSession {
     if (event.type === 'noteon') {
       this.addSourceToMap(this.physicalInputNotes, event.note, event.sourceId);
       this.addSourceToMap(this.activeInputNotes, event.note, event.sourceId);
-      this.matchNote(event.note, eventSongTime);
+      // A press is judged against the moving song clock. While the transport is stopped
+      // (before Space, during the count-in, while paused) the clock is frozen, so a judgement
+      // would measure nothing. The note still sounds and lights; it just is not scored.
+      if (this.isPlaying) {
+        this.judgePress(event.note, eventSongTime, adjustedTimestamp);
+      }
       return;
     }
 
@@ -323,7 +348,48 @@ export class GameSession {
     return getMeasureIndexForTime(this.song, startSec);
   }
 
-  private matchNote(midi: number, eventSongTime: number): void {
+  private judgePress(midi: number, eventSongTime: number, eventMs: number): void {
+    if (this.matchNote(midi, eventSongTime)) {
+      return;
+    }
+
+    // Looping: the first note of the next pass sits on the seam, and a press a few
+    // milliseconds early is still a whole loop length away in song time.
+    if (!this.sessionConfig.loopRange) {
+      return;
+    }
+    const hitWindowSec = this.sessionConfig.hitWindowMs / 1000;
+    const loopEndSec = this.getLoopEndSec();
+    const offsetSec = eventSongTime - loopEndSec;
+    if (offsetSec > 0 || -offsetSec > hitWindowSec) {
+      return;
+    }
+    const wrappedSongTime = this.getLoopStartSec() + offsetSec;
+    const answersLoopStart = this.scheduledNotes.some(
+      (note) =>
+        note.midi === midi &&
+        Math.abs(note.startSec - wrappedSongTime) <= hitWindowSec,
+    );
+    if (!answersLoopStart) {
+      return;
+    }
+
+    const tempo = Math.max(this.sessionConfig.tempoMultiplier, 0.01);
+    this.seamPresses.push({
+      midi,
+      offsetSec,
+      expiresAtMs: eventMs + (-offsetSec / tempo) * 1000 + this.sessionConfig.hitWindowMs,
+    });
+  }
+
+  private judgeSeamPresses(presses: SeamPress[]): void {
+    const loopStartSec = this.getLoopStartSec();
+    for (const press of presses) {
+      this.matchNote(press.midi, loopStartSec + press.offsetSec);
+    }
+  }
+
+  private matchNote(midi: number, eventSongTime: number): boolean {
     const candidate = this.scheduledNotes.find(
       (note) =>
         note.judgement === 'pending' &&
@@ -332,18 +398,19 @@ export class GameSession {
     );
 
     if (!candidate) {
-      return;
+      return false;
     }
 
     const tier = this.scoringEngine.judgeTiming(eventSongTime - candidate.startSec);
     if (tier === 'miss') {
       candidate.judgement = 'miss';
       this.scoringEngine.recordMiss(this.getMeasureIndex(candidate.startSec));
-      return;
+      return true;
     }
 
     candidate.judgement = tier;
     this.scoringEngine.recordHit(tier, this.getMeasureIndex(candidate.startSec));
+    return true;
   }
 
   private markMissedNotes(currentTimeSec: number): void {
