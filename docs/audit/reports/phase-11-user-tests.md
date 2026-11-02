@@ -308,6 +308,7 @@ device, "Audit Keys 61". The real keyboard continues as C1 to C5.
 | 13 | Cut `0.2.0`, the ADR 0002 carry-over release | Decided 2026-11-02: cut at `1180731`. Version bump `6ef1ec1` on `main`, local branch `release/0.2`. The `v0.2.0` tag waits for the release gate (slices 1 and 15 verified in both runtimes: sittings 1 and 2) |
 | 14 | Schedule ADR 0002 items 3, 4, 6 and 7 | Decided 2026-11-02: add them as plan slice 21 in wave 2 |
 | 15 | Start the deferred wave (plan slices 13, 14, 16 and 17, all P3) and triage the open `npm audit` advisories | Decided 2026-11-02: go, as wave 3. Each slice runs in its own worktree with a separate reviewer, as in waves 1 and 2 |
+| 16 | Name the song in the library-restore error (PH-DATA-003), and find out why beats per minute come out very strange | Decided 2026-11-02: the restore error names the song by title (id as fallback) and keeps the retry path, added to wave 3 slice 13. The BPM report is under investigation; its finding is filed and placed in wave 3 once the cause is known |
 
 ## Moved To The Agent (headless Electron)
 
