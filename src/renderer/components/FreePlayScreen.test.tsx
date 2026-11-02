@@ -761,3 +761,75 @@ describe('FreePlayScreen', () => {
     expect(popout).toHaveAttribute('inert');
   });
 });
+
+describe('FreePlayScreen runtime-aware recording copy', () => {
+  beforeEach(() => {
+    window.appBridge = {
+      getSetting: vi.fn().mockResolvedValue(null),
+    } as unknown as typeof window.appBridge;
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  async function recordOneNote() {
+    const midiService = new MockMidiInputService();
+    const nowSpy = vi.spyOn(performance, 'now');
+    nowSpy.mockReturnValue(1000);
+
+    render(
+      <FreePlayScreen
+        audioEngine={buildAudioEngineStub()}
+        midiInputService={midiService as unknown as MidiInputService}
+        keyboardInputService={new MockKeyboardInputService() as unknown as ComputerKeyboardInputService}
+        inputMode="both"
+        keyboardOverlaySize="medium"
+        postureReminderMinutes={null}
+        breakReminderMinutes={null}
+        pitchBendEnabled
+        stagePalette="default"
+        instrumentId="acoustic-piano"
+        onBackToMainMenu={vi.fn()}
+        onInstrumentChange={vi.fn()}
+        onStagePaletteChange={vi.fn()}
+        onOpenKeyboardSetup={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('Menu'));
+    fireEvent.click(screen.getByText('Record'));
+    await act(async () => {
+      midiService.emit({ type: 'noteon', source: 'midi', sourceId: 'c1', timestamp: 1100, note: 60, velocity: 0.9 });
+      midiService.emit({ type: 'noteoff', source: 'midi', sourceId: 'c1', timestamp: 1250, note: 60, velocity: 0 });
+    });
+    nowSpy.mockReturnValue(1300);
+    fireEvent.click(screen.getByText('Stop Recording'));
+  }
+
+  it('web: does not promise an export or a backing track the browser cannot offer', async () => {
+    vi.stubGlobal('IS_WEB', true);
+    await recordOneNote();
+
+    expect(
+      screen.getByText(/Recording captured\. You can replay it now, but it is not saved: exporting to a file is only available in the desktop app\./),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/replay or export it now/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Export MIDI' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Load Track' })).not.toBeInTheDocument();
+    expect(screen.getByText('Loading a backing track from a file is only available in the desktop app.')).toBeInTheDocument();
+    expect(screen.queryByText(/Load a backing track to turn open practice/)).not.toBeInTheDocument();
+  });
+
+  it('desktop: keeps the export wording, the export buttons and the backing-track prompt', async () => {
+    vi.stubGlobal('IS_WEB', false);
+    await recordOneNote();
+
+    expect(screen.getByText('Recording captured. You can replay or export it now.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export MIDI' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Load Track' })).toBeInTheDocument();
+    expect(screen.getByText('Load a backing track to turn open practice into a performance space.')).toBeInTheDocument();
+  });
+});
