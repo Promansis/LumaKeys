@@ -94,8 +94,11 @@ Use `useModalFocusTrap` for the dialog (focus first control, contain Tab, restor
 
 ## Resolution
 
-- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: none.
-- Verification evidence: none yet.
-- Residual risk: none beyond the above.
-- Revisit trigger, if accepted-risk: n/a.
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20.
+- Fix branch/commit/issue: `remediation/p11-s10-dialogs` (slice 10, single commit at the branch tip), implemented 2026-11-02, awaiting independent review; not merged. Base `c1a1fbf`.
+- What changed: `LatencyWizard.tsx` now uses `useModalFocusTrap` (open, Escape closes, Tab contained, focus returns to the opening control). The overlay is the trap root (`tabIndex=-1`) and focus moves to the primary button of each phase (Start, Tap, Apply) so it never lands outside when buttons swap. The window Space/Enter shortcut ignores key presses whose target is inside a button, so Enter/Space on the close button, Apply and Try Again act on that button; with no button focused the shortcut still starts and taps. Its own Escape handling was removed because the hook owns it.
+- Tests (`src/renderer/components/LatencyWizard.test.tsx`, new; source identity `c1a1fbf`): `moves focus into the dialog and keeps Tab inside it`, `closes only the dialog on Escape and returns focus to the trigger`, `closes on Enter when the close button has focus instead of starting a measurement` and `applies the measurement from the keyboard and persists it through onApply` failed before the fix (Tab left the dialog, Escape reached the outer listener and focus was not returned, Enter on the close button started the measurement, Apply did not close) and pass after it. `still starts and taps from Space or Enter when no button has focus` and `persists nothing when Escape closes the dialog` pass before and after and guard against over-correcting.
+- Driver result: `scripts/audit/browser/latency-wizard-keyboard.mjs` against the built web server, headless Chromium 141: Enter opens with focus on Start inside the dialog; Escape closes only the dialog, Settings stays and focus returns to Calibrate; Tab x6 cycles inside; Enter and Space on the close button close; Enter and Space on Apply close and persist `audio.latencyCompMs`; Enter and Space on Try Again restart the measurement; Escape in the done phase persists nothing; no console errors. The driver step 4 was rewritten because Apply now closes the dialog, which the old driver assumed it did not.
+- Proof owed (agent-runnable): Electron `keyboard-walk.mjs` parts (b), (c) and (e) not run, needs the Electron launch lane (`flock /tmp/claude-1000/lumakeys-electron.lock`) and was left to the lead; Edge and Firefox are owner-only (sitting 3 item 3). Human-only: Edge and Firefox pass of the same walk.
+- Residual risk: Space on a focused Tap button now activates natively on keyup, so a measured tap can include key-press duration, where the old window handler fired on keydown. Tap latency is a calibration measurement, so the owner should confirm the reading is still sensible.
+- Revisit trigger: reviewer verification and the runtime proofs above.

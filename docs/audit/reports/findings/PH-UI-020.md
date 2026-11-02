@@ -93,7 +93,10 @@ return it sensibly on Retry. `src/renderer/components/GameScreen.tsx`.
 ## Resolution
 
 - Accepted/rejected rationale: accepted 2026-10-21.
-- Fix branch/commit/issue: none. Planned in slice 10 "Dialogs and Escape" ([plan](../phase-11-remediation-plan-2026-10-20.md)).
-- Verification evidence: none yet.
-- Residual risk: as stated in User Impact.
-- Revisit trigger: the next remediation wave selection.
+- Fix branch/commit/issue: `remediation/p11-s10-dialogs` (slice 10, single commit at the branch tip), implemented 2026-11-02, awaiting independent review; not merged. Base `c1a1fbf`.
+- What changed: `GameScreen.tsx` keeps a ref on the load-error Retry button and an effect on `loadError` focuses it when the error panel appears and again after a failed retry. No state or load logic changed.
+- Tests (`GameScreen.test.tsx > moves focus to Retry when the load fails and again after a failed retry`; source identity `c1a1fbf`): failed before the fix (focus stayed on `body`) and passes after it.
+- Driver result: `scripts/audit/browser/proof-ph-arch-001-recovery.mjs` against the built web server, headless Chromium 141: 78 pass, 0 fail; focus when the panel first shows is the Retry button. The driver's `keyboard Tab reaches Retry` check still reports a 56-press walk because it Tabs even though Retry is already focused; the driver is unchanged (a tweak to skip the walk made its focus-visible check fail, because programmatic focus before any key press does not show `:focus-visible`, which is expected).
+- Proof owed (agent-runnable): Electron `keyboard-walk.mjs` parts (b), (c) and (e) not run, needs the Electron launch lane (`flock /tmp/claude-1000/lumakeys-electron.lock`) and was left to the lead; Edge and Firefox are owner-only (sitting 3 item 3). Human-only: screen-reader announcement of the error panel.
+- Residual risk: none expected beyond the owed runtime proof.
+- Revisit trigger: reviewer verification and the runtime proofs above.

@@ -451,14 +451,25 @@ function ConfirmActionModal({
   const titleId = `settings-confirm-title-${confirmLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   const descriptionId = `${titleId}-description`;
 
+  // Record the element that opened the dialog during the first render, before the commit
+  // disables the trigger button (a disabled button gives up focus in Chromium before any
+  // effect runs, so an effect would record the page body). Inline callbacks change on every
+  // parent render, so read them through refs and run the effect once per dialog.
+  const [previousActiveElement] = useState<HTMLElement | null>(
+    () => (document.activeElement instanceof HTMLElement ? document.activeElement : null),
+  );
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
+  const onCancelRef = useRef(onCancel);
+  onCancelRef.current = onCancel;
+
   useEffect(() => {
-    const previousActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     cancelButtonRef.current?.focus();
 
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape' && !busy) {
+      if (event.key === 'Escape' && !busyRef.current) {
         event.preventDefault();
-        onCancel();
+        onCancelRef.current();
         return;
       }
 
@@ -497,7 +508,7 @@ function ConfirmActionModal({
       document.removeEventListener('keydown', handleKeyDown, true);
       previousActiveElement?.focus();
     };
-  }, [busy, onCancel]);
+  }, [previousActiveElement]);
 
   return (
     <div

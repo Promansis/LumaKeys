@@ -646,6 +646,18 @@ describe('GameScreen', () => {
       expect(onExit).toHaveBeenCalledOnce();
     });
 
+    it('moves focus to Retry when the load fails and again after a failed retry', async () => {
+      stubBridge({ getSetting: vi.fn().mockRejectedValue(new Error('getSetting failed')) });
+      renderGameScreen({ librarySong: true });
+
+      const retry = await screen.findByRole('button', { name: 'Retry' });
+      await waitFor(() => expect(retry).toHaveFocus());
+
+      fireEvent.click(retry);
+      const retryAgain = await screen.findByRole('button', { name: 'Retry' });
+      await waitFor(() => expect(retryAgain).toHaveFocus());
+    });
+
     it.each(['getUserStats', 'getCustomFingerings', 'getSetting'])(
       'shows the recovery panel when %s rejects',
       async (method) => {

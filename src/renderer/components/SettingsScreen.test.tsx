@@ -479,6 +479,45 @@ describe('SettingsScreen', () => {
     expect(cancelButton).toHaveFocus();
   });
 
+  it.each([
+    ['Cancel button', () => fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))],
+    ['Escape', () => fireEvent.keyDown(document, { key: 'Escape' })],
+  ])('returns focus to the trigger when %s closes a confirmation dialog, even after a re-render', async (_label, close) => {
+    const { rerender } = renderSettingsScreen();
+
+    fireEvent.click(await screen.findByText('Practice'));
+    const trigger = screen.getByRole('button', { name: 'Clear Learning Progress' });
+    trigger.focus();
+    fireEvent.click(trigger);
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+
+    // A parent re-render hands the modal new inline callbacks while it is open.
+    rerender(
+      <SettingsScreen
+        audioEngine={{ playMetronomeClick: vi.fn(), prepareForPlayback: vi.fn() } as unknown as import('../../lib/audio/audioEngine').AudioEngine}
+        inputMode="both"
+        midiDevices={[]}
+        midiError={false}
+        instrumentSamplePackStatuses={{}}
+        pitchBendEnabled
+        onInstallInstrumentSamplePack={vi.fn().mockResolvedValue(undefined)}
+        onRemoveInstrumentSamplePack={vi.fn().mockResolvedValue(undefined)}
+        onDeveloperUnlockAll={developerUnlockAll}
+        onLearningProgressReset={onLearningProgressReset}
+        onSettingChange={vi.fn()}
+        onInputModeChange={vi.fn()}
+        onRetryMidi={vi.fn()}
+        onUserDataReset={onUserDataReset}
+        onOpenKeyboardSetup={vi.fn()}
+      />,
+    );
+
+    close();
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Clear Learning Progress' })).toHaveFocus();
+  });
+
   it('supports standard arrow-key navigation for settings tabs', async () => {
     renderSettingsScreen();
 

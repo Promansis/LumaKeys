@@ -459,6 +459,18 @@ describe('App', () => {
     expect(screen.getByText('Mock Free Play')).toBeInTheDocument();
   });
 
+  it('lets soundboard own Escape', async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByText('Open Soundboard'));
+    expect(screen.getByText('Mock Soundboard')).toBeInTheDocument();
+
+    for (let press = 0; press < 3; press += 1) {
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(screen.getByText('Mock Soundboard')).toBeInTheDocument();
+    }
+  });
+
   it('returns keyboard setup opened from a lesson drill back to that lesson', async () => {
     render(<App />);
 

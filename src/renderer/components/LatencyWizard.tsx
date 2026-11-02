@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AudioEngine } from '../../lib/audio/audioEngine';
+import { useModalFocusTrap } from '../useModalFocusTrap';
 
 interface LatencyWizardProps {
   audioEngine: AudioEngine;
@@ -27,6 +28,13 @@ export function LatencyWizard({ audioEngine, currentMs, onApply, onClose }: Late
   const clickTimesRef = useRef<number[]>([]);
   const tapTimesRef = useRef<number[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  // The control that opened the wizard, recorded once so focus can return to it on close.
+  const [triggerRef] = useState<{ current: HTMLElement | null }>(() => ({
+    current: document.activeElement instanceof HTMLElement ? document.activeElement : null,
+  }));
+
+  useModalFocusTrap({ open: true, dialogRef, triggerRef, onEscape: onClose });
 
   const stopClicks = useCallback(() => {
     if (intervalRef.current !== null) {
@@ -97,23 +105,29 @@ export function LatencyWizard({ audioEngine, currentMs, onApply, onClose }: Late
     startClicks();
   }, [startClicks]);
 
+  // Each phase swaps its controls, so move focus to the phase's main action; otherwise it
+  // would fall to the page behind the dialog when the focused button unmounts.
+  useEffect(() => {
+    dialogRef.current?.querySelector<HTMLElement>('.latency-wizard-body .primary-button')?.focus();
+  }, [phase]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        if (phase === 'intro') handleStart();
-        else if (phase === 'tapping') handleTap();
-      }
-      if (e.key === 'Escape') onClose();
+      if (e.key !== ' ' && e.key !== 'Enter') return;
+      // A focused button keeps its native Space/Enter activation (close, Tap, Try Again, Apply).
+      if (e.target instanceof Element && e.target.closest('button')) return;
+      e.preventDefault();
+      if (phase === 'intro') handleStart();
+      else if (phase === 'tapping') handleTap();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [phase, handleStart, handleTap, onClose]);
+  }, [phase, handleStart, handleTap]);
 
   const measuredTaps = Math.max(0, tapCount - WARMUP_TAPS);
 
   return (
-    <div className="latency-wizard-overlay" role="dialog" aria-modal="true" aria-label="Latency Calibration">
+    <div ref={dialogRef} className="latency-wizard-overlay" role="dialog" aria-modal="true" aria-label="Latency Calibration" tabIndex={-1}>
       <div className="latency-wizard-panel panel">
         <div className="panel-heading">
           <div>

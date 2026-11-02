@@ -30,20 +30,30 @@ await withServer(process.env.DATA, async ({ ctx, base, errors }) => {
   console.log('3b Space on focused close button ->', j(await info(p)), '(oracle: dialog closes)');
   await p.close();
   // 4: reach the done phase, then try to activate Apply / Redo with Enter and Space
-  for (const key of ['Enter', 'Space']) {
+  // After the fix Apply closes the dialog, so Apply and Try Again are each driven from a fresh measurement.
+  for (const key of ['Enter', 'Space']) for (const target of ['apply', 'redo']) {
     p = await newPage(); await p.getByRole('button', { name: /Calibrate/ }).first().click(); await p.waitForTimeout(500);
     await p.getByRole('button', { name: 'Start', exact: true }).click(); await p.waitForTimeout(700);
     for (let i = 0; i < 10; i++) { await p.keyboard.press('Space'); await p.waitForTimeout(300); }
     await p.waitForTimeout(500);
     const done = await p.evaluate(() => [...document.querySelectorAll('[role=dialog] button')].map((b) => b.textContent.trim()));
-    console.log(`4 (${key}) after 10 Space taps, dialog buttons:`, j(done), j(await info(p)));
-    const btnName = done.find((t) => /apply|use|save/i.test(t));
-    if (btnName) { await p.getByRole('button', { name: btnName }).first().focus(); await p.keyboard.press(key); await p.waitForTimeout(600); console.log(`4 (${key}) focused "${btnName}" and pressed ${key} ->`, j(await info(p))); }
-    const redo = done.find((t) => /redo|again|retry/i.test(t));
-    if (redo) { await p.getByRole('button', { name: redo }).first().focus(); await p.keyboard.press(key); await p.waitForTimeout(600); console.log(`4 (${key}) focused "${redo}" and pressed ${key} ->`, j(await info(p))); }
-    await p.screenshot({ path: `${process.env.SHOTS}/E-latency-wizard-done-${key}.png` });
+    console.log(`4 (${key}, ${target}) after 10 Space taps, dialog buttons:`, j(done), j(await info(p)));
+    const btnName = done.find((t) => (target === 'apply' ? /apply|use|save/i : /redo|again|retry/i).test(t));
+    if (btnName) {
+      await p.getByRole('button', { name: btnName }).first().focus(); await p.keyboard.press(key); await p.waitForTimeout(600);
+      console.log(`4 (${key}) focused "${btnName}" and pressed ${key} ->`, j(await info(p)));
+      if (target === 'apply') console.log(`4 (${key}) saved latencyComp =`, await p.evaluate(async () => { const r = await fetch('/api/bridge/getSetting', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ args: ['audio', 'latencyCompMs'] }) }); return JSON.stringify(await r.json()); }));
+    }
+    await p.screenshot({ path: `${process.env.SHOTS}/E-latency-wizard-done-${key}-${target}.png` });
     await p.close();
   }
+  // 4c: Escape in the done phase persists nothing
+  p = await newPage(); await p.getByRole('button', { name: /Calibrate/ }).first().click(); await p.waitForTimeout(500);
+  await p.getByRole('button', { name: 'Start', exact: true }).click(); await p.waitForTimeout(700);
+  for (let i = 0; i < 10; i++) { await p.keyboard.press('Space'); await p.waitForTimeout(300); }
+  await p.keyboard.press('Escape'); await p.waitForTimeout(500);
+  console.log('4c Escape in done phase ->', j(await info(p)), 'saved latencyComp =', await p.evaluate(async () => { const r = await fetch('/api/bridge/getSetting', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ args: ['audio', 'latencyCompMs'] }) }); return JSON.stringify(await r.json()); }));
+  await p.close();
   // 5: control, mouse on Apply and Try Again in the done phase (rules out a generally broken button)
   p = await newPage(); await p.getByRole('button', { name: /Calibrate/ }).first().click(); await p.waitForTimeout(500);
   await p.getByRole('button', { name: 'Start', exact: true }).click(); await p.waitForTimeout(700);
