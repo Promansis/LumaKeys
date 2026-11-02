@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
 import {
   getSafeMidiFilename,
@@ -13,7 +14,13 @@ import type {
   SongRow,
 } from '../shared/dbTypes';
 import type { MidiStorageAdapter, MidiStorageStagedFile } from '../storage/midiStorage';
+import { isLibraryBackup } from '../shared/libraryBackup';
 import type { AppDatabase } from './database';
+import {
+  LIBRARY_UNCHANGED_RESTORE_MESSAGE,
+  RESTORE_ROLLBACK_PENDING_MESSAGE,
+  libraryOperationFailure,
+} from './crossStoreMutations';
 import { computeSongMetadata, createSongId } from '../lib/midi/importMetadata';
 
 const MAX_BACKUP_MIDI_BYTES = 10 * 1024 * 1024;
@@ -116,6 +123,43 @@ function normalizeImportedBackup(
   };
 }
 
+export const UNREADABLE_BACKUP_MESSAGE =
+  'LumaKeys could not read that backup file, so nothing was restored and your library is unchanged. Check that the file can be opened, then try the import again.';
+
+// Reads the backup the user picked (desktop import). A read or JSON failure says the
+// library is unchanged instead of showing the OS error and the file path.
+export async function readLibraryBackupFile(path: string): Promise<LibraryBackup> {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(await readFile(path, 'utf8')) as unknown;
+  } catch (error) {
+    throw libraryOperationFailure(UNREADABLE_BACKUP_MESSAGE, error);
+  }
+  if (!isLibraryBackup(raw)) {
+    throw new Error('Invalid library backup file.');
+  }
+  return raw;
+}
+
+// Staging or moving a restored file failed before the database changed. Put the
+// library's own files back and report that nothing changed; if even that fails, the
+// prepared row stays so startup recovery finishes the rollback.
+async function rollBackFailedRestore(
+  db: AppDatabase,
+  storage: { rollbackRestore: (opId: string) => Promise<void> },
+  operationId: string,
+  error: unknown,
+): Promise<Error> {
+  try {
+    await storage.rollbackRestore(operationId);
+  } catch (rollbackError) {
+    console.error('Rolling back a failed library restore failed:', rollbackError);
+    return libraryOperationFailure(RESTORE_ROLLBACK_PENDING_MESSAGE, error);
+  }
+  db.completeDurableOperation(operationId);
+  return libraryOperationFailure(LIBRARY_UNCHANGED_RESTORE_MESSAGE, error);
+}
+
 export async function importLibraryBackup(
   db: AppDatabase,
   backup: LibraryBackup,
@@ -150,32 +194,31 @@ export async function importLibraryBackup(
       }
 
       if (recoverableStorage) {
-        operationId = db.prepareDurableOperation('restore-library', {});
-        for (const song of backup.songs) {
-          const bytes = midiFilesBySongId.get(song.id);
-          if (!bytes) {
-            missingMidiFiles.push(song.title || song.id);
-            continue;
-          }
-          stagedFiles.push(await recoverableStorage.stageRestore(operationId, song.id, bytes));
-          restoredSongIds.add(song.id);
-        }
-
+        const restoreOperationId = db.prepareDurableOperation('restore-library', {});
+        operationId = restoreOperationId;
         try {
+          for (const song of backup.songs) {
+            const bytes = midiFilesBySongId.get(song.id);
+            if (!bytes) {
+              missingMidiFiles.push(song.title || song.id);
+              continue;
+            }
+            stagedFiles.push(await recoverableStorage.stageRestore(restoreOperationId, song.id, bytes));
+            restoredSongIds.add(song.id);
+          }
+
           for (const stagedFile of stagedFiles) {
             await stagedFile.commit();
           }
         } catch (error) {
-          await recoverableStorage.rollbackRestore(operationId);
-          db.completeDurableOperation(operationId);
-          throw error;
+          throw await rollBackFailedRestore(db, recoverableStorage, restoreOperationId, error);
         }
 
         try {
-          result = db.importLibraryData(normalizeImportedBackup(backup, restoredSongIds, midiStorage), operationId);
+          result = db.importLibraryData(normalizeImportedBackup(backup, restoredSongIds, midiStorage), restoreOperationId);
         } catch (error) {
-          await recoverableStorage.rollbackRestore(operationId);
-          db.completeDurableOperation(operationId);
+          await recoverableStorage.rollbackRestore(restoreOperationId);
+          db.completeDurableOperation(restoreOperationId);
           throw error;
         }
 
@@ -222,6 +265,10 @@ export async function importLibraryBackup(
   } catch (error) {
     throw error;
   } finally {
-    await Promise.allSettled(stagedFiles.map((stagedFile) => stagedFile.discard()));
+    // A recoverable restore's staging folder holds the copies startup recovery needs
+    // (`.ready`, `.previous`); commitRestore and rollbackRestore remove it themselves.
+    if (!recoverableStorage) {
+      await Promise.allSettled(stagedFiles.map((stagedFile) => stagedFile.discard()));
+    }
   }
 }

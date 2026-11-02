@@ -1,14 +1,16 @@
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AppDatabase } from './database';
-import { buildLibraryBackup, importLibraryBackup } from './libraryBackup';
+import { buildLibraryBackup, importLibraryBackup, readLibraryBackupFile } from './libraryBackup';
 import { FileSystemMidiStorageAdapter } from '../storage/midiStorage';
 import type { LibraryBackupV1, LibraryBackupV2 } from '../shared/dbTypes';
 import { isLibraryBackup } from '../shared/libraryBackup';
 import { createSongId } from '../lib/midi/importMetadata';
+import { deleteSongsAcrossStores, resetUserDataAcrossStores } from './crossStoreMutations';
+import { importSongFromBuffer } from './importSong';
 import { Midi } from '@tonejs/midi';
 
 const tempDirs: string[] = [];
@@ -37,8 +39,41 @@ function addSong(db: AppDatabase, id: string, filePath: string): void {
   });
 }
 
+const canLockDirectories = process.getuid?.() !== 0;
+
+async function unlockTree(path: string): Promise<void> {
+  await chmod(path, 0o755).catch(() => undefined);
+  for (const entry of await readdir(path, { withFileTypes: true }).catch(() => [])) {
+    if (entry.isDirectory()) {
+      await unlockTree(join(path, entry.name));
+    }
+  }
+}
+
+async function buildTwoSongBackup(): Promise<{ backup: LibraryBackupV2; songIds: string[] }> {
+  const sourceDir = await makeTempDir();
+  const sourceMidiDir = join(sourceDir, 'midi-files');
+  await mkdir(sourceMidiDir, { recursive: true });
+  const sourceDb = new AppDatabase(join(sourceDir, 'source.db'));
+  const songIds: string[] = [];
+  for (const pitch of [60, 62]) {
+    const midi = new Midi();
+    midi.addTrack().addNote({ midi: pitch, time: 0, duration: 0.5, velocity: 0.8 });
+    const bytes = midi.toArray();
+    const id = await createSongId(bytes);
+    const path = join(sourceMidiDir, `${id}.mid`);
+    await writeFile(path, bytes);
+    addSong(sourceDb, id, path);
+    songIds.push(id);
+  }
+  const { backup } = await buildLibraryBackup(sourceDb, new FileSystemMidiStorageAdapter(sourceMidiDir));
+  sourceDb.close();
+  return { backup, songIds: backup.songs.map((song) => song.id) };
+}
+
 describe('library backups', () => {
   afterEach(async () => {
+    await Promise.all(tempDirs.map((dir) => unlockTree(dir)));
     await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
 
@@ -179,6 +214,170 @@ describe('library backups', () => {
 
     await expect(readFile(existingPath)).resolves.toEqual(Buffer.from([9, 9, 9]));
     expect(remainingEntries).toEqual([`${songId}.mid`]);
+  });
+
+  it.runIf(canLockDirectories)('says the library is unchanged and clears its operation when the song folder is read-only', async () => {
+    const { backup } = await buildTwoSongBackup();
+    const targetDir = await makeTempDir();
+    const targetMidiDir = join(targetDir, 'midi-files');
+    await mkdir(targetMidiDir, { recursive: true });
+    const targetDb = new AppDatabase(join(targetDir, 'target.db'));
+    await chmod(targetMidiDir, 0o555);
+
+    const failure = importLibraryBackup(targetDb, backup, new FileSystemMidiStorageAdapter(targetMidiDir));
+    await expect(failure).rejects.toThrow(/your library is unchanged.*try the import again/i);
+    await expect(failure).rejects.not.toThrow(/EACCES|mkdir|\.restore-/);
+    expect(targetDb.getAllSongs()).toEqual([]);
+    expect(targetDb.getDurableOperations()).toEqual([]);
+    targetDb.close();
+  });
+
+  it.runIf(canLockDirectories)('reports a failure on the second file without EISDIR and rolls back the first file', async () => {
+    const { backup, songIds } = await buildTwoSongBackup();
+    const targetDir = await makeTempDir();
+    const targetMidiDir = join(targetDir, 'midi-files');
+    const blocker = join(targetMidiDir, `${songIds[1]}.mid`);
+    await mkdir(blocker, { recursive: true });
+    await writeFile(join(blocker, 'blocker.txt'), 'x');
+    await chmod(blocker, 0o555);
+    const targetDb = new AppDatabase(join(targetDir, 'target.db'));
+    const storage = new FileSystemMidiStorageAdapter(targetMidiDir);
+
+    const failure = importLibraryBackup(targetDb, backup, storage);
+    await expect(failure).rejects.toThrow(/your library is unchanged.*try the import again/i);
+    await expect(failure).rejects.not.toThrow(/EISDIR|EACCES/);
+    await expect(failure).rejects.toMatchObject({ cause: expect.objectContaining({ code: 'EACCES' }) });
+    expect(targetDb.getAllSongs()).toEqual([]);
+    expect(targetDb.getDurableOperations()).toEqual([]);
+    expect(existsSync(join(targetMidiDir, `${songIds[0]}.mid`))).toBe(false);
+    expect(existsSync(join(blocker, 'blocker.txt'))).toBe(true);
+
+    await chmod(blocker, 0o755);
+    await rm(blocker, { recursive: true, force: true });
+    await expect(importLibraryBackup(targetDb, backup, storage)).resolves.toMatchObject({ midiFilesRestored: 2 });
+    targetDb.close();
+  });
+
+  it.runIf(canLockDirectories)('keeps the staged files so a restart recovers the song when a restore rollback fails', async () => {
+    const { backup, songIds } = await buildTwoSongBackup();
+    const targetDir = await makeTempDir();
+    const targetMidiDir = join(targetDir, 'midi-files');
+    await mkdir(targetMidiDir, { recursive: true });
+    const firstPath = join(targetMidiDir, `${songIds[0]}.mid`);
+    const firstBytes = new Uint8Array(Buffer.from(backup.midiFiles.find((file) => file.songId === songIds[0])!.dataBase64, 'base64'));
+    await writeFile(firstPath, firstBytes);
+    const blocker = join(targetMidiDir, `${songIds[1]}.mid`);
+    await mkdir(blocker, { recursive: true });
+    await chmod(blocker, 0o555);
+    const dbPath = join(targetDir, 'target.db');
+    const targetDb = new AppDatabase(dbPath);
+    addSong(targetDb, songIds[0], firstPath);
+    const storage = new FileSystemMidiStorageAdapter(targetMidiDir);
+    // The rollback removes the restored copy, then fails before putting the original back.
+    storage.rollbackRestore = async () => {
+      await rm(firstPath, { force: true });
+      throw new Error('rollback failed');
+    };
+
+    await expect(importLibraryBackup(targetDb, backup, storage)).rejects.toThrow(/restart LumaKeys/i);
+    expect(targetDb.getDurableOperations()).toMatchObject([{ type: 'restore-library', state: 'prepared' }]);
+    targetDb.close();
+
+    const restartedDb = new AppDatabase(dbPath);
+    const restartedStorage = new FileSystemMidiStorageAdapter(targetMidiDir);
+    await expect(restartedDb.recoverDurableOperations(restartedStorage)).resolves.toEqual([]);
+    expect(restartedDb.getSong(songIds[0])).not.toBeNull();
+    await expect(readFile(firstPath)).resolves.toEqual(Buffer.from(firstBytes));
+    expect(restartedDb.getDurableOperations()).toEqual([]);
+    expect((await readdir(targetMidiDir)).filter((name) => name.startsWith('.restore-'))).toEqual([]);
+    restartedDb.close();
+  });
+
+  it.runIf(canLockDirectories)('refuses a same-session retry after a failed restore rollback, so the restart cannot remove its files', async () => {
+    const { backup, songIds } = await buildTwoSongBackup();
+    const targetDir = await makeTempDir();
+    const targetMidiDir = join(targetDir, 'midi-files');
+    const blocker = join(targetMidiDir, `${songIds[1]}.mid`);
+    await mkdir(blocker, { recursive: true });
+    await chmod(blocker, 0o555);
+    const dbPath = join(targetDir, 'target.db');
+    const targetDb = new AppDatabase(dbPath);
+    const storage = new FileSystemMidiStorageAdapter(targetMidiDir);
+    const rollbackRestore = storage.rollbackRestore.bind(storage);
+    storage.rollbackRestore = async () => { throw new Error('rollback failed'); };
+
+    await expect(importLibraryBackup(targetDb, backup, storage)).rejects.toThrow(/restart LumaKeys/i);
+    storage.rollbackRestore = rollbackRestore;
+    await chmod(blocker, 0o755);
+    await rm(blocker, { recursive: true, force: true });
+
+    // Without a restart the retry would succeed, and the next start's rollback of the
+    // failed restore would then remove the first song's file under its new row.
+    await expect(importLibraryBackup(targetDb, backup, storage)).rejects.toThrow(/restart LumaKeys/i);
+    expect(targetDb.getAllSongs()).toEqual([]);
+    targetDb.close();
+
+    const restartedDb = new AppDatabase(dbPath);
+    const restartedStorage = new FileSystemMidiStorageAdapter(targetMidiDir);
+    await expect(restartedDb.recoverDurableOperations(restartedStorage)).resolves.toEqual([]);
+    await expect(importLibraryBackup(restartedDb, backup, restartedStorage)).resolves.toMatchObject({ midiFilesRestored: 2 });
+    restartedDb.close();
+
+    const nextStartDb = new AppDatabase(dbPath);
+    await expect(nextStartDb.recoverDurableOperations(restartedStorage)).resolves.toEqual([]);
+    for (const id of songIds) {
+      expect(nextStartDb.getSong(id)).not.toBeNull();
+      expect(existsSync(join(targetMidiDir, `${id}.mid`))).toBe(true);
+    }
+    nextStartDb.close();
+  });
+
+  it.runIf(canLockDirectories)('refuses deletes, resets and MIDI imports until a restart finishes a failed restore rollback', async () => {
+    const { backup, songIds } = await buildTwoSongBackup();
+    const targetDir = await makeTempDir();
+    const targetMidiDir = join(targetDir, 'midi-files');
+    const blocker = join(targetMidiDir, `${songIds[1]}.mid`);
+    await mkdir(blocker, { recursive: true });
+    await chmod(blocker, 0o555);
+    const dbPath = join(targetDir, 'target.db');
+    const targetDb = new AppDatabase(dbPath);
+    const storage = new FileSystemMidiStorageAdapter(targetMidiDir);
+    const rollbackRestore = storage.rollbackRestore.bind(storage);
+    storage.rollbackRestore = async () => { throw new Error('rollback failed'); };
+    await expect(importLibraryBackup(targetDb, backup, storage)).rejects.toThrow(/restart LumaKeys/i);
+    storage.rollbackRestore = rollbackRestore;
+    await chmod(blocker, 0o755);
+    await rm(blocker, { recursive: true, force: true });
+    const midi = new Midi();
+    midi.addTrack().addNote({ midi: 67, time: 0, duration: 0.5, velocity: 0.8 });
+    const newSong = midi.toArray();
+
+    await expect(importSongFromBuffer(newSong, 'New', { db: targetDb, midiStorage: storage })).rejects.toThrow(/restart LumaKeys/i);
+    await expect(deleteSongsAcrossStores(targetDb, storage, [songIds[0]], () => targetDb.deleteSong(songIds[0]))).rejects.toThrow(/restart LumaKeys/i);
+    await expect(resetUserDataAcrossStores(targetDb, storage)).rejects.toThrow(/restart LumaKeys/i);
+    expect(targetDb.getDurableOperations()).toMatchObject([{ type: 'restore-library', state: 'prepared' }]);
+    targetDb.close();
+
+    const restartedDb = new AppDatabase(dbPath);
+    await restartedDb.recoverDurableOperations(storage);
+    await expect(importSongFromBuffer(newSong, 'New', { db: restartedDb, midiStorage: storage })).resolves.toMatchObject({ title: 'New' });
+    restartedDb.close();
+  });
+
+  it.runIf(canLockDirectories)('says the library is unchanged, without the OS error, when the backup file cannot be read', async () => {
+    const { backup } = await buildTwoSongBackup();
+    const dir = await makeTempDir();
+    const backupPath = join(dir, 'backup.json');
+    await writeFile(backupPath, JSON.stringify(backup));
+    await chmod(backupPath, 0o000);
+
+    const failure = readLibraryBackupFile(backupPath);
+    await expect(failure).rejects.toThrow(/could not read.*your library is unchanged.*try the import again/i);
+    await expect(failure).rejects.not.toThrow(/EACCES|backup\.json/);
+    await expect(failure).rejects.toMatchObject({ cause: expect.objectContaining({ code: 'EACCES' }) });
+
+    await chmod(backupPath, 0o644);
+    await expect(readLibraryBackupFile(backupPath)).resolves.toMatchObject({ version: 2 });
   });
 
   it('rejects same-length MIDI bytes whose content id differs', async () => {

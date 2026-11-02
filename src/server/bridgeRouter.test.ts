@@ -283,6 +283,31 @@ describe('bridgeRouter', () => {
     expect(payload.result.filePath).toBe(join(midiFilesDir, `${songId}.mid`));
   });
 
+  it('refuses web addSong while a failed rollback waits for restart', async () => {
+    const { app, db } = await makeServer();
+    db.prepareDurableOperation('restore-library', {});
+
+    const response = await postBridge(app, 'addSong', [{
+      id: songId,
+      title: 'Etude',
+      artist: '',
+      genre: '',
+      difficulty: 1,
+      durationSec: 1,
+      bpm: 120,
+      noteCount: 1,
+      tags: [],
+      trackAssignments: {},
+    }]);
+    const body = await response.text();
+    const stored = db.getSong(songId);
+    db.close();
+
+    expect(response.ok).toBe(false);
+    expect(body).toMatch(/restart/i);
+    expect(stored).toBeFalsy();
+  });
+
   it('rejects unsafe web addSong ids before deriving file paths', async () => {
     const { app, db } = await makeServer();
 

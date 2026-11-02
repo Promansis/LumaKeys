@@ -16,8 +16,7 @@ import type {
   UpdateTroubleSpotPayload,
 } from '../shared/dbTypes';
 import { createSongId, importSongFromBuffer, reattachSongFromBuffer, recomputeAllSongDifficulties } from '../persistence/importSong';
-import { buildLibraryBackup, importLibraryBackup } from '../persistence/libraryBackup';
-import { isLibraryBackup } from '../shared/libraryBackup';
+import { buildLibraryBackup, importLibraryBackup, readLibraryBackupFile } from '../persistence/libraryBackup';
 import { getInstrumentSamplePackDefinition } from '../lib/audio/instrumentSamplePacks';
 import { AppDatabase } from '../persistence/database';
 import { legacyProfileDirs, migrateLegacyBrand } from '../persistence/legacyBrandMigration';
@@ -165,12 +164,13 @@ async function startDesktopApp(): Promise<void> {
 
   ipcMain.handle('songs:get-all', () => db.getAllSongs());
   ipcMain.handle('songs:get', (_event, songId: string) => db.getSong(songId));
-  ipcMain.handle('songs:add', (_event, payload: BridgeAddSongPayload) =>
-    db.addSong({
+  ipcMain.handle('songs:add', (_event, payload: BridgeAddSongPayload) => {
+    db.assertNoPendingRollback();
+    return db.addSong({
       ...payload,
       filePath: midiStorage.getPathForSong(payload.id),
-    }),
-  );
+    });
+  });
   ipcMain.handle(
     'songs:update',
     (_event, songId: string, updates: BridgeUpdateSongPayload & { filePath?: unknown }) =>
@@ -387,8 +387,11 @@ async function startDesktopApp(): Promise<void> {
     db.resetLearningProgress();
   });
   ipcMain.handle('settings:reset-user-data', () => {
-    return resetUserDataAcrossStores(db, midiStorage, (operationId) =>
-      prepareDesktopInstrumentSamplePackReset(userDataPath, operationId),
+    return resetUserDataAcrossStores(
+      db,
+      midiStorage,
+      (operationId) => prepareDesktopInstrumentSamplePackReset(userDataPath, operationId),
+      (operationId, state) => recoverDesktopInstrumentSamplePackReset(userDataPath, operationId, state),
     );
   });
 
@@ -431,12 +434,8 @@ async function startDesktopApp(): Promise<void> {
     }
 
     rememberPath('libraryJson', result.filePaths[0]);
-    const raw = JSON.parse(await readFile(result.filePaths[0], 'utf8')) as unknown;
-    if (!isLibraryBackup(raw)) {
-      throw new Error('Invalid library backup file.');
-    }
-
-    return importLibraryBackup(db, raw, midiStorage);
+    const backup = await readLibraryBackupFile(result.filePaths[0]);
+    return importLibraryBackup(db, backup, midiStorage);
   });
 
   ipcMain.handle('file:load-midi', async (_event, songId: string) => {

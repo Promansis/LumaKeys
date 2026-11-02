@@ -38,6 +38,7 @@ import type {
   UserStatsRow,
 } from '../shared/dbTypes';
 import { SettingsRepository } from './settingsRepository';
+import { DELETE_ROLLBACK_PENDING_MESSAGE, LibraryOperationError, RESTORE_ROLLBACK_PENDING_MESSAGE } from './crossStoreMutations';
 import type { MidiStorageAdapter, MidiStorageStagedFile } from '../storage/midiStorage';
 import { computeSongMetadata } from '../lib/midi/importMetadata';
 import { createSongId } from '../lib/midi/importMetadata';
@@ -527,7 +528,26 @@ export class AppDatabase {
     removeMany(ids);
   }
 
+  /**
+   * A destructive operation whose rollback failed keeps its `prepared` row, and startup
+   * recovery replays that rollback over the song files. A song file written or removed in
+   * between would be undone by it, so nothing that writes or removes songs may start until
+   * a restart has finished the old operation.
+   */
+  assertNoPendingRollback(): void {
+    const pending = this.db
+      .prepare("SELECT id, type FROM durable_operations WHERE state = 'prepared' ORDER BY created_at, id LIMIT 1")
+      .get() as { id: string; type: DurableOperation['type'] } | undefined;
+    if (pending) {
+      throw new LibraryOperationError(
+        pending.type === 'restore-library' ? RESTORE_ROLLBACK_PENDING_MESSAGE : DELETE_ROLLBACK_PENDING_MESSAGE,
+        new Error(`The ${pending.type} operation ${pending.id} is waiting for startup recovery.`),
+      );
+    }
+  }
+
   prepareDurableOperation(type: DurableOperation['type'], payload: DurableOperation['payload']): string {
+    this.assertNoPendingRollback();
     const id = randomUUID();
     this.db
       .prepare('INSERT INTO durable_operations (id, type, state, payload) VALUES (?, ?, ?, ?)')
@@ -1591,30 +1611,44 @@ export class AppDatabase {
   async recoverDurableOperations(
     midiStorage: MidiStorageAdapter,
     recoverReset?: (operationId: string, state: DurableOperation['state']) => Promise<void>,
-  ): Promise<void> {
+  ): Promise<Array<{ operation: DurableOperation; error: unknown }>> {
+    // A committed operation that cannot finish only leaves files that no row points at (a
+    // locked leftover directory, say), so it must not keep the app from starting: its row
+    // stays and the next start tries again. A prepared one that cannot be rolled back still
+    // stops startup, because its rows point at files that are not in place yet.
+    const failures: Array<{ operation: DurableOperation; error: unknown }> = [];
     for (const operation of this.getDurableOperations()) {
-      if (operation.type === 'delete-songs') {
-        if (operation.state === 'prepared') {
-          await midiStorage.rollbackDelete?.(operation.id);
+      try {
+        if (operation.type === 'delete-songs') {
+          if (operation.state === 'prepared') {
+            await midiStorage.rollbackDelete?.(operation.id);
+          } else {
+            await midiStorage.commitDelete?.(operation.id);
+          }
+        } else if (operation.type === 'restore-library') {
+          if (operation.state === 'prepared') {
+            await midiStorage.rollbackRestore?.(operation.id);
+          } else {
+            await midiStorage.commitRestore?.(operation.id);
+          }
+        } else if (operation.state === 'prepared') {
+          await midiStorage.rollbackReset?.(operation.id);
         } else {
-          await midiStorage.commitDelete?.(operation.id);
+          await midiStorage.commitReset?.(operation.id);
         }
-      } else if (operation.type === 'restore-library') {
+        if (operation.type === 'reset-user-data') {
+          await recoverReset?.(operation.id, operation.state);
+        }
+        this.completeDurableOperation(operation.id);
+      } catch (error) {
         if (operation.state === 'prepared') {
-          await midiStorage.rollbackRestore?.(operation.id);
-        } else {
-          await midiStorage.commitRestore?.(operation.id);
+          throw error;
         }
-      } else if (operation.state === 'prepared') {
-        await midiStorage.rollbackReset?.(operation.id);
-      } else {
-        await midiStorage.commitReset?.(operation.id);
+        console.error(`Could not finish the interrupted ${operation.type} operation ${operation.id}; trying again at the next start:`, error);
+        failures.push({ operation, error });
       }
-      if (operation.type === 'reset-user-data') {
-        await recoverReset?.(operation.id, operation.state);
-      }
-      this.completeDurableOperation(operation.id);
     }
+    return failures;
   }
 
   private resetUserDataRows(): void {
