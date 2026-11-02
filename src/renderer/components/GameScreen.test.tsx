@@ -197,6 +197,7 @@ function renderGameScreen(options: {
   isCapstone?: boolean;
   sessionConfig?: SessionConfig;
   librarySong?: boolean;
+  song?: ParsedSong;
   onExit?: () => void;
 } = {}) {
   const audioEngine = options.audioEngine ?? buildAudioEngineStub();
@@ -210,7 +211,7 @@ function renderGameScreen(options: {
       kind: 'lesson-drill',
       lessonId: 'lesson-1',
       stepIndex: 0,
-      parsedSong: buildSong(),
+      parsedSong: options.song ?? buildSong(),
       isRhythmClapping: options.isRhythmClapping,
       isCapstone: options.isCapstone,
     };
@@ -571,6 +572,98 @@ describe('GameScreen', () => {
       expect(audioReadyAt).toBeGreaterThan(0);
       expect(play).toHaveBeenCalledTimes(1);
       expect(play.mock.calls[0][0]).toBeGreaterThanOrEqual(audioReadyAt);
+    });
+
+    describe('count-in clicks (PH-MUS-019)', () => {
+      // Every click of the 3-2-1 and of the lead-in beats lands one pulse of the song apart, at the
+      // tempo in force where the song starts and at the practice tempo, as the in-play metronome does.
+      async function countInClickTimes(song: ParsedSong, sessionConfig: SessionConfig) {
+        const audioEngine = buildAudioEngineStub();
+        const clickTimes: number[] = [];
+        (audioEngine.playMetronomeClick as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+          clickTimes.push(performance.now());
+        });
+        renderGameScreen({ audioEngine, song, sessionConfig });
+        await waitFor(() => expect(window.appBridge?.getSetting).toHaveBeenCalled());
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        });
+
+        vi.useFakeTimers({
+          toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'],
+        });
+        await act(async () => {
+          window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true }));
+          await vi.advanceTimersByTimeAsync(10_000);
+        });
+        return clickTimes.map((time) => time - clickTimes[0]);
+      }
+
+      function songAt(tempoMap: ParsedSong['tempoMap'], pulseTicks?: number): ParsedSong {
+        return {
+          ...buildSong(),
+          bpm: tempoMap?.[0].bpm ?? 120,
+          tempoMap,
+          measureBoundaries: pulseTicks
+            ? [{ startTick: 0, endTick: 1440, startSec: 0, endSec: 2, pulseTicks }]
+            : undefined,
+        };
+      }
+
+      it('spaces all five clicks (3-2-1 and two lead-in beats) one beat apart at 190 BPM', async () => {
+        const times = await countInClickTimes(
+          songAt([{ ticks: 0, bpm: 190, timeSec: 0 }]),
+          buildSessionConfig({ leadInBeats: 2 }),
+        );
+
+        const beatMs = 60_000 / 190;
+        expect(times).toHaveLength(5);
+        // Fake timers round each wait to a whole millisecond, so allow up to 1 ms per step.
+        times.forEach((time, index) => expect(Math.abs(time - index * beatMs)).toBeLessThanOrEqual(index));
+      });
+
+      it('scales the beat by the practice tempo', async () => {
+        const times = await countInClickTimes(
+          songAt([{ ticks: 0, bpm: 120, timeSec: 0 }]),
+          buildSessionConfig({ leadInBeats: 2, tempoMultiplier: 0.5 }),
+        );
+
+        expect(times).toHaveLength(5);
+        times.forEach((time, index) => expect(time).toBeCloseTo(index * 1000, 0));
+      });
+
+      it('counts in at the tempo in force where the song starts, not a later one', async () => {
+        const times = await countInClickTimes(
+          songAt([
+            { ticks: 0, bpm: 40, timeSec: 0 },
+            { ticks: 1920, bpm: 160, timeSec: 6 },
+          ]),
+          buildSessionConfig({ leadInBeats: 2 }),
+        );
+
+        expect(times).toHaveLength(5);
+        times.forEach((time, index) => expect(time).toBeCloseTo(index * 1500, 0));
+      });
+
+      it('counts in on the felt pulse of a compound meter (6/8 at 120 quarter BPM clicks every 750 ms)', async () => {
+        const times = await countInClickTimes(
+          songAt([{ ticks: 0, bpm: 120, timeSec: 0 }], 720),
+          buildSessionConfig({ leadInBeats: 2 }),
+        );
+
+        expect(times).toHaveLength(5);
+        times.forEach((time, index) => expect(time).toBeCloseTo(index * 750, 0));
+      });
+
+      it('counts in on the half-note pulse of 2/2 (120 quarter BPM clicks every 1000 ms)', async () => {
+        const times = await countInClickTimes(
+          songAt([{ ticks: 0, bpm: 120, timeSec: 0 }], 960),
+          buildSessionConfig({ leadInBeats: 0 }),
+        );
+
+        expect(times).toHaveLength(3);
+        times.forEach((time, index) => expect(time).toBeCloseTo(index * 1000, 0));
+      });
     });
 
     it('holds the game clock at the seek target while the audio restarts', async () => {

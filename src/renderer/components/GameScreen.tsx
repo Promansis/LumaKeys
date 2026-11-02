@@ -1,7 +1,7 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { AudioEngine } from '../../lib/audio/audioEngine';
 import { GameSession } from '../../lib/game/GameSession';
-import { advanceMetronome, getBeatAtSongTime } from '../../lib/game/beatClock';
+import { advanceMetronome, getBeatAtSongTime, getPulseDurationSec } from '../../lib/game/beatClock';
 import { ComputerKeyboardInputService } from '../../lib/input/computerKeyboardInputService';
 import { HeldNoteTracker } from '../../lib/input/heldNotes';
 import type { InputEvent, InputMode } from '../../lib/input/types';
@@ -900,15 +900,17 @@ export function GameScreen({
     countdownCancelRef.current = false;
     await ensureAudioReady();
 
+    // One beat length for every click: the metronome's pulse at the tempo in force where the run
+    // starts, at the practice tempo. The 3-2-1 and the lead-in beats then share it with the metronome.
+    const beatMs = (getPulseDurationSec(song, startSec) / Math.max(countdownConfig.tempoMultiplier, 0.01)) * 1000;
     for (const count of [3, 2, 1] as const) {
       if (countdownCancelRef.current) { setCountdownValue(null); return; }
       setCountdownValue(count);
       void audioEngine.playMetronomeClick(count === 1);
-      await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+      await new Promise<void>((resolve) => setTimeout(resolve, beatMs));
     }
 
     const leadInBeats = countdownConfig.leadInBeats ?? 0;
-    const beatMs = (60 / Math.max(song.bpm * countdownConfig.tempoMultiplier, 1)) * 1000;
     for (let beat = 0; beat < leadInBeats; beat += 1) {
       if (countdownCancelRef.current) { setCountdownValue(null); return; }
       void audioEngine.playMetronomeClick(false);
