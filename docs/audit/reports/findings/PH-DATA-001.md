@@ -158,8 +158,12 @@ The original proof below stays required.
     - Driver: `scripts/audit/browser/proof-data001-web.mjs` and `scripts/audit/electron/proof-data001-electron.mjs` (helpers `proof-data-common.mjs`, `proof-electron-harness.mjs`). Evidence: `/tmp/claude-1000/p11/PF/data/web001/` and `/tmp/claude-1000/p11/PF/data/el001/` (`run.out`, per-step JSON inventories, screenshots).
 - Residual risk: the three defects above are open. Harmless extra: a failed restore leaves a `restore-library:prepared` row in `durable_operations` until the next restart. Host-level failures by timing, Windows, macOS and a real full disk were not covered.
 - Revisit trigger: before backup/restore or destructive-data release sign-off.
-- Slice 19 fix branch/commit: `remediation/p11-s19-destructive-failures`, commit `aa49f9b`;
-  implemented 2026-11-02, awaiting independent review; not merged.
+- Slice 19 fix branch/commit: `remediation/p11-s19-destructive-failures`, commits `aa49f9b`
+  and the review repair `d47bd51`; implemented 2026-11-02, awaiting independent review;
+  not merged.
+- Review rulings (2026-11-02): the delete half of the rollback-failure change (a prepared
+  row kept with a restart message) and the desktop `readLibraryBackupFile` wording are
+  accepted; the web reads a backup in the browser, so the desktop-only reader is justified.
 - What changed (slice 19):
   - `src/persistence/crossStoreMutations.ts`: a delete that fails before the database
     commit rolls back and throws `LibraryOperationError` with "Nothing was deleted, and
@@ -176,14 +180,23 @@ The original proof below stays required.
     rollback, so a staging failure no longer leaves a `restore-library:prepared` row. The
     message is "Nothing was restored, and your library is unchanged. Check that the
     LumaKeys data folder can be written to, then try the import again." A database import
-    failure keeps its existing message. New `readLibraryBackupFile` (used by the desktop
+    failure keeps its existing message. A recoverable restore no longer discards its
+    per-song staging folders in `finally`, so when the rollback fails the `.ready` and
+    `.previous` copies stay for the restart the message asks for (`commitRestore` and
+    `rollbackRestore` remove the folder themselves). New `readLibraryBackupFile` (used by the desktop
     `library:import` handler) words an unreadable backup file the same way.
   - `src/storage/midiStorage.ts`: a restore commit undoes only a move it made, so a
     directory standing at the target reports the rename `EACCES` instead of `EISDIR`.
-  - `src/persistence/database.ts`: `recoverDurableOperations` keeps going past an operation
-    that cannot finish, logs it, keeps its row for the next start and returns the failures.
-    The host call sites in `src/server/index.ts` and the startup in `src/main/index.ts` are
-    unchanged; `src/main/index.ts` changes only in the reset and import handlers.
+  - `src/persistence/database.ts`: `recoverDurableOperations` keeps going past a
+    `db-committed` operation that cannot finish (it only clears files no row points at),
+    logs it, keeps its row for the next start and returns the failures. A `prepared`
+    operation whose rollback fails still throws, so startup stops as on the base (desktop
+    PH-OPS-006 dialog and exit, web exit 1): carrying on would leave rows whose files are in
+    the hidden directory, and the next start's `rollbackReset` would replace `midi-files`,
+    deleting songs imported meanwhile. A skipped failure shows nothing to the user: it is
+    only logged, because `src/main/index.ts` and `src/server/index.ts` ignore the returned
+    list. Those host call sites are unchanged; `src/main/index.ts` changes only in the reset
+    and import handlers.
   - `src/renderer/bridgeErrorMessage.ts` and `LibraryScreen.tsx`: delete and Import Library
     errors show `Delete failed. <message>` / `Import failed. <message>` without Electron's
     `Error invoking remote method` prefix. `SettingsScreen.tsx` is unchanged: its reset
@@ -200,19 +213,24 @@ The original proof below stays required.
     before reporting a reset retry as done" (before: 2 operation rows instead of 1); "lets
     startup recovery continue past a locked reset leftover and keeps it for the next start"
     (before: recovery threw `EACCES: permission denied, unlink '.../.midi-files-reset-<id>/<song>.mid'`).
+    Review repair: "stops startup when a reset interrupted before its database commit cannot
+    be rolled back" (before, on `aa49f9b`: `promise resolved "[ { operation: { …(4) }, …(1)
+    } ]" instead of rejecting`).
   - `libraryBackup.test.ts`: "says the library is unchanged and clears its operation when
     the song folder is read-only" (before: `EACCES: permission denied, mkdir
     '.../.restore-<id>'`); "reports a failure on the second file without EISDIR and rolls
     back the first file" (before: `Path is a directory: rm returned EISDIR`); "says the
     library is unchanged, without the OS error, when the backup file cannot be read"
     (before: no such reader; the Electron driver showed `Import failed. EACCES: permission
-    denied, open '<path>'`).
+    denied, open '<path>'`). Review repair: "keeps the staged files so a restart recovers
+    the song when a restore rollback fails" (before, on `aa49f9b`: the restart's read of the
+    song file failed with `ENOENT: no such file or directory`, leaving a row with no file).
   - `LibraryScreen.test.tsx`: "shows the unchanged-library retry message, without the IPC
     or OS error, when a delete fails" (before: `Delete failed: Error invoking remote method
     'bulk:delete-songs': ...`).
-  - `npm run verify` passes: 504 tests passed, 1 skipped (75 files), both type checks, both
-    builds and the Electron asset check.
-- Driver result, 2026-11-02, on this branch's `dist/` and `out/` builds, `chmod` faults only,
+  - `npm run verify` passes after the review repair: 506 tests passed, 1 skipped (75
+    files), both type checks, both builds and the Electron asset check.
+- Driver result, 2026-11-02, rerun after the review repair on this branch's `dist/` and `out/` builds, `chmod` faults only,
   throwaway dirs under `$TMPDIR`:
   - Web, `scripts/audit/browser/proof-data001-web.mjs` (Node v24.15.0, Chromium
     141.0.7390.37): (a) single delete, bulk delete and both restore faults show the
@@ -235,9 +253,12 @@ The original proof below stays required.
 - Residual risk: failures after the database commit of a delete or restore still show the
   raw error, and a delete retry does not look for a leftover `.delete-<id>` directory
   (startup recovery clears it). If a restore commit and its rollback both fail, the
-  `.previous` copy can be removed with the operation directory. While a prepared reset
-  cannot be rolled back at startup, the app runs with song rows whose files are in the
-  hidden directory; the visible startup notice is PH-OPS-006 (slice 1). Faults by timing, a
+  `.previous` copy can be removed with the operation directory. While a `db-committed`
+  operation cannot finish at startup, the app runs and nothing visible says so (it is only logged); a
+  visible notice is PH-OPS-006 (slice 1). Not in scope, per review: a failed in-session
+  reset rollback still clears its row and strands files (`crossStoreMutations.ts`, the
+  reset `prepared` path), and invalid JSON on the web Import Library still shows a raw
+  error. Faults by timing, a
   real full disk, Windows and macOS were not covered.
 - Revisit trigger: independent review of slice 19, and before backup/restore or
   destructive-data release sign-off.
