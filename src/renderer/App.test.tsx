@@ -18,6 +18,8 @@ const setMetronomeVolumeSpy = vi.fn();
 const setReverbLevelSpy = vi.fn();
 const gameSourceChangeSpy = vi.fn();
 const midiDeviceListeners = new Set<(devices: unknown[]) => void>();
+const keyboardInitSpy = vi.fn();
+let midiInitImpl: () => Promise<void> = () => Promise.resolve();
 
 vi.mock('./components/AchievementToast', () => ({
   AchievementToast: () => null,
@@ -236,7 +238,7 @@ vi.mock('../lib/midi/midiInputService', () => ({
       };
     }
     init() {
-      return Promise.resolve();
+      return midiInitImpl();
     }
     dispose() {}
     setDeviceFilter() {}
@@ -245,7 +247,7 @@ vi.mock('../lib/midi/midiInputService', () => ({
 
 vi.mock('../lib/input/computerKeyboardInputService', () => ({
   ComputerKeyboardInputService: class {
-    init() {}
+    init = keyboardInitSpy;
     dispose() {}
     setMapping() {}
   },
@@ -295,6 +297,8 @@ describe('App', () => {
     setReverbLevelSpy.mockClear();
     gameSourceChangeSpy.mockClear();
     midiDeviceListeners.clear();
+    keyboardInitSpy.mockClear();
+    midiInitImpl = () => Promise.resolve();
     unlockAchievementSpy.mockClear();
     setSettingSpy.mockReset();
     setSettingSpy.mockResolvedValue(undefined);
@@ -331,6 +335,40 @@ describe('App', () => {
         }
       }),
     } as unknown as typeof window.appBridge;
+  });
+
+  it('shows the main menu while the MIDI permission prompt is still unanswered', async () => {
+    let settleMidi: () => void = () => {};
+    midiInitImpl = () => new Promise<void>((resolve) => {
+      settleMidi = resolve;
+    });
+    render(<App />);
+
+    expect(await screen.findByText('Start Recommended Song')).toBeInTheDocument();
+    expect(screen.queryByText('Loading services...')).not.toBeInTheDocument();
+    expect(keyboardInitSpy).toHaveBeenCalled();
+    expect(setSettingSpy).not.toHaveBeenCalledWith('input', 'midiDeviceId', expect.anything());
+
+    await act(async () => {
+      settleMidi();
+    });
+    expect(screen.getByText('Start Recommended Song')).toBeInTheDocument();
+  });
+
+  it('keeps the main menu when a pending MIDI request is refused later', async () => {
+    let refuseMidi: (error: Error) => void = () => {};
+    midiInitImpl = () => new Promise<void>((_resolve, reject) => {
+      refuseMidi = reject;
+    });
+    render(<App />);
+
+    expect(await screen.findByText('Start Recommended Song')).toBeInTheDocument();
+
+    await act(async () => {
+      refuseMidi(new Error('Permission denied'));
+    });
+    expect(screen.getByText('Start Recommended Song')).toBeInTheDocument();
+    expect(setSettingSpy).not.toHaveBeenCalledWith('input', 'midiDeviceId', expect.anything());
   });
 
   it('keeps the running game session when the MIDI device list changes', async () => {
