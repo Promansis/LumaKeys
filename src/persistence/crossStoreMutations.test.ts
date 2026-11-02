@@ -190,6 +190,37 @@ describe('cross-store mutations', () => {
     reopened.close();
   });
 
+  it('stops startup when a reset interrupted before its database commit cannot be rolled back', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'lumakeys-cross-store-reset-prepared-'));
+    roots.push(root);
+    const dbPath = join(root, 'db');
+    const db = new AppDatabase(dbPath);
+    addSong(db);
+    const storage = new FileSystemMidiStorageAdapter(join(root, 'midi-files'));
+    await storage.write(songId, new Uint8Array([4, 5, 6]));
+    const operationId = db.prepareDurableOperation('reset-user-data', {});
+    await storage.stageReset(operationId);
+    db.close();
+
+    const reopened = new AppDatabase(dbPath);
+    const rollbackReset = storage.rollbackReset.bind(storage);
+    storage.rollbackReset = async () => { throw new Error('rollback failed'); };
+    // Carrying on here would let the app run with the song row while its file sits in
+    // the hidden reset directory, and the next start's rollback would replace the song
+    // folder, deleting anything imported meanwhile.
+    await expect(reopened.recoverDurableOperations(storage)).rejects.toThrow('rollback failed');
+    expect(reopened.getDurableOperations()).toMatchObject([{ id: operationId, type: 'reset-user-data', state: 'prepared' }]);
+    expect(reopened.getSong(songId)).not.toBeNull();
+    reopened.close();
+
+    const restarted = new AppDatabase(dbPath);
+    storage.rollbackReset = rollbackReset;
+    await expect(restarted.recoverDurableOperations(storage)).resolves.toEqual([]);
+    await expect(storage.read(songId)).resolves.toEqual(new Uint8Array([4, 5, 6]));
+    expect(restarted.getDurableOperations()).toEqual([]);
+    restarted.close();
+  });
+
   it('recovers a prepared delete after reopening the database', async () => {
     const root = await mkdtemp(join(tmpdir(), 'lumakeys-cross-store-recovery-'));
     roots.push(root);

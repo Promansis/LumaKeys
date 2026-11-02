@@ -265,6 +265,10 @@ export async function importLibraryBackup(
   } catch (error) {
     throw error;
   } finally {
-    await Promise.allSettled(stagedFiles.map((stagedFile) => stagedFile.discard()));
+    // A recoverable restore's staging folder holds the copies startup recovery needs
+    // (`.ready`, `.previous`); commitRestore and rollbackRestore remove it themselves.
+    if (!recoverableStorage) {
+      await Promise.allSettled(stagedFiles.map((stagedFile) => stagedFile.discard()));
+    }
   }
 }

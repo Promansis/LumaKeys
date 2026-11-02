@@ -1592,8 +1592,10 @@ export class AppDatabase {
     midiStorage: MidiStorageAdapter,
     recoverReset?: (operationId: string, state: DurableOperation['state']) => Promise<void>,
   ): Promise<Array<{ operation: DurableOperation; error: unknown }>> {
-    // One operation that cannot finish (a locked leftover directory, say) must not keep
-    // the app from starting. Its row stays, so the next start tries it again.
+    // A committed operation that cannot finish only leaves files that no row points at (a
+    // locked leftover directory, say), so it must not keep the app from starting: its row
+    // stays and the next start tries again. A prepared one that cannot be rolled back still
+    // stops startup, because its rows point at files that are not in place yet.
     const failures: Array<{ operation: DurableOperation; error: unknown }> = [];
     for (const operation of this.getDurableOperations()) {
       try {
@@ -1619,6 +1621,9 @@ export class AppDatabase {
         }
         this.completeDurableOperation(operation.id);
       } catch (error) {
+        if (operation.state === 'prepared') {
+          throw error;
+        }
         console.error(`Could not finish the interrupted ${operation.type} operation ${operation.id}; trying again at the next start:`, error);
         failures.push({ operation, error });
       }

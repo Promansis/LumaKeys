@@ -256,6 +256,41 @@ describe('library backups', () => {
     targetDb.close();
   });
 
+  it.runIf(canLockDirectories)('keeps the staged files so a restart recovers the song when a restore rollback fails', async () => {
+    const { backup, songIds } = await buildTwoSongBackup();
+    const targetDir = await makeTempDir();
+    const targetMidiDir = join(targetDir, 'midi-files');
+    await mkdir(targetMidiDir, { recursive: true });
+    const firstPath = join(targetMidiDir, `${songIds[0]}.mid`);
+    const firstBytes = new Uint8Array(Buffer.from(backup.midiFiles.find((file) => file.songId === songIds[0])!.dataBase64, 'base64'));
+    await writeFile(firstPath, firstBytes);
+    const blocker = join(targetMidiDir, `${songIds[1]}.mid`);
+    await mkdir(blocker, { recursive: true });
+    await chmod(blocker, 0o555);
+    const dbPath = join(targetDir, 'target.db');
+    const targetDb = new AppDatabase(dbPath);
+    addSong(targetDb, songIds[0], firstPath);
+    const storage = new FileSystemMidiStorageAdapter(targetMidiDir);
+    // The rollback removes the restored copy, then fails before putting the original back.
+    storage.rollbackRestore = async () => {
+      await rm(firstPath, { force: true });
+      throw new Error('rollback failed');
+    };
+
+    await expect(importLibraryBackup(targetDb, backup, storage)).rejects.toThrow(/restart LumaKeys/i);
+    expect(targetDb.getDurableOperations()).toMatchObject([{ type: 'restore-library', state: 'prepared' }]);
+    targetDb.close();
+
+    const restartedDb = new AppDatabase(dbPath);
+    const restartedStorage = new FileSystemMidiStorageAdapter(targetMidiDir);
+    await expect(restartedDb.recoverDurableOperations(restartedStorage)).resolves.toEqual([]);
+    expect(restartedDb.getSong(songIds[0])).not.toBeNull();
+    await expect(readFile(firstPath)).resolves.toEqual(Buffer.from(firstBytes));
+    expect(restartedDb.getDurableOperations()).toEqual([]);
+    expect((await readdir(targetMidiDir)).filter((name) => name.startsWith('.restore-'))).toEqual([]);
+    restartedDb.close();
+  });
+
   it.runIf(canLockDirectories)('says the library is unchanged, without the OS error, when the backup file cannot be read', async () => {
     const { backup } = await buildTwoSongBackup();
     const dir = await makeTempDir();
