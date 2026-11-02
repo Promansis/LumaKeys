@@ -10,6 +10,7 @@ import { LibrarySidebar, type LibraryActiveView } from './LibrarySidebar';
 import { LoadingPanel } from './LoadingPanel';
 import { PlaylistView } from './PlaylistView';
 import { TagChips } from './TagChips';
+import { getBridgeErrorMessage } from '../bridgeErrorMessage';
 import {
   formatFolderImportResult,
   formatLibraryExportResult,
@@ -454,7 +455,7 @@ export function LibraryScreen({
       await refreshLibrary({ preserveStatus: true });
       setStatusMessage(formatLibraryImportResult(result));
     } catch (error) {
-      setStatusMessage(`Import failed: ${(error as Error).message}`);
+      setStatusMessage(`Import failed. ${getBridgeErrorMessage(error)}`);
     }
   };
 
@@ -544,7 +545,7 @@ export function LibraryScreen({
       await refreshLibrary({ preserveStatus: true });
       setStatusMessage(`Deleted ${songIds.length} song${songIds.length === 1 ? '' : 's'} from the library.`);
     } catch (error) {
-      setStatusMessage(`Delete failed: ${(error as Error).message}`);
+      setStatusMessage(`Delete failed. ${getBridgeErrorMessage(error)}`);
     }
   };
 

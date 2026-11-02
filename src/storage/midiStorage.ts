@@ -173,13 +173,20 @@ export class FileSystemMidiStorageAdapter implements MidiStorageAdapter {
     return {
       finalPath,
       commit: async () => {
+        let movedAside = false;
         try {
           if (await this.pathExists(finalPath)) {
             await rename(finalPath, backupPath);
+            movedAside = true;
           }
           await rename(stagingPath, finalPath);
         } catch (error) {
-          await this.restoreCommittedFile(finalPath, backupPath);
+          // Only undo a move this commit made: whatever still stands at finalPath (a
+          // file or a directory) is not ours to remove, and the first error is the one
+          // that explains the failure.
+          if (movedAside) {
+            await this.restoreCommittedFile(finalPath, backupPath).catch(() => undefined);
+          }
           throw error;
         }
       },

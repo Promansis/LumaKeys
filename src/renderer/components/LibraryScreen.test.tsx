@@ -217,6 +217,67 @@ describe('LibraryScreen', () => {
     });
   });
 
+  it('shows the unchanged-library retry message, without the IPC or OS error, when a delete fails', async () => {
+    const unchanged = 'Nothing was deleted, and your library is unchanged. Check that the LumaKeys data folder can be written to, then try again.';
+    const bulkDeleteSongs = vi.fn().mockRejectedValue(
+      new Error(`Error invoking remote method 'bulk:delete-songs': Error: ${unchanged}`),
+    );
+    const song = {
+      id: 'song-1',
+      title: 'Etude',
+      artist: 'Composer',
+      genre: 'Classical',
+      difficulty: 4,
+      durationSec: 120,
+      bpm: 120,
+      noteCount: 240,
+      filePath: '/tmp/etude.mid',
+      dateAdded: '2026-04-18T00:00:00.000Z',
+      lastPlayed: null,
+      timesPlayed: 0,
+      isFavorite: false,
+      folderId: null,
+      tags: [],
+      trackAssignments: {},
+    };
+
+    window.appBridge = {
+      getAllSongs: vi.fn().mockResolvedValue([song]),
+      getAllFolders: vi.fn().mockResolvedValue([]),
+      getAllPlaylists: vi.fn().mockResolvedValue([]),
+      getRecommendations: vi.fn().mockResolvedValue(null),
+      getUserStats: vi.fn().mockResolvedValue(null),
+      getSetting: vi.fn().mockResolvedValue(null),
+      bulkDeleteSongs,
+      importLibrary: vi.fn().mockRejectedValue(
+        new Error("Error invoking remote method 'library:import': Error: Nothing was restored, and your library is unchanged. Check that the LumaKeys data folder can be written to, then try the import again."),
+      ),
+    } as unknown as typeof window.appBridge;
+
+    render(
+      <LibraryScreen
+        audioEngine={createAudioEngineStub() as unknown as import('../../lib/audio/audioEngine').AudioEngine}
+        onStartSession={vi.fn()}
+        onStartPlaylistQueue={vi.fn()}
+        onStartTheoryPractice={vi.fn()}
+      />,
+    );
+
+    await screen.findByText('1 song ready to play.');
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Metadata' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Song' }));
+
+    expect(await screen.findByText(`Delete failed. ${unchanged}`)).toBeInTheDocument();
+    expect(screen.queryByText(/Error invoking remote method/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Import Library' }));
+    expect(
+      await screen.findByText('Import failed. Nothing was restored, and your library is unchanged. Check that the LumaKeys data folder can be written to, then try the import again.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Error invoking remote method/)).not.toBeInTheDocument();
+  });
+
   it('reattaches MIDI for the selected song through the bridge', async () => {
     const reattachMidiFile = vi.fn().mockResolvedValue({
       reattached: [{ songId: 'song-1' }],

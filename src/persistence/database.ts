@@ -1591,30 +1591,39 @@ export class AppDatabase {
   async recoverDurableOperations(
     midiStorage: MidiStorageAdapter,
     recoverReset?: (operationId: string, state: DurableOperation['state']) => Promise<void>,
-  ): Promise<void> {
+  ): Promise<Array<{ operation: DurableOperation; error: unknown }>> {
+    // One operation that cannot finish (a locked leftover directory, say) must not keep
+    // the app from starting. Its row stays, so the next start tries it again.
+    const failures: Array<{ operation: DurableOperation; error: unknown }> = [];
     for (const operation of this.getDurableOperations()) {
-      if (operation.type === 'delete-songs') {
-        if (operation.state === 'prepared') {
-          await midiStorage.rollbackDelete?.(operation.id);
+      try {
+        if (operation.type === 'delete-songs') {
+          if (operation.state === 'prepared') {
+            await midiStorage.rollbackDelete?.(operation.id);
+          } else {
+            await midiStorage.commitDelete?.(operation.id);
+          }
+        } else if (operation.type === 'restore-library') {
+          if (operation.state === 'prepared') {
+            await midiStorage.rollbackRestore?.(operation.id);
+          } else {
+            await midiStorage.commitRestore?.(operation.id);
+          }
+        } else if (operation.state === 'prepared') {
+          await midiStorage.rollbackReset?.(operation.id);
         } else {
-          await midiStorage.commitDelete?.(operation.id);
+          await midiStorage.commitReset?.(operation.id);
         }
-      } else if (operation.type === 'restore-library') {
-        if (operation.state === 'prepared') {
-          await midiStorage.rollbackRestore?.(operation.id);
-        } else {
-          await midiStorage.commitRestore?.(operation.id);
+        if (operation.type === 'reset-user-data') {
+          await recoverReset?.(operation.id, operation.state);
         }
-      } else if (operation.state === 'prepared') {
-        await midiStorage.rollbackReset?.(operation.id);
-      } else {
-        await midiStorage.commitReset?.(operation.id);
+        this.completeDurableOperation(operation.id);
+      } catch (error) {
+        console.error(`Could not finish the interrupted ${operation.type} operation ${operation.id}; trying again at the next start:`, error);
+        failures.push({ operation, error });
       }
-      if (operation.type === 'reset-user-data') {
-        await recoverReset?.(operation.id, operation.state);
-      }
-      this.completeDurableOperation(operation.id);
     }
+    return failures;
   }
 
   private resetUserDataRows(): void {
