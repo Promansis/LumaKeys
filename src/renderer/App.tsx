@@ -1316,7 +1316,7 @@ export function App() {
         return;
       }
 
-      if (event.key === 'Escape' && currentScreen.screen !== 'game' && currentScreen.screen !== 'free-play' && currentScreen.screen !== 'lesson-drill' && currentScreen.screen !== 'capstone') {
+      if (event.key === 'Escape' && currentScreen.screen !== 'game' && currentScreen.screen !== 'free-play' && currentScreen.screen !== 'soundboard' && currentScreen.screen !== 'lesson-drill' && currentScreen.screen !== 'capstone') {
         event.preventDefault();
         handleBackNavigation();
         return;

@@ -152,7 +152,7 @@ export function NoveltySoundboardScreen({
     return () => {
       window.removeEventListener('keydown', handleEscape);
     };
-  }, [overlayVisible]);
+  }, []);
 
   useEffect(() => {
     if (!(isAnimalMapPinned || isModeSelectorPinned)) {

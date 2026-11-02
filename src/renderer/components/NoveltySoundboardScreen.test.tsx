@@ -82,6 +82,41 @@ describe('NoveltySoundboardScreen', () => {
     vi.restoreAllMocks();
   });
 
+  it('handles every Escape before the app-level listener, however often the menu toggles', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(buildCanvasContextStub());
+    const appLevelSawUnhandled = vi.fn();
+    const appListener = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) appLevelSawUnhandled();
+    };
+
+    render(
+      <NoveltySoundboardScreen
+        audioEngine={buildAudioEngineStub()}
+        midiInputService={new MockMidiInputService() as unknown as MidiInputService}
+        keyboardInputService={new MockKeyboardInputService() as unknown as ComputerKeyboardInputService}
+        inputMode="both"
+        keyboardOverlaySize="medium"
+        onBackToMainMenu={vi.fn()}
+        onOpenKeyboardSetup={vi.fn()}
+      />,
+    );
+
+    // App's listener is added after the screen's at mount; a screen that re-registers on each
+    // toggle ends up behind it.
+    window.addEventListener('keydown', appListener);
+    const expectedOpen = [true, false, true, false, true];
+    for (const open of expectedOpen) {
+      fireEvent.keyDown(window, { key: 'Escape' });
+      if (open) {
+        expect(screen.getByText('Soundboard Modes')).toBeInTheDocument();
+      } else {
+        expect(screen.queryByText('Soundboard Modes')).not.toBeInTheDocument();
+      }
+    }
+    expect(appLevelSawUnhandled).not.toHaveBeenCalled();
+    window.removeEventListener('keydown', appListener);
+  });
+
   it('opens the immersive overlay with Escape, switches modes there, and keeps note triggering live', async () => {
     vi.useFakeTimers();
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(buildCanvasContextStub());

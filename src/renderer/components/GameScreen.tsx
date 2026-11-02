@@ -417,7 +417,15 @@ export function GameScreen({
   const [devices, setDevices] = useState<MidiInputDevice[]>([]);
   const [statusMessage, setStatusMessage] = useState('Loading song from the library.');
   const [loadError, setLoadError] = useState<string | null>(null);
+  const loadErrorRetryRef = useRef<HTMLButtonElement | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
+
+  // The recovery panel sits after the HUD in tab order; put focus on its primary action.
+  useEffect(() => {
+    if (loadError) {
+      loadErrorRetryRef.current?.focus();
+    }
+  }, [loadError]);
   const [reminderFrequencyMinutes, setReminderFrequencyMinutes] = useState<number | null>(null);
   const [showReminder, setShowReminder] = useState(false);
   const [showBreakReminder, setShowBreakReminder] = useState(false);
@@ -1373,7 +1381,7 @@ export function GameScreen({
             <h2>Could not start this session.</h2>
             <p className="panel-copy">{loadError}</p>
             <div className="immersive-overlay-actions">
-              <button className="primary-button" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
+              <button ref={loadErrorRetryRef} className="primary-button" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
                 Retry
               </button>
               <button className="secondary-button" onClick={onExit}>
