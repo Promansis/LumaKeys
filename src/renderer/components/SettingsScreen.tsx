@@ -725,9 +725,15 @@ export function SettingsScreen({
     }));
   }, [pitchBendEnabled]);
 
+  // The input service keeps filtering to the saved device even when it is absent, so the
+  // card must say that instead of reading "Any connected device".
+  const savedMidiDeviceId = values['input.midiDeviceId'];
+  const missingMidiDeviceId = savedMidiDeviceId && !midiDevices.some((device) => device.id === savedMidiDeviceId)
+    ? savedMidiDeviceId
+    : null;
   const selectedMidiDeviceName = useMemo(
-    () => midiDevices.find((device) => device.id === values['input.midiDeviceId'])?.name ?? 'Any connected device',
-    [midiDevices, values['input.midiDeviceId']],
+    () => midiDevices.find((device) => device.id === savedMidiDeviceId)?.name ?? 'Any connected device',
+    [midiDevices, savedMidiDeviceId],
   );
   const installedPackInstrumentIds = useMemo(
     () =>
@@ -1706,6 +1712,9 @@ export function SettingsScreen({
                     onChange={(event) => void persistSetting('input', 'midiDeviceId', event.target.value)}
                   >
                     <option value="">Any connected device</option>
+                    {missingMidiDeviceId ? (
+                      <option value={missingMidiDeviceId}>Saved device not connected: {missingMidiDeviceId}</option>
+                    ) : null}
                     {midiDevices.map((device) => (
                       <option key={device.id} value={device.id}>
                         {device.name}
@@ -1720,6 +1729,18 @@ export function SettingsScreen({
                     <button className="secondary-button settings-note-action" onClick={onRetryMidi}>
                       <SettingsActionIcon icon="retry" />
                       Try MIDI Again
+                    </button>
+                  </article>
+                ) : missingMidiDeviceId ? (
+                  <article className="settings-note-card settings-note-danger">
+                    <span>Connected Keyboard</span>
+                    <strong>Saved device not connected: {missingMidiDeviceId}</strong>
+                    <em>Notes from other keyboards are ignored until it returns or you switch.</em>
+                    <button
+                      className="secondary-button settings-note-action"
+                      onClick={() => void persistSetting('input', 'midiDeviceId', '')}
+                    >
+                      Use any connected device
                     </button>
                   </article>
                 ) : (

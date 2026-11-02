@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ACHIEVEMENTS } from '../lib/achievements/achievementDefinitions';
 import { App, parseStoredAudioNumber } from './App';
@@ -15,6 +16,8 @@ const setSettingSpy = vi.fn().mockResolvedValue(undefined);
 const setMasterVolumeSpy = vi.fn();
 const setMetronomeVolumeSpy = vi.fn();
 const setReverbLevelSpy = vi.fn();
+const gameSourceChangeSpy = vi.fn();
+const midiDeviceListeners = new Set<(devices: unknown[]) => void>();
 
 vi.mock('./components/AchievementToast', () => ({
   AchievementToast: () => null,
@@ -131,7 +134,12 @@ vi.mock('./components/GameScreen', () => ({
     onOpenKeyboardSetup: () => void;
     initialSessionConfig: { mode: string; waitForInput: boolean; leadInBeats?: number };
     source: { kind: string };
-  }) => (
+  }) => {
+    // Mirrors GameScreen: its song-load effect re-runs whenever `source` changes identity.
+    useEffect(() => {
+      gameSourceChangeSpy(source.kind);
+    }, [source]);
+    return (
     <>
       <div>Game</div>
       <div data-testid="game-session-mode">{initialSessionConfig.mode}</div>
@@ -140,7 +148,8 @@ vi.mock('./components/GameScreen', () => ({
       <div data-testid="game-source-kind">{source.kind}</div>
       <button onClick={onOpenKeyboardSetup}>Open Keyboard Setup</button>
     </>
-  ),
+    );
+  },
 }));
 
 vi.mock('./components/ResultsScreen', () => ({
@@ -221,7 +230,10 @@ vi.mock('../lib/midi/midiInputService', () => ({
   MidiInputService: class {
     subscribeDevices(listener: (devices: unknown[]) => void) {
       listener([]);
-      return () => {};
+      midiDeviceListeners.add(listener);
+      return () => {
+        midiDeviceListeners.delete(listener);
+      };
     }
     init() {
       return Promise.resolve();
@@ -281,6 +293,8 @@ describe('App', () => {
     setMasterVolumeSpy.mockClear();
     setMetronomeVolumeSpy.mockClear();
     setReverbLevelSpy.mockClear();
+    gameSourceChangeSpy.mockClear();
+    midiDeviceListeners.clear();
     unlockAchievementSpy.mockClear();
     setSettingSpy.mockReset();
     setSettingSpy.mockResolvedValue(undefined);
@@ -317,6 +331,55 @@ describe('App', () => {
         }
       }),
     } as unknown as typeof window.appBridge;
+  });
+
+  it('keeps the running game session when the MIDI device list changes', async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByText('Start Recommended Song'));
+    expect(await screen.findByText('Game')).toBeInTheDocument();
+    expect(gameSourceChangeSpy).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      midiDeviceListeners.forEach((listener) => listener([{ id: 'fake-1', name: 'Fake Piano 88' }]));
+    });
+    act(() => {
+      midiDeviceListeners.forEach((listener) => listener([]));
+    });
+
+    expect(screen.getByText('Game')).toBeInTheDocument();
+    expect(gameSourceChangeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a running lesson drill when the MIDI device list changes', async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByText('Open Learn'));
+    fireEvent.click(await screen.findByText('Open Lesson'));
+    fireEvent.click(await screen.findByText('Start Drill'));
+    expect(await screen.findByText('Game')).toBeInTheDocument();
+    expect(gameSourceChangeSpy).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      midiDeviceListeners.forEach((listener) => listener([{ id: 'fake-1', name: 'Fake Piano 88' }]));
+    });
+
+    expect(gameSourceChangeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a running capstone when the MIDI device list changes', async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByText('Open Learn'));
+    fireEvent.click(await screen.findByText('Start Capstone'));
+    expect(await screen.findByText('Game')).toBeInTheDocument();
+    expect(gameSourceChangeSpy).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      midiDeviceListeners.forEach((listener) => listener([{ id: 'fake-1', name: 'Fake Piano 88' }]));
+    });
+
+    expect(gameSourceChangeSpy).toHaveBeenCalledTimes(1);
   });
 
   it('lets free play own Escape and hides the standard app chrome', async () => {

@@ -79,7 +79,7 @@ interface LessonDrillFinishedPayload {
   sessionConfig: SessionConfig;
 }
 
-type GameScreenSource =
+export type GameScreenSource =
   | { kind: 'library-song'; song: SongRow; playlistQueue: { songs: SongRow[]; index: number } | null }
   | { kind: 'lesson-drill'; lessonId: string; stepIndex: number; parsedSong: ParsedSong; isRhythmClapping?: boolean };
 

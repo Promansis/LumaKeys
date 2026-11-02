@@ -61,4 +61,27 @@ describe('MidiInputService', () => {
     expect(events).toEqual(['devices:1', 'noteon:60', 'noteoff:60', 'devices:0']);
     service.dispose();
   });
+
+  it('keeps dropping other devices while the filtered device is absent', async () => {
+    const other = buildInput('keyboard-2');
+    const inputs = new Map([[other.id, other]]);
+    const access = buildAccess(inputs);
+    Object.defineProperty(navigator, 'requestMIDIAccess', {
+      configurable: true,
+      value: vi.fn().mockResolvedValue(access),
+    });
+    const events: string[] = [];
+    const service = new MidiInputService();
+    service.subscribe((event) => events.push(`${event.type}:${event.note ?? ''}`));
+
+    await service.init();
+    service.setDeviceFilter('keyboard-1');
+    other.onmidimessage?.({ data: new Uint8Array([0x90, 60, 100]), timeStamp: 10 } as MIDIMessageEvent);
+    expect(events).toEqual([]);
+
+    service.setDeviceFilter(null);
+    other.onmidimessage?.({ data: new Uint8Array([0x90, 60, 100]), timeStamp: 20 } as MIDIMessageEvent);
+    expect(events).toEqual(['noteon:60']);
+    service.dispose();
+  });
 });
