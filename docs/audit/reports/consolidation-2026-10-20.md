@@ -36,20 +36,19 @@
   run, and nothing blocked is reported as passing. The product is not ready for a
   desktop update release, and the live web deployment is exposed.
 - Release and deployment blockers:
-  - Web deployment: [PH-OPS-002](findings/PH-OPS-002.md) (P0, accepted). Sitting 0 item 4
+  - Web deployment: [PH-OPS-002](findings/PH-OPS-002.md) (P0, fixed in wave 1; awaiting proof). Sitting 0 item 4
     found the live host answering `/api/*` with the app and no login, so anyone who finds
     the address can export, reset or delete the library. Until slice 2 lands, the fix is
     the owner's: Cloudflare Access in front of the host, or `LUMAKEYS_WEB_ACCESS_TOKEN`.
     [PH-SEC-002](findings/PH-SEC-002.md) (P2, accepted) puts that token in URLs.
-  - Desktop update release: [PH-DATA-005](findings/PH-DATA-005.md) (P1, accepted). A
+  - Desktop update release: [PH-DATA-005](findings/PH-DATA-005.md) (P1, fixed in wave 1; awaiting proof). A
     user updating from any pre-rename build opens an empty library. Their data is intact
     on disk but not migrated.
-  - Any release: [PH-MUS-014](findings/PH-MUS-014.md) (P1, accepted). A fresh profile
+  - Any release: [PH-MUS-014](findings/PH-MUS-014.md) (P1, fixed in wave 1; awaiting proof). A fresh profile
     plays about 60 dB too quietly on both runtimes while Settings shows the default
     volumes.
-- Residual P0/P1 count: 6 not yet `verified`. Three are accepted and open (PH-OPS-002,
-  PH-DATA-005, PH-MUS-014). Three are fixed and waiting for runtime or manual proof
-  (PH-MUS-001, PH-MUS-002, PH-PAR-001). PH-SEC-001 (P0), PH-OPS-001 and PH-UI-002 (P1)
+- Residual P0/P1 count: 6 not yet `verified`. All six are fixed and waiting for runtime or manual proof
+  (PH-OPS-002, PH-DATA-005, PH-MUS-014, PH-MUS-001, PH-MUS-002, PH-PAR-001); updated 2026-11-02. PH-SEC-001 (P0), PH-OPS-001 and PH-UI-002 (P1)
   are verified. PH-DATA-001 left this list on 2026-10-21: it failed its proof run, was
   reopened, and was lowered to P2 because the data-loss path is fixed.
 - Accepted-risk count: 1 ([PH-OPS-004](findings/PH-OPS-004.md), owner decision 2 on 2026-10-20).
