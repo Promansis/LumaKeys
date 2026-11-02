@@ -98,7 +98,8 @@ missing key. Add a parser test for both.
   `C4=Unbound, D4=K` before and after reload; bind D4 to Z gave `C3=Unbound, D4=Z` before
   and after, with Z lighting only D4; Clear E4 gave `Unbound` after reload. Electron: shared
   parser, optional rerun not done (see PH-ARCH-003 for why Electron cannot run here).
-- Proof owed: none agent-runnable. Human-only: none required.
+- Proof owed: agent-runnable, none left. Human-only: none required.
+- Main-build proof, 2026-11-02 (`c170bc3`): web `keyboard-remap-persistence.mjs` passed (a build of `main` at `c170bc3`, throwaway data directory; `harness.mjs` read a port from `LK_PORT` in the proof agent's own copy): a remap and a clear survive a reload and a server restart; the only errors are the induced 500s.
 - Residual risk: a user who already has a doubled key keeps it until they rebind; nothing is
   rewritten. The first-run save still writes the full default mapping once.
 - Revisit trigger: reviewer verification.

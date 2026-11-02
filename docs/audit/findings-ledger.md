@@ -254,11 +254,12 @@ in the detailed report.
   (slice 17) moved from `accepted` to `fixed`. PH-PAR-008 (new, web reattach error, slice 24)
   and PH-MUS-019 (new, beats per minute, slice 22) were raised and fixed in the same batch.
   The PH-DATA-003 follow-up (slice 13) is merged and PH-MUS-008 has a doc follow-up only; both
-  stay `fixed`. None is `verified`: the lead owes the web `keyboard-remap-persistence.mjs`,
-  Electron `workflows.mjs` (settings "off", WF-004), `color-state-evidence.mjs` with the
+  stay `fixed`. None is `verified`: the lead's driver reruns (web `keyboard-remap-persistence.mjs`,
+  Electron `workflows.mjs` for settings "off" and WF-004, `color-state-evidence.mjs` with the
   `short-4-notes` fixture, `mscz-upload-no-musescore.mjs`, web `library-date-filter-timezone.mjs`
-  and `library-organize-bulk.mjs` reruns and the web reattach driver run including the Library
-  refresh; the owner owes the colour-vision sitting (sitting 1 item 10), a parallel `.mscz`
+  and `library-organize-bulk.mjs`, and the web reattach driver) passed on a main build at
+  `c170bc3` on 2026-11-02; not run: the Electron results-screen screenshot for PH-UI-016 and a
+  count-in driver for PH-MUS-019 (none exists). The owner owes the colour-vision sitting (sitting 1 item 10), a parallel `.mscz`
   upload in Docker, the tampered-backup restore message in the UI, PH-UI-008 keyboard and
   screen-reader pass, PH-UI-005 desktop trouble spot, and the count-in ear check on a fast song
   and a 6/8 song. Counts: 74 findings (13 verified, 60 fixed, 0 accepted, 1 accepted-risk). See

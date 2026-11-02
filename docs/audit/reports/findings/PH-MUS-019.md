@@ -143,6 +143,7 @@ label (quarter-note BPM) and stored rows alone.
   - `beatClock.ts` fallback, drills, `LessonScreen`, free play, scale practice: use their own tempo specs.
 - Driver result: not run. The parser, beat clock and count-in are covered by unit tests; no Electron or web driver was needed.
 - Stored data: songs imported before the fix keep their stored BPM until they are re-imported or `recomputeAllSongDifficulties` runs (it re-parses every song and updates `bpm`, `difficulty`, `durationSec`, `noteCount`). No migration or backfill was added.
+- Main-build proof, 2026-11-02 (`c170bc3`): no driver run: no count-in driver exists (`leadin*.mjs` cover PH-MUS-018's lead-in length). Unit tests cover it; the owner ear check stays owed.
 - Proof owed: agent-runnable, none beyond review; human-only, owner listens to the count-in on a fast song and a 6/8 song.
 - Residual risk:
   - Existing songs keep their stored BPM until re-imported or recomputed.

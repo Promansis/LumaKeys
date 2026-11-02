@@ -74,8 +74,8 @@ legacy `"off"` to `0`.
   launch times out at 30 s with no output; no workaround was attempted. Expected after the
   fix: the `PH-ARCH-003 Electron settings with "off"` line prints `[]` after Skip for now.
   The web driver does not cover this step.
-- Proof owed (agent-runnable outside the sandbox): `workflows.mjs` on the worktree build,
-  confirming the settings row holds `'0'`. Human-only: none.
+- Proof owed: agent-runnable, none left (done 2026-11-02, `c170bc3`). Human-only: none.
+- Main-build proof, 2026-11-02 (`c170bc3`): Electron `workflows.mjs` printed `PH-ARCH-003 Electron settings with "off" []` and ERRORS `[]`, as expected after the fix. The stored row value itself was not read back.
 - Residual risk: other integer settings are still not validated in the bridge (excluded by the
   slice).
 - Revisit trigger: reviewer verification and the Electron driver run.

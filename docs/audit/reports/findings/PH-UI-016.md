@@ -88,6 +88,7 @@ Use theme-aware grade colours (mix with white in dark themes). Owning module: `s
   Every grade is at or above 3:1 in every theme (lowest: warm A, 3.58). Before the fix, 11 of 24 theme/grade cells were below 3:1 (dark: all but A at 3.01; neon: all six); the finding had only measured dark.
 - Tests: none in jsdom (computed contrast); the driver above is the regression proof, as the finding specifies. `npm run verify` passes.
 - Driver result: run in headless Chromium on a web build of this branch, result above. The results-screen screenshot of a real run (grade C, dark theme) shows a readable light-blue letter on its badge.
-- Proof owed: Electron results-screen screenshot in sitting 1 (agent-runnable under the Electron lock, not run here). Human-only: none.
+- Proof owed: Electron results-screen screenshot in sitting 1 (agent-runnable under the Electron lock, not run here or on the main build). Human-only: none. The web contrast rerun on the main build is done.
+- Main-build proof, 2026-11-02 (`c170bc3`): `grade-badge-contrast.mjs`: every grade at least 3:1 in all 4 themes, matching the table above. Not run: the Electron results-screen screenshot.
 - Residual risk: the driver mounts the badge in a real results panel but not through a played session; the real results screen puts the same `.panel` behind the badge, and the dark-theme numbers agree with the finding's, so the gap is small.
 - Revisit trigger: reviewer verification; a new theme or a change to `.panel` backgrounds.

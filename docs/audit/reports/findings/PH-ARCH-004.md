@@ -87,6 +87,7 @@ and `destPath` optional on the shared type and omit them in the web router.
 - What changed: `ImportedSong.destPath` and `fileData` in `src/shared/ipc.ts` are optional and commented as IPC-only. `src/server/midiRouter.ts` maps each result through `toWebImportedSong` in both `/upload` and `/:songId/reattach`, so the web response carries only `songId`, `title`, `durationSec`, `bpm`, `noteCount` and `difficulty`. The Electron import path still returns the two fields; the only readers are in `importSong.ts`, and the renderer reads none of them.
 - Tests: `midiRouter.test.ts` "returns song metadata without the MIDI bytes or the server path (PH-ARCH-004)" (response under 500 characters, exact key set, no "midi-files") and the added reattach assertion both failed before the fix (the keys included `destPath` and `fileData`) and pass after. Source identity for the reproduction: product code equal to `cc40b63`.
 - Driver result: `mscz-upload-no-musescore.mjs` "HTTP mixed" response ran on the worktree build: it holds the song metadata only, zero `fileData` or `destPath` matches in the output.
-- Proof owed: none agent-runnable. Human-only: none.
+- Proof owed: agent-runnable, none left. Human-only: none.
+- Main-build proof, 2026-11-02 (`c170bc3`): web `mscz-upload-no-musescore.mjs`: configs A to D unchanged, 0 `fileData` or `destPath` leaks in the responses.
 - Residual risk: none expected. Lead for triage, outside this finding: `reattachMidiFile` in `src/renderer/webBridge.ts` reuses `uploadMidiFiles`, which spreads `batch.songs`, but the reattach route returns `{reattached, skipped, errors}` with no `songs`. Read from the code only, not run.
 - Revisit trigger: reviewer verification, or a new field on the web import response.
