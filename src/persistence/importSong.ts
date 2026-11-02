@@ -39,6 +39,7 @@ export async function importSongFromBuffer(
   title: string,
   { db, midiStorage }: ImportSongOptions,
 ): Promise<ImportedSong> {
+  db.assertNoPendingRollback();
   const fileData = Uint8Array.from(buffer);
   const songId = await createSongId(fileData);
   const existingSong = db.getSong(songId);
@@ -115,6 +116,7 @@ export async function reattachSongFromBuffer(
   title: string,
   { db, midiStorage }: ImportSongOptions,
 ): Promise<ImportedSong> {
+  db.assertNoPendingRollback();
   const existingSong = db.getSong(songId);
   if (!existingSong) {
     throw new Error(`Song not found: ${songId}`);

@@ -9,6 +9,8 @@ import { FileSystemMidiStorageAdapter } from '../storage/midiStorage';
 import type { LibraryBackupV1, LibraryBackupV2 } from '../shared/dbTypes';
 import { isLibraryBackup } from '../shared/libraryBackup';
 import { createSongId } from '../lib/midi/importMetadata';
+import { deleteSongsAcrossStores, resetUserDataAcrossStores } from './crossStoreMutations';
+import { importSongFromBuffer } from './importSong';
 import { Midi } from '@tonejs/midi';
 
 const tempDirs: string[] = [];
@@ -288,6 +290,77 @@ describe('library backups', () => {
     await expect(readFile(firstPath)).resolves.toEqual(Buffer.from(firstBytes));
     expect(restartedDb.getDurableOperations()).toEqual([]);
     expect((await readdir(targetMidiDir)).filter((name) => name.startsWith('.restore-'))).toEqual([]);
+    restartedDb.close();
+  });
+
+  it.runIf(canLockDirectories)('refuses a same-session retry after a failed restore rollback, so the restart cannot remove its files', async () => {
+    const { backup, songIds } = await buildTwoSongBackup();
+    const targetDir = await makeTempDir();
+    const targetMidiDir = join(targetDir, 'midi-files');
+    const blocker = join(targetMidiDir, `${songIds[1]}.mid`);
+    await mkdir(blocker, { recursive: true });
+    await chmod(blocker, 0o555);
+    const dbPath = join(targetDir, 'target.db');
+    const targetDb = new AppDatabase(dbPath);
+    const storage = new FileSystemMidiStorageAdapter(targetMidiDir);
+    const rollbackRestore = storage.rollbackRestore.bind(storage);
+    storage.rollbackRestore = async () => { throw new Error('rollback failed'); };
+
+    await expect(importLibraryBackup(targetDb, backup, storage)).rejects.toThrow(/restart LumaKeys/i);
+    storage.rollbackRestore = rollbackRestore;
+    await chmod(blocker, 0o755);
+    await rm(blocker, { recursive: true, force: true });
+
+    // Without a restart the retry would succeed, and the next start's rollback of the
+    // failed restore would then remove the first song's file under its new row.
+    await expect(importLibraryBackup(targetDb, backup, storage)).rejects.toThrow(/restart LumaKeys/i);
+    expect(targetDb.getAllSongs()).toEqual([]);
+    targetDb.close();
+
+    const restartedDb = new AppDatabase(dbPath);
+    const restartedStorage = new FileSystemMidiStorageAdapter(targetMidiDir);
+    await expect(restartedDb.recoverDurableOperations(restartedStorage)).resolves.toEqual([]);
+    await expect(importLibraryBackup(restartedDb, backup, restartedStorage)).resolves.toMatchObject({ midiFilesRestored: 2 });
+    restartedDb.close();
+
+    const nextStartDb = new AppDatabase(dbPath);
+    await expect(nextStartDb.recoverDurableOperations(restartedStorage)).resolves.toEqual([]);
+    for (const id of songIds) {
+      expect(nextStartDb.getSong(id)).not.toBeNull();
+      expect(existsSync(join(targetMidiDir, `${id}.mid`))).toBe(true);
+    }
+    nextStartDb.close();
+  });
+
+  it.runIf(canLockDirectories)('refuses deletes, resets and MIDI imports until a restart finishes a failed restore rollback', async () => {
+    const { backup, songIds } = await buildTwoSongBackup();
+    const targetDir = await makeTempDir();
+    const targetMidiDir = join(targetDir, 'midi-files');
+    const blocker = join(targetMidiDir, `${songIds[1]}.mid`);
+    await mkdir(blocker, { recursive: true });
+    await chmod(blocker, 0o555);
+    const dbPath = join(targetDir, 'target.db');
+    const targetDb = new AppDatabase(dbPath);
+    const storage = new FileSystemMidiStorageAdapter(targetMidiDir);
+    const rollbackRestore = storage.rollbackRestore.bind(storage);
+    storage.rollbackRestore = async () => { throw new Error('rollback failed'); };
+    await expect(importLibraryBackup(targetDb, backup, storage)).rejects.toThrow(/restart LumaKeys/i);
+    storage.rollbackRestore = rollbackRestore;
+    await chmod(blocker, 0o755);
+    await rm(blocker, { recursive: true, force: true });
+    const midi = new Midi();
+    midi.addTrack().addNote({ midi: 67, time: 0, duration: 0.5, velocity: 0.8 });
+    const newSong = midi.toArray();
+
+    await expect(importSongFromBuffer(newSong, 'New', { db: targetDb, midiStorage: storage })).rejects.toThrow(/restart LumaKeys/i);
+    await expect(deleteSongsAcrossStores(targetDb, storage, [songIds[0]], () => targetDb.deleteSong(songIds[0]))).rejects.toThrow(/restart LumaKeys/i);
+    await expect(resetUserDataAcrossStores(targetDb, storage)).rejects.toThrow(/restart LumaKeys/i);
+    expect(targetDb.getDurableOperations()).toMatchObject([{ type: 'restore-library', state: 'prepared' }]);
+    targetDb.close();
+
+    const restartedDb = new AppDatabase(dbPath);
+    await restartedDb.recoverDurableOperations(storage);
+    await expect(importSongFromBuffer(newSong, 'New', { db: restartedDb, midiStorage: storage })).resolves.toMatchObject({ title: 'New' });
     restartedDb.close();
   });
 

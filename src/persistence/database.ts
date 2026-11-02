@@ -38,6 +38,7 @@ import type {
   UserStatsRow,
 } from '../shared/dbTypes';
 import { SettingsRepository } from './settingsRepository';
+import { DELETE_ROLLBACK_PENDING_MESSAGE, LibraryOperationError, RESTORE_ROLLBACK_PENDING_MESSAGE } from './crossStoreMutations';
 import type { MidiStorageAdapter, MidiStorageStagedFile } from '../storage/midiStorage';
 import { computeSongMetadata } from '../lib/midi/importMetadata';
 import { createSongId } from '../lib/midi/importMetadata';
@@ -527,7 +528,26 @@ export class AppDatabase {
     removeMany(ids);
   }
 
+  /**
+   * A destructive operation whose rollback failed keeps its `prepared` row, and startup
+   * recovery replays that rollback over the song files. A song file written or removed in
+   * between would be undone by it, so nothing that writes or removes songs may start until
+   * a restart has finished the old operation.
+   */
+  assertNoPendingRollback(): void {
+    const pending = this.db
+      .prepare("SELECT id, type FROM durable_operations WHERE state = 'prepared' ORDER BY created_at, id LIMIT 1")
+      .get() as { id: string; type: DurableOperation['type'] } | undefined;
+    if (pending) {
+      throw new LibraryOperationError(
+        pending.type === 'restore-library' ? RESTORE_ROLLBACK_PENDING_MESSAGE : DELETE_ROLLBACK_PENDING_MESSAGE,
+        new Error(`The ${pending.type} operation ${pending.id} is waiting for startup recovery.`),
+      );
+    }
+  }
+
   prepareDurableOperation(type: DurableOperation['type'], payload: DurableOperation['payload']): string {
+    this.assertNoPendingRollback();
     const id = randomUUID();
     this.db
       .prepare('INSERT INTO durable_operations (id, type, state, payload) VALUES (?, ?, ?, ?)')
