@@ -325,5 +325,12 @@ describe('parseMidiFile', () => {
 
       expect(() => parseMidiFile(bytes, { songId: 'smpte', title: 'Smpte' })).toThrow(/SMPTE/i);
     });
+
+    it('rejects a division of 0 ticks per quarter note without calling it SMPTE only', () => {
+      const bytes = smfBytes([0x00, 0x00], 500000, [0, 0]);
+
+      expect(() => parseMidiFile(bytes, { songId: 'zero-ppq', title: 'Zero ppq' }))
+        .toThrow(/Unsupported MIDI time division.*0 ticks per quarter note/);
+    });
   });
 });

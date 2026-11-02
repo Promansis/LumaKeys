@@ -90,9 +90,12 @@ export function extractMidiMeta(arrayBuffer: ArrayBuffer): MidiFileMeta {
 export function parseMidiFile(arrayBuffer: ArrayBuffer, meta: MidiSourceMeta): ParsedSong {
   const midi = new MidiCtor(arrayBuffer);
   // SMPTE time division counts ticks per frame, not per quarter note, so tempo, barlines and the beat
-  // clock have no meaning in it. Refuse it up front: the import path reports the throw as an import error.
+  // clock have no meaning in it; a division of 0 ticks per quarter note has none either. Refuse both up
+  // front: the import path reports the throw as an import error.
   if (!Number.isFinite(midi.header.ppq) || midi.header.ppq <= 0) {
-    throw new Error('SMPTE time division is not supported');
+    throw new Error(
+      'Unsupported MIDI time division: the file uses SMPTE frame timing or 0 ticks per quarter note.',
+    );
   }
   dropMalformedTempos(midi);
   collapseSameTickTempos(midi);
