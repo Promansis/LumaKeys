@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SongRow } from '../../shared/dbTypes';
 import { PlaylistView } from './PlaylistView';
@@ -21,7 +21,8 @@ function renderView(songs: SongRow[], overrides: Partial<Parameters<typeof Playl
     onPlayAll: vi.fn(),
     onStartSession: vi.fn(),
     onRemoveSong: vi.fn(),
-    onReorderSong: vi.fn(),
+    // Never settles by default: the reload has not happened yet.
+    onReorderSong: vi.fn((_songId: string, _newOrder: number) => new Promise<void>(() => {})),
     onTagClick: vi.fn(),
     ...overrides,
   };
@@ -32,13 +33,17 @@ function renderView(songs: SongRow[], overrides: Partial<Parameters<typeof Playl
 describe('PlaylistView reorder buttons', () => {
   afterEach(() => cleanup());
 
-  it('moves a song down and up through onReorderSong with the target index', () => {
-    const { props } = renderView(SONGS);
+  it('moves a song down and up through onReorderSong with the target index', async () => {
+    const { props } = renderView(SONGS, { onReorderSong: vi.fn(() => Promise.resolve()) });
 
-    fireEvent.click(screen.getByRole('button', { name: /Move down.*Alpha Waltz/ }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Move down.*Alpha Waltz/ }));
+    });
     expect(props.onReorderSong).toHaveBeenLastCalledWith('a', 1);
 
-    fireEvent.click(screen.getByRole('button', { name: /Move up.*Charlie Nocturne/ }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Move up.*Charlie Nocturne/ }));
+    });
     expect(props.onReorderSong).toHaveBeenLastCalledWith('c', 1);
   });
 
@@ -85,5 +90,42 @@ describe('PlaylistView reorder buttons', () => {
     expect(screen.getByRole('button', { name: /Move down.*Bravo Etude/ })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Move up.*Bravo Etude/ })).toHaveFocus();
     expect(screen.getByRole('status')).toHaveTextContent('Moved Bravo Etude to position 3 of 3.');
+  });
+
+  it('ignores a second move press until the first reorder settles', () => {
+    const { props } = renderView(SONGS);
+
+    fireEvent.click(screen.getByRole('button', { name: /Move down.*Alpha Waltz/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Move down.*Alpha Waltz/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Move up.*Charlie Nocturne/ }));
+
+    expect(props.onReorderSong).toHaveBeenCalledTimes(1);
+    expect(props.onReorderSong).toHaveBeenCalledWith('a', 1);
+  });
+
+  it('drops the pending move without announcing when the reorder settles without the new order', async () => {
+    // The parent catches a failed reorder, shows its own error and resolves; the order is unchanged.
+    const onReorderSong = vi.fn((_songId: string, _newOrder: number) => Promise.resolve());
+    const { props, rerender } = renderView(SONGS, { onReorderSong });
+
+    const down = screen.getByRole('button', { name: /Move down.*Alpha Waltz/ });
+    down.focus();
+    await act(async () => {
+      fireEvent.click(down);
+    });
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+
+    // A later, unrelated reload that happens to put Alpha second must not be announced as this move.
+    const other = screen.getByRole('button', { name: /Move up.*Charlie Nocturne/ });
+    other.focus();
+    rerender(<PlaylistView {...props} songs={[SONGS[1], SONGS[0], SONGS[2]]} />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    expect(screen.getByRole('button', { name: /Move up.*Charlie Nocturne/ })).toHaveFocus();
+
+    // And the next press is accepted, with an index from the current order.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Move down.*Alpha Waltz/ }));
+    });
+    expect(onReorderSong).toHaveBeenLastCalledWith('a', 2);
   });
 });

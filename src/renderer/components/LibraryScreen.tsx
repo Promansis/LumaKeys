@@ -140,23 +140,23 @@ function parseDateAddedUtc(value: string): number {
 }
 
 // A date input value ("YYYY-MM-DD") names a calendar day in the user's own zone. Build the bound
-// from local date parts: `new Date('YYYY-MM-DD')` would be UTC midnight instead.
-function localDayBound(dateInput: string, endOfDay: boolean): number {
+// from local date parts: `new Date('YYYY-MM-DD')` would be UTC midnight instead. `dayOffset` 1 gives
+// the start of the next local day, which is the exclusive end of the named day. A fixed 23:59:59.999
+// would be wrong where a DST change makes the day 23 or 25 hours long, or where midnight is skipped.
+function localDayStart(dateInput: string, dayOffset = 0): number {
   const [year, month, day] = dateInput.split('-').map(Number);
   if (!year || !month || !day) {
     return Number.NaN;
   }
-  return endOfDay
-    ? new Date(year, month - 1, day, 23, 59, 59, 999).getTime()
-    : new Date(year, month - 1, day).getTime();
+  return new Date(year, month - 1, day + dayOffset).getTime();
 }
 
 export function withinDateRange(date: string, from: string, to: string): boolean {
   const value = parseDateAddedUtc(date);
-  if (from && value < localDayBound(from, false)) {
+  if (from && value < localDayStart(from)) {
     return false;
   }
-  if (to && value > localDayBound(to, true)) {
+  if (to && value >= localDayStart(to, 1)) {
     return false;
   }
   return true;
@@ -1580,7 +1580,7 @@ export function LibraryScreen({
                 })()
               }
               onReorderSong={(songId, newOrder) =>
-                void (async () => {
+                (async () => {
                   if (!window.appBridge || activeView.type !== 'playlist') {
                     return;
                   }

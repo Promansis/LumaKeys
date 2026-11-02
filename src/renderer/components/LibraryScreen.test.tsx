@@ -734,6 +734,31 @@ describe('withinDateRange', () => {
   it('keeps everything when no bounds are set', () => {
     expect(withinDateRange('2026-10-19 14:24:46', '', '')).toBe(true);
   });
+
+  it('keeps the repeated last hour of a day when DST ends at local midnight', () => {
+    // America/Santiago, 2026-04-05: clocks go from 00:00 back to 23:00, so 4 April has 25 hours.
+    // "2026-04-05 03:30:00" UTC is the second 23:30 on 4 April. A fixed 23:59:59.999 end bound
+    // resolves to the first pass through that hour and dropped this song.
+    const previousTz = process.env.TZ;
+    process.env.TZ = 'America/Santiago';
+    try {
+      const added = '2026-04-05 03:30:00';
+      const instant = new Date(Date.UTC(2026, 3, 5, 3, 30));
+      expect([instant.getDate(), instant.getHours()]).toEqual([4, 23]);
+      expect(withinDateRange(added, '2026-04-04', '2026-04-04')).toBe(true);
+      expect(withinDateRange(added, '', '2026-04-04')).toBe(true);
+      expect(withinDateRange(added, '2026-04-05', '')).toBe(false);
+      // Local midnight of 5 April, the first instant of the next day, is outside 4 April.
+      expect(withinDateRange('2026-04-05 04:00:00', '', '2026-04-04')).toBe(false);
+      expect(withinDateRange('2026-04-05 04:00:00', '2026-04-05', '2026-04-05')).toBe(true);
+    } finally {
+      if (previousTz === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = previousTz;
+      }
+    }
+  });
 });
 
 describe('LibraryScreen playlist reorder', () => {

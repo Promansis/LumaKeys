@@ -10,7 +10,8 @@ interface PlaylistViewProps {
   onPlayAll: () => void;
   onStartSession: (song: SongRow) => void;
   onRemoveSong: (songId: string) => void;
-  onReorderSong: (songId: string, newOrder: number) => void;
+  // Resolves once the reorder call and the reload that follows it have settled, success or not.
+  onReorderSong: (songId: string, newOrder: number) => Promise<void>;
   onTagClick: (tag: string) => void;
 }
 
@@ -24,21 +25,45 @@ export function PlaylistView({
   onTagClick,
 }: PlaylistViewProps) {
   const [announcement, setAnnouncement] = useState('');
-  const pendingMoveRef = useRef<{ songId: string; toIndex: number; direction: MoveDirection } | null>(null);
+  // Bumped when a reorder call settles, so the effect below re-checks the pending move even when the
+  // call settled before React rendered the press.
+  const [settledMoves, setSettledMoves] = useState(0);
+  const pendingMoveRef = useRef<{
+    songId: string;
+    toIndex: number;
+    direction: MoveDirection;
+    settled: boolean;
+  } | null>(null);
   const moveButtonRefs = useRef(new Map<string, HTMLButtonElement>());
 
   const moveSong = (songId: string, index: number, direction: MoveDirection) => {
+    // One move at a time: a second press before the reload would use an index from the old order.
+    // The buttons stay enabled (disabling the focused one would drop keyboard focus); the press is ignored.
+    if (pendingMoveRef.current) {
+      return;
+    }
     const toIndex = direction === 'up' ? index - 1 : index + 1;
-    pendingMoveRef.current = { songId, toIndex, direction };
-    onReorderSong(songId, toIndex);
+    const pending = { songId, toIndex, direction, settled: false };
+    pendingMoveRef.current = pending;
+    void Promise.resolve(onReorderSong(songId, toIndex)).finally(() => {
+      pending.settled = true;
+      setSettledMoves((count) => count + 1);
+    });
   };
 
   // The parent reloads the order after the reorder call resolves. Once the moved song shows up at its
   // target position, announce it and put focus back on its move button (the one that was used, or the
-  // opposite one when the song reached an end and the used button is now disabled).
+  // opposite one when the song reached an end and the used button is now disabled). If the call settles
+  // without that order (it failed, or the list changed underneath), drop the pending move silently.
   useLayoutEffect(() => {
     const pending = pendingMoveRef.current;
-    if (!pending || songs[pending.toIndex]?.id !== pending.songId) {
+    if (!pending) {
+      return;
+    }
+    if (songs[pending.toIndex]?.id !== pending.songId) {
+      if (pending.settled) {
+        pendingMoveRef.current = null;
+      }
       return;
     }
     pendingMoveRef.current = null;
@@ -47,7 +72,7 @@ export function PlaylistView({
     const preferred = moveButtonRefs.current.get(`${pending.songId}:${pending.direction}`);
     const fallback = moveButtonRefs.current.get(`${pending.songId}:${opposite}`);
     (preferred && !preferred.disabled ? preferred : fallback)?.focus();
-  }, [songs]);
+  }, [songs, settledMoves]);
 
   const setMoveButtonRef = (songId: string, direction: MoveDirection) => (node: HTMLButtonElement | null) => {
     const key = `${songId}:${direction}`;
@@ -96,7 +121,7 @@ export function PlaylistView({
               event.preventDefault();
               const draggedSongId = event.dataTransfer.getData('text/plain');
               if (draggedSongId && draggedSongId !== song.id) {
-                onReorderSong(draggedSongId, index);
+                void onReorderSong(draggedSongId, index);
               }
             }}
           >
