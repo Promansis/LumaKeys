@@ -3,7 +3,7 @@
 - Lane: MUS
 - Severity: P2
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-21
 - Verifier: TBD
@@ -97,7 +97,9 @@ ask first and name the fingerings in the prompt. `src/renderer/components/GameSc
 - Accepted/rejected rationale: accepted 2026-10-21; reproduced through the UI and located
   in the handler.
 - Fix branch/commit/issue: `remediation/p11-s20-fingering-preservation`, slice 20,
-  implemented 2026-11-02, awaiting independent review; not merged. Branch base `ea89f3e`.
+  implemented and independently reviewed 2026-11-02; merged to `main` in `c03f220`; `fixed`, not
+  `verified`: the web-bridge Ignore to Left Hand sequence in headless Chromium (lead) is owed; the
+  Electron `proof-mus-003.mjs` already passes 27/27. Branch base `ea89f3e`.
 - What changed: `handleAssignmentChange` in `src/renderer/components/GameScreen.tsx` no
   longer calls `clearCustomFingerings`, no longer empties the `customFingerings` state, and
   mounts the restarted session with the current `customFingerings` instead of `[]`. The

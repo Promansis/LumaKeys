@@ -3,7 +3,7 @@
 - Lane: PAR
 - Severity: P2
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-20
 - Verifier: TBD
@@ -79,7 +79,8 @@ exists). Alternatively race `init()` against a short timeout and treat it as pen
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue: `remediation/p11-s07-midi-startup`, slice 7, implemented
-  2026-11-02, awaiting independent review; not merged. Base `ccc68c2`.
+  and independently reviewed 2026-11-02; merged to `main` in `8fc933f`; `fixed`, not `verified`: the owner
+  fresh-Chrome check with the prompt left unanswered for 30 s (sitting 1 item 8) is owed. Base `ccc68c2`.
 - What changed: `src/renderer/App.tsx` no longer has the `midiReady` state. The loading
   screen now waits only for the settings (`settingsReady`) and the MIDI service object, so
   `midiInputService.init()` settles in the background: `midiError` and the device list update

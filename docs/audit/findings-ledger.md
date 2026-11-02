@@ -24,7 +24,7 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | ID | Title | Lane | Severity | Confidence | Runtime | Status | Coverage rows | Evidence report | Owner |
 |---|---|---|---|---|---|---|---|---|---|
 | PH-SEC-001 | Desktop sample-pack removal allows path traversal deletion | SEC | P0 | high | Electron | verified | DATA-014, OP-003, OP-006, OP-013, MOD-008 | [PH-SEC-001](reports/findings/PH-SEC-001.md) | Codex (acting) |
-| PH-DATA-001 | Cross-store destructive operations commit SQLite before filesystem work | DATA | P2 | high | both | accepted | DATA-001, DATA-002, DATA-013, OP-002, OP-005, OP-007, OP-009, OP-015 | [PH-DATA-001](reports/findings/PH-DATA-001.md) | Codex (acting) |
+| PH-DATA-001 | Cross-store destructive operations commit SQLite before filesystem work | DATA | P2 | high | both | fixed | DATA-001, DATA-002, DATA-013, OP-002, OP-005, OP-007, OP-009, OP-015 | [PH-DATA-001](reports/findings/PH-DATA-001.md) | Codex (acting) |
 | PH-DATA-002 | Full user-data reset leaves instrument sample packs behind | DATA | P2 | high | both | verified | DATA-014, DATA-015, OP-006, OP-009 | [PH-DATA-002](reports/findings/PH-DATA-002.md) | Codex (acting) |
 | PH-DATA-003 | Backup restore does not verify MIDI content IDs | DATA | P2 | high | both | fixed | DATA-002, DATA-013, OP-005 | [PH-DATA-003](reports/findings/PH-DATA-003.md) | Codex (acting) |
 | PH-MUS-001 | Live session controls erase judged practice state | MUS | P1 | high | both | fixed | WF-009, WF-010, MOD-003, MOD-011 | [PH-MUS-001](reports/findings/PH-MUS-001.md) | Codex (acting) |
@@ -78,9 +78,9 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-PAR-005 | Web Free Play records a take but offers no way to keep it, and says it can be exported | PAR | P3 | high | web | accepted | WF-015 | [PH-PAR-005](reports/findings/PH-PAR-005.md) | Claude Code (acting) |
 | PH-ARCH-004 | The web upload response echoes every imported MIDI back as a JSON object and discloses the server path | ARCH | P3 | high | web | accepted | WF-004, WF-025 | [PH-ARCH-004](reports/findings/PH-ARCH-004.md) | Claude Code (acting) |
 | PH-PAR-006 | Web "Install Better Sounds" stores the pack but never plays it | PAR | P2 | high | web | fixed | WF-019 | [PH-PAR-006](reports/findings/PH-PAR-006.md) | Claude Code (acting) |
-| PH-MUS-010 | Connecting or disconnecting any MIDI device restarts the song being played | MUS | P2 | high | both | accepted | WF-002, WF-009, RT-011 | [PH-MUS-010](reports/findings/PH-MUS-010.md) | Claude Code (acting) |
-| PH-MUS-011 | A saved MIDI device that is gone keeps filtering input while Settings reads "Any connected device" | MUS | P2 | high | both | accepted | WF-002, WF-018, RT-011 | [PH-MUS-011](reports/findings/PH-MUS-011.md) | Claude Code (acting) |
-| PH-PAR-007 | The web app stays on "Loading services..." until the MIDI permission prompt is answered | PAR | P2 | high | web | accepted | WF-001, WF-002, RT-011 | [PH-PAR-007](reports/findings/PH-PAR-007.md) | Claude Code (acting) |
+| PH-MUS-010 | Connecting or disconnecting any MIDI device restarts the song being played | MUS | P2 | high | both | fixed | WF-002, WF-009, RT-011 | [PH-MUS-010](reports/findings/PH-MUS-010.md) | Claude Code (acting) |
+| PH-MUS-011 | A saved MIDI device that is gone keeps filtering input while Settings reads "Any connected device" | MUS | P2 | high | both | fixed | WF-002, WF-018, RT-011 | [PH-MUS-011](reports/findings/PH-MUS-011.md) | Claude Code (acting) |
+| PH-PAR-007 | The web app stays on "Loading services..." until the MIDI permission prompt is answered | PAR | P2 | high | web | fixed | WF-001, WF-002, RT-011 | [PH-PAR-007](reports/findings/PH-PAR-007.md) | Claude Code (acting) |
 | PH-DATA-008 | Unbinding a key does not survive a reload, so remapped keys come back doubled | DATA | P3 | high | both | accepted | WF-003, DATA-016 | [PH-DATA-008](reports/findings/PH-DATA-008.md) | Claude Code (acting) |
 | PH-UI-018 | A lesson drill that falls short returns to the lesson with no score and no target | UI | P3 | high | both | accepted | WF-011 | [PH-UI-018](reports/findings/PH-UI-018.md) | Claude Code (acting) |
 | PH-DATA-009 | Lesson progress that fails to save is lost without a message | DATA | P3 | high | both | accepted | WF-011, DATA-016 | [PH-DATA-009](reports/findings/PH-DATA-009.md) | Claude Code (acting) |
@@ -90,7 +90,7 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-MUS-015 | Installed instrument packs cut notes off 0.1 s after release | MUS | P3 | high | Electron | fixed | WF-019 | [PH-MUS-015](reports/findings/PH-MUS-015.md) | Claude Code (acting) |
 | PH-MUS-016 | In a loop, a downbeat played slightly early at the seam is dropped | MUS | P3 | high | both | fixed | WF-009, WF-002 | [PH-MUS-016](reports/findings/PH-MUS-016.md) | Claude Code (acting) |
 | PH-UI-019 | Ctrl+0 cannot reset the zoom because the computer keyboard takes Digit0 as a note | UI | P3 | high | both | fixed | RT-006 | [PH-UI-019](reports/findings/PH-UI-019.md) | Claude Code (acting) |
-| PH-MUS-017 | Changing a track assignment silently deletes every saved fingering for the song | MUS | P2 | high | both | accepted | WF-008, DATA-007, BR-034, MOD-003 | [PH-MUS-017](reports/findings/PH-MUS-017.md) | Claude Code (acting) |
+| PH-MUS-017 | Changing a track assignment silently deletes every saved fingering for the song | MUS | P2 | high | both | fixed | WF-008, DATA-007, BR-034, MOD-003 | [PH-MUS-017](reports/findings/PH-MUS-017.md) | Claude Code (acting) |
 | PH-DATA-010 | The reset confirmation does not name packs, practice history or fingerings, and on the web says "from this device" for server-side data | DATA | P3 | high | both | accepted | DATA-014, OP-009, WF-022 | [PH-DATA-010](reports/findings/PH-DATA-010.md) | Claude Code (acting) |
 | PH-UI-020 | The song-load error panel does not take focus, and Retry is about 54 Tab presses away | UI | P3 | high | both | accepted | WF-009, RT-008, MOD-003 | [PH-UI-020](reports/findings/PH-UI-020.md) | Claude Code (acting) |
 | PH-MUS-018 | On a fresh profile the count-in after the 3-2-1 countdown is lost while Settings shows 2 lead-in beats | MUS | P3 | high | both | verified | WF-009, WF-018, MOD-002, MOD-003 | [PH-MUS-018](reports/findings/PH-MUS-018.md) | Claude Code (acting) |
@@ -213,6 +213,16 @@ in the detailed report.
   `verified`: each owes the lead's driver reruns (PulseAudio item 6, the input and metronome
   drivers) and, for most, an owner check (sitting 1 items 5 to 7, sitting 4 item 4). Counts: 72
   findings (13 verified, 28 fixed, 30 accepted, 1 accepted-risk). See
+  [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#remediation-progress-2026-10-21).
+
+- Phase 11 wave 2 merges, 2026-11-02 (second batch): slices 5 (`ccc68c2`), 20 (`c03f220`), 19
+  (`c8f9b1a`) and 7 (`8fc933f`) merged to local `main` after independent review. PH-MUS-010,
+  PH-MUS-011, PH-MUS-017, PH-DATA-001 and PH-PAR-007 moved from `accepted` to `fixed`
+  (PH-DATA-001 had been reopened to `accepted` on 2026-10-21). None is `verified`: the lead owes an
+  Electron run of the game path and Settings MIDI card (slice 5) and the web-bridge Ignore to Left
+  Hand sequence (slice 20); the owner owes sitting 4 items 3 and 6, a real unwritable profile on
+  Windows and macOS, and the fresh-Chrome check with the prompt unanswered for 30 s (sitting 1
+  item 8). Counts: 72 findings (13 verified, 33 fixed, 25 accepted, 1 accepted-risk). See
   [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#remediation-progress-2026-10-21).
 
 - PH-DATA-001 is the canonical cross-store atomicity finding for backup restore,

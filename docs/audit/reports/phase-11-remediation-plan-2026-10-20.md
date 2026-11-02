@@ -142,6 +142,10 @@ in `64a8160` (ADR 0002, `CONTEXT.md`, and the audit's citations):
   | `c7216e2` | Slice 6, audio output (merged 2026-11-02) | PH-PAR-006, PH-MUS-007, PH-MUS-015 | `fixed`; independently reviewed. `sitting1-audio-desktop.mjs` item 6 (needs PulseAudio; the lead runs it) and owner sitting 1 items 5 and 6 on speakers owed |
   | `ea89f3e` | Slice 4, practice input integrity (merged 2026-11-02) | PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019 | `fixed`; independently reviewed. The Electron and web drivers (`paused-input.mjs`, `workflows.mjs`, `sitting1-visual-desktop.mjs` and `-chrome.mjs` for Ctrl+0, `pause-resume-focus.mjs`, `sitting4-midi-web.mjs` and `-desktop.mjs` item 7 with `seamMs = -15`, the Scale Practice 8-of-8 check) are run by the lead; owner sitting 4 item 4 and a Learn-mode loop on a MIDI keyboard owed |
   | `6f327c9` | Slice 9, timing (merged 2026-11-02) | PH-MUS-006, PH-MUS-008 | `fixed`; independently reviewed. The browser metronome driver rerun after `1a77e90` (lead) owed; owner sitting 1 item 7 by ear is optional; stored songs keep their old BPM until re-imported |
+  | `ccc68c2` | Slice 5, MIDI device lifecycle (merged 2026-11-02) | PH-MUS-010, PH-MUS-011 | `fixed`; independently reviewed. The Electron run of the game path and the Settings MIDI card (lead) owed; owner sitting 4 item 3 (including listening that song audio keeps playing after an unplug) and item 6 owed |
+  | `c03f220` | Slice 20, fingering preservation (merged 2026-11-02) | PH-MUS-017 | `fixed`; independently reviewed. The web-bridge Ignore to Left Hand sequence in headless Chromium (lead) owed; the Electron `proof-mus-003.mjs` already passes 27/27 |
+  | `c8f9b1a` | Slice 19, destructive-operation failures (merged 2026-11-02) | PH-DATA-001 | `fixed` (reopened to `accepted` on 2026-10-21); independently reviewed. A real unwritable profile on Windows and macOS (owner) owed; the web 31/31 and Electron 40/40 integrity drivers ran on the branch build |
+  | `8fc933f` | Slice 7, web startup without MIDI permission (merged 2026-11-02) | PH-PAR-007 | `fixed`; independently reviewed. The owner fresh-Chrome check with the prompt left unanswered for 30 s (sitting 1 item 8) owed |
 
 - The owner ran `npm ci` in the main checkout on 2026-10-21, so its `node_modules` now holds
   Electron 44.9.2 and better-sqlite3 13.0.3 (user tests G1, pass). Since better-sqlite3 13,
@@ -1535,13 +1539,13 @@ Docker sets `/data`, which is absolute. Rollback: code revert.
 
 ## Proof Owed By Fixed Findings
 
-These 28 findings are `fixed`, not `verified`. None needs new product code unless noted.
+These 33 findings are `fixed`, not `verified`. None needs new product code unless noted.
 The owner sittings run by the agent on 2026-10-20
 ([report](phase-11-owner-sittings-2026-10-20.md)) moved PH-PAR-002, PH-UI-001, PH-UI-002
 and PH-UI-004 to `verified`. The [agent proofs](phase-11-agent-proofs-2026-10-21.md) of
 2026-10-21 moved PH-PAR-003, PH-ARCH-002, PH-MUS-003 and PH-DATA-002 to `verified`, and
 removed them from this table. PH-DATA-001 failed its proof run and was reopened at P2; it
-is `accepted` again and moved to slice 19. On 2026-10-21 slice 0 (`d49b8a6`) added the
+was `accepted` again and moved to slice 19, which merged on 2026-11-02 (below). On 2026-10-21 slice 0 (`d49b8a6`) added the
 GameScreen recovery test, the last proof PH-ARCH-001 owed, so it moved to `verified` and
 left this table. The same merge discharged the slice 0 parts of PH-MUS-002, PH-PAR-001
 and PH-UI-003. Slices 2, 0 and 18 moved five findings from `accepted` to `fixed` (PH-OPS-002,
@@ -1550,7 +1554,7 @@ PH-SEC-002, PH-SEC-003, PH-OPS-005, PH-MUS-014), so they joined it. On the same 
 PH-DATA-007, PH-OPS-003, PH-SEC-005); PH-DATA-007 then passed its headless Electron run, moved
 to `verified` and left this table. The follow-ups merged at `93ac583` fixed three more:
 PH-SEC-006 and PH-UI-021 joined, and PH-MUS-018 passed its desktop and web runs and went
-straight to `verified`. On 2026-11-02 wave 2 slices 6, 4 and 9 merged (`c7216e2`, `ea89f3e`, `6f327c9`) and moved nine more from `accepted` to `fixed`: PH-PAR-006, PH-MUS-007, PH-MUS-015, PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019, PH-MUS-006, PH-MUS-008. The proof each of the 28 still owes follows. The
+straight to `verified`. On 2026-11-02 wave 2 slices 6, 4 and 9 merged (`c7216e2`, `ea89f3e`, `6f327c9`) and moved nine more from `accepted` to `fixed`: PH-PAR-006, PH-MUS-007, PH-MUS-015, PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019, PH-MUS-006, PH-MUS-008. Then slices 5, 20, 19 and 7 merged (`ccc68c2`, `c03f220`, `c8f9b1a`, `8fc933f`) and moved five more to `fixed`: PH-MUS-010, PH-MUS-011, PH-MUS-017, PH-DATA-001, PH-PAR-007. The proof each of the 33 still owes follows. The
 packaged runs "with the real lock" cannot run in the agent sandbox (the single-instance
 lock needs a Unix socket); they run outside it, if the owner allows that through
 `/sandbox`, or the real-display checks cover them:
@@ -1585,6 +1589,11 @@ lock needs a Unix socket); they run outside it, if the owner allows that through
 | PH-UI-019 | P3 | `sitting1-visual-desktop.mjs` and `sitting1-visual-chrome.mjs` (Ctrl+0 resets the zoom) | lead |
 | PH-MUS-006 | P2 | The browser metronome driver rerun after `1a77e90`, then optionally owner sitting 1 item 7 by ear. Slice 9 merged in `6f327c9` | lead; owner sitting 1 item 7 (optional) |
 | PH-MUS-008 | P3 | The same browser metronome driver rerun; stored songs keep their old BPM until re-imported, so a song imported before the fix stays as it was | lead |
+| PH-MUS-010 | P2 | The Electron run of the game path (lead), then owner sitting 4 item 3 with a real keyboard unplugged and replugged mid-song, listening that the song audio keeps playing after the unplug. Slice 5 merged in `ccc68c2`; the web driver and unit tests passed in the slice | lead; owner sitting 4 item 3 |
+| PH-MUS-011 | P2 | The Electron run of the Settings MIDI card (lead), then owner sitting 4 item 6 with two real keyboards if available. Slice 5 merged in `ccc68c2` | lead; owner sitting 4 item 6 |
+| PH-MUS-017 | P2 | The web-bridge Ignore to Left Hand sequence in headless Chromium (lead). Slice 20 merged in `c03f220`; the Electron `proof-mus-003.mjs` already passes 27/27 | lead |
+| PH-DATA-001 | P2 | A real unwritable profile on Windows and macOS. Slice 19 merged in `c8f9b1a`; the web 31/31 and Electron 40/40 integrity drivers ran on the branch build | owner |
+| PH-PAR-007 | P2 | Fresh Chrome with the MIDI permission prompt left unanswered for 30 s: the app loads (owner sitting 1 item 8). Slice 7 merged in `8fc933f` | owner sitting 1 item 8 |
 
 ## Phase 11 Remediation Start Gate
 

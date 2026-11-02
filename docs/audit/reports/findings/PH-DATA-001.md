@@ -3,7 +3,7 @@
 - Lane: persistence
 - Severity: P2 (lowered from P1 on 2026-10-21; see the Challenge Record)
 - Confidence: high
-- Status: accepted (reopened 2026-10-21: `fixed` to `reproduced` to `accepted`)
+- Status: fixed (reopened 2026-10-21: `fixed` to `reproduced` to `accepted`; `fixed` again 2026-11-02)
 - Owner: Codex (acting)
 - Challenger: Codex, fresh isolated-fixture challenge; Claude Code (acting), reopening challenge 2026-10-21
 - Verifier: TBD. The independent source review and SIGKILL proof stand. The agent proof run of 2026-10-20 to 21 failed re-verification (see Resolution).
@@ -159,8 +159,9 @@ The original proof below stays required.
 - Residual risk: the three defects above are open. Harmless extra: a failed restore leaves a `restore-library:prepared` row in `durable_operations` until the next restart. Host-level failures by timing, Windows, macOS and a real full disk were not covered.
 - Revisit trigger: before backup/restore or destructive-data release sign-off.
 - Slice 19 fix branch/commit: `remediation/p11-s19-destructive-failures`, commits `aa49f9b`,
-  and the review repairs `d47bd51` and `372ba43`; implemented 2026-11-02, awaiting independent review;
-  not merged.
+  and the review repairs `d47bd51` and `372ba43`; implemented and independently reviewed 2026-11-02;
+  merged to `main` in `c8f9b1a`; `fixed`, not `verified`: a real unwritable profile on Windows and macOS
+  (owner) is owed; the web 31/31 and Electron 40/40 integrity drivers ran on the branch build.
 - Review rulings (2026-11-02): the delete half of the rollback-failure change (a prepared
   row kept with a restart message) and the desktop `readLibraryBackupFile` wording are
   accepted; the web reads a backup in the browser, so the desktop-only reader is justified.

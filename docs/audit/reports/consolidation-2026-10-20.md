@@ -50,7 +50,7 @@
 - Residual P0/P1 count: 6 not yet `verified`. All six are fixed and waiting for runtime or manual proof
   (PH-OPS-002, PH-DATA-005, PH-MUS-014, PH-MUS-001, PH-MUS-002, PH-PAR-001); updated 2026-11-02. PH-SEC-001 (P0), PH-OPS-001 and PH-UI-002 (P1)
   are verified. PH-DATA-001 left this list on 2026-10-21: it failed its proof run, was
-  reopened, and was lowered to P2 because the data-loss path is fixed.
+  reopened, and was lowered to P2 because the data-loss path is fixed. It is no longer a residual P0/P1; slice 19 merged on 2026-11-02 (`c8f9b1a`): [PH-DATA-001](findings/PH-DATA-001.md) (P2, fixed in wave 2; awaiting proof).
 - Accepted-risk count: 1 ([PH-OPS-004](findings/PH-OPS-004.md), owner decision 2 on 2026-10-20).
 - Evidence confidence limits:
   - Desktop proof is Linux only: the `out/` bundle headless, and a packaged Linux build
@@ -107,7 +107,7 @@ After the sittings and the agent proofs of 2026-10-21, 10 of them are `verified`
 (PH-SEC-001, PH-OPS-001, PH-PAR-002, PH-UI-001, PH-UI-002, PH-UI-004, PH-PAR-003,
 PH-ARCH-002, PH-MUS-003, PH-DATA-002), 7 stay `fixed` (PH-MUS-001, PH-MUS-002,
 PH-PAR-001, PH-DATA-003, PH-MUS-004, PH-UI-003, PH-ARCH-001) and 1, PH-DATA-001, was
-reopened and is `accepted` at P2. Phase 11 added 51: 50 accepted and 1 accepted as a risk
+reopened and was `accepted` at P2 (`fixed` again in wave 2, slice 19, merged 2026-11-02). Phase 11 added 51: 50 accepted and 1 accepted as a risk
 after owner decision 2 (PH-OPS-004). Of the accepted, PH-OPS-002 moved from suspected to
 P0 after sitting 0 item 4, the sittings raised PH-MUS-014 (P1), PH-MUS-015, PH-MUS-016
 and PH-UI-019 (P3), and the agent proofs raised PH-MUS-017 (P2), PH-DATA-010 and
@@ -147,7 +147,7 @@ finding template and its rationale line now records the acceptance.
   went `fixed` to `reproduced` and, after the lead's challenge, to `accepted` the same
   day at P2, lowered from P1: delete, bulk delete and restore roll back byte-identically,
   so none of the remaining defects loses data the user meant to keep. It moves to new
-  slice 19.
+  slice 19, which merged on 2026-11-02 (`c8f9b1a`); the finding is `fixed` in wave 2; awaiting proof.
 - Owner decision taken during the audit: PH-MUS-013. Capstones run in Play mode at the
   capstone tempo, and the run's settings are locked while it runs (2026-10-20).
 - Owner decisions after consolidation, 2026-10-20:
@@ -207,9 +207,9 @@ Current failures on the audited baseline:
 5. Practice input and timing that silently give the wrong result:
    - [PH-MUS-005](findings/PH-MUS-005.md): computer-keyboard notes are dropped after any
      button click, including Resume.
-   - [PH-MUS-010](findings/PH-MUS-010.md): any MIDI device change restarts the song.
+   - [PH-MUS-010](findings/PH-MUS-010.md): any MIDI device change restarts the song (fixed in wave 2, `ccc68c2`; awaiting proof).
    - [PH-MUS-011](findings/PH-MUS-011.md): a missing saved device filters all input
-     while Settings says "Any connected device".
+     while Settings says "Any connected device" (fixed in wave 2, `ccc68c2`; awaiting proof).
    - [PH-MUS-006](findings/PH-MUS-006.md): the metronome is wrong at any practice tempo
      other than 100 %.
    - [PH-MUS-012](findings/PH-MUS-012.md) and [PH-MUS-013](findings/PH-MUS-013.md): notes
@@ -220,7 +220,7 @@ Current failures on the audited baseline:
    - [PH-MUS-007](findings/PH-MUS-007.md): desktop WAV export saves silence.
    - [PH-PAR-006](findings/PH-PAR-006.md): web sample packs install but never play.
    - [PH-PAR-007](findings/PH-PAR-007.md): the web app does not load until the MIDI
-     prompt is answered.
+     prompt is answered (fixed in wave 2, `8fc933f`; awaiting proof).
 7. [PH-UI-006](findings/PH-UI-006.md): two clicks delete every song and its practice
    history, with no confirmation.
 8. Keyboard and zoom access:
@@ -335,8 +335,8 @@ One finding was accepted as a risk after consolidation: [PH-OPS-004](findings/PH
 | RT-010, PH-MUS-014, PH-MUS-015, GNOME switch, CPU on real hardware | Listening on speakers, a colour-vision review, GNOME's own reduced-motion switch and system-monitor numbers need this machine's desktop and a person | Owner, user tests B | After slices 6, 11, 16 and 18, and before release. Slice 6 merged 2026-11-02 (`c7216e2`): PH-MUS-015 is `fixed` and owes this speaker check |
 | PH-DATA-005 Windows half | A real `%APPDATA%\luma-keys` profile update. Slice 1 merged on 2026-10-21 (`c95586b`); the check needs a new Windows build from `main` at `a84acb0` or later | Owner, sitting 2 | After the new Windows build |
 | RT-006 residual | Edge's own browser zoom (Edge was checked with emulated zoom) | Owner, user tests D1 (optional) | After slice 11 |
-| RT-011, PH-MUS-001, PH-MUS-002, PH-MUS-004 | A physical MIDI keyboard: driver, OS path, Chrome's permission prompt, latency feel and a musician's check of loop labels | Owner, user tests C | After slices 4 and 5 |
-| 17 fixed findings not yet `verified` (7 at consolidation) | Each one's owed proof is listed in the [remediation plan](phase-11-remediation-plan-2026-10-20.md#proof-owed-by-fixed-findings). Four of the earlier 12 were verified on 2026-10-21 and PH-DATA-001 was reopened. Slice 0 then verified PH-ARCH-001, and slices 2, 0 and 18 added PH-OPS-002, PH-SEC-002, PH-SEC-003, PH-OPS-005 and PH-MUS-014 as `fixed` (2026-10-21). Slices 1, 15 and 3 then added PH-DATA-005, PH-DATA-006, PH-OPS-006, PH-DATA-004, PH-DATA-007, PH-OPS-003 and PH-SEC-005 as `fixed` (2026-10-21), and PH-DATA-007 then moved to `verified` after its headless Electron run. On 2026-11-02 slices 6, 4 and 9 (`c7216e2`, `ea89f3e`, `6f327c9`) added PH-PAR-006, PH-MUS-007, PH-MUS-015, PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019, PH-MUS-006 and PH-MUS-008 as `fixed`, so 28 are now `fixed` | Claude Code (acting) and owner sittings | When the named sitting, deploy or GitHub run happens |
+| RT-011, PH-MUS-001, PH-MUS-002, PH-MUS-004 | A physical MIDI keyboard: driver, OS path, Chrome's permission prompt, latency feel and a musician's check of loop labels. Slice 5 merged 2026-11-02 (`ccc68c2`): PH-MUS-010 and PH-MUS-011 are `fixed` and owe sitting 4 items 3 and 6 | Owner, user tests C | After slices 4 and 5 |
+| 17 fixed findings not yet `verified` (7 at consolidation) | Each one's owed proof is listed in the [remediation plan](phase-11-remediation-plan-2026-10-20.md#proof-owed-by-fixed-findings). Four of the earlier 12 were verified on 2026-10-21 and PH-DATA-001 was reopened. Slice 0 then verified PH-ARCH-001, and slices 2, 0 and 18 added PH-OPS-002, PH-SEC-002, PH-SEC-003, PH-OPS-005 and PH-MUS-014 as `fixed` (2026-10-21). Slices 1, 15 and 3 then added PH-DATA-005, PH-DATA-006, PH-OPS-006, PH-DATA-004, PH-DATA-007, PH-OPS-003 and PH-SEC-005 as `fixed` (2026-10-21), and PH-DATA-007 then moved to `verified` after its headless Electron run. On 2026-11-02 slices 6, 4 and 9 (`c7216e2`, `ea89f3e`, `6f327c9`) added PH-PAR-006, PH-MUS-007, PH-MUS-015, PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019, PH-MUS-006 and PH-MUS-008 as `fixed`, then slices 5, 20, 19 and 7 (`ccc68c2`, `c03f220`, `c8f9b1a`, `8fc933f`) added PH-MUS-010, PH-MUS-011, PH-MUS-017, PH-DATA-001 and PH-PAR-007 as `fixed`, so 33 are now `fixed` | Claude Code (acting) and owner sittings | When the named sitting, deploy or GitHub run happens |
 | `CLAUDE.md` and `AGENTS.md` | Closed 2026-10-21. Decision 3 keeps them gitignored. Task D1 moved the architecture and runtime content the audit cites into tracked documents (`CONTEXT.md`, ADR 0002) and repointed the citations, so a fresh clone has what the audit relies on. Merged to `main` in `64a8160` after a documentation review. The facts in `CONTEXT.md` change with the slices that change them | Claude Code (acting), task D1 | When a slice changes a cited runtime fact (the slice updates `CONTEXT.md`) |
 
 ## Remediation Roadmap
@@ -354,9 +354,9 @@ added slice 18 to wave 1 on 2026-10-21 (decision 5). Slices 19 and 20, added on
 | 2 | PH-OPS-002, PH-SEC-002, PH-SEC-003 | The web API requires access; the token stays out of URLs; HTML carries a CSP and security headers |
 | 3 | PH-OPS-003, PH-SEC-005 | Supported Electron; remote links open in the system browser |
 | 4 | PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019 | Notes count only when they should; Ctrl shortcuts reach the browser. Merged 2026-11-02 (`ea89f3e`), `fixed` |
-| 5 | PH-MUS-010, PH-MUS-011 | MIDI device changes neither restart the song nor silently filter input |
+| 5 | PH-MUS-010, PH-MUS-011 | MIDI device changes neither restart the song nor silently filter input. Merged 2026-11-02 (`ccc68c2`), `fixed` |
 | 6 | PH-PAR-006, PH-MUS-007, PH-MUS-015 | Installed web packs play; WAV export has sound; desktop packs release naturally. Merged 2026-11-02 (`c7216e2`), `fixed` |
-| 7 | PH-PAR-007 | The web app loads without answering the MIDI prompt |
+| 7 | PH-PAR-007 | The web app loads without answering the MIDI prompt. Merged 2026-11-02 (`8fc933f`), `fixed` |
 | 8 | PH-UI-006, PH-DATA-010 | Song deletion asks first; the reset dialog names everything it removes |
 | 9 | PH-MUS-006, PH-MUS-008 | Metronome and late first-tempo timing are correct. Merged 2026-11-02 (`6f327c9`), `fixed` |
 | 10 | PH-UI-010, PH-UI-013, PH-UI-017, PH-UI-020 | Dialogs own focus and Escape; the load-error panel takes focus |
@@ -368,8 +368,8 @@ added slice 18 to wave 1 on 2026-10-21 (decision 5). Slices 19 and 20, added on
 | 16 | PH-UI-015, PH-UI-016 | Colour-blind palette and grade contrast are legible |
 | 17 | PH-UI-005, PH-UI-007, PH-UI-008, PH-MUS-009, PH-PAR-005 | Small independent fixes |
 | 18 | PH-MUS-014 | A fresh profile plays at the volumes Settings shows |
-| 19 | PH-DATA-001 | Delete and restore failures name the retry; a reset retry does not report success while old files remain; a locked leftover does not stop startup |
-| 20 | PH-MUS-017 | Changing a track assignment keeps saved fingerings |
+| 19 | PH-DATA-001 | Delete and restore failures name the retry; a reset retry does not report success while old files remain; a locked leftover does not stop startup. Merged 2026-11-02 (`c8f9b1a`), `fixed` |
+| 20 | PH-MUS-017 | Changing a track assignment keeps saved fingerings. Merged 2026-11-02 (`c03f220`), `fixed` |
 
 ## Sign-Off
 
