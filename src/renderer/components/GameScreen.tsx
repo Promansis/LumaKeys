@@ -81,7 +81,15 @@ interface LessonDrillFinishedPayload {
 
 export type GameScreenSource =
   | { kind: 'library-song'; song: SongRow; playlistQueue: { songs: SongRow[]; index: number } | null }
-  | { kind: 'lesson-drill'; lessonId: string; stepIndex: number; parsedSong: ParsedSong; isRhythmClapping?: boolean };
+  | {
+    kind: 'lesson-drill';
+    lessonId: string;
+    stepIndex: number;
+    parsedSong: ParsedSong;
+    isRhythmClapping?: boolean;
+    /** A tier capstone: judged in one fixed setup, so mode, hand, loop and tempo are locked. */
+    isCapstone?: boolean;
+  };
 
 interface GameScreenProps {
   audioEngine: AudioEngine;
@@ -195,6 +203,8 @@ interface SessionToolbarProps {
   totalMeasures: number;
   canEditFingering: boolean;
   isEditingFingering: boolean;
+  /** Locks mode, hand and loop, for a run judged in one fixed setup. */
+  setupLocked?: boolean;
   onRebuild: (next: SessionConfig) => void;
   onHandSizeChange: (value: SessionConfig['handSize']) => void;
   onFingeringDisplayModeChange: (value: SessionConfig['fingeringDisplayMode']) => void;
@@ -207,6 +217,7 @@ function SessionToolbar({
   totalMeasures,
   canEditFingering,
   isEditingFingering,
+  setupLocked = false,
   onRebuild,
   onHandSizeChange,
   onFingeringDisplayModeChange,
@@ -230,18 +241,21 @@ function SessionToolbar({
         <button
           className={sessionConfig.mode === 'luma-keys' ? 'primary-button' : 'secondary-button'}
           onClick={() => onRebuild({ ...sessionConfig, mode: 'luma-keys', waitForInput: false })}
+          disabled={setupLocked}
         >
           LumaKeys
         </button>
         <button
           className={sessionConfig.mode === 'learning' ? 'primary-button' : 'secondary-button'}
           onClick={() => onRebuild({ ...sessionConfig, mode: 'learning', waitForInput: true })}
+          disabled={setupLocked}
         >
           Learning
         </button>
         <button
           className={sessionConfig.mode === 'performance' ? 'primary-button' : 'secondary-button'}
           onClick={() => onRebuild({ ...sessionConfig, mode: 'performance', waitForInput: false })}
+          disabled={setupLocked}
         >
           Performance
         </button>
@@ -253,6 +267,7 @@ function SessionToolbar({
             key={handFilter}
             className={sessionConfig.handFilter === handFilter ? 'primary-button' : 'secondary-button'}
             onClick={() => onRebuild({ ...sessionConfig, handFilter })}
+            disabled={setupLocked}
           >
             {handFilter === 'both' ? 'Both Hands' : `${handFilter[0].toUpperCase()}${handFilter.slice(1)} Hand`}
           </button>
@@ -268,6 +283,7 @@ function SessionToolbar({
             <button
               className="secondary-button"
               onClick={() => onRebuild({ ...sessionConfig, loopRange: null })}
+              disabled={setupLocked}
             >
               Clear Loop
             </button>
@@ -284,6 +300,7 @@ function SessionToolbar({
                 value={loopStart}
                 onChange={(e) => setLoopStart(Number(e.target.value))}
                 aria-label="Loop start measure"
+                disabled={setupLocked}
               />
               <span>-</span>
               <input
@@ -294,10 +311,11 @@ function SessionToolbar({
                 value={loopEnd}
                 onChange={(e) => setLoopEnd(Number(e.target.value))}
                 aria-label="Loop end measure"
+                disabled={setupLocked}
               />
               {totalMeasures > 0 && <span className="loop-total">/ {totalMeasures}</span>}
             </label>
-            <button className="secondary-button" onClick={handleSetLoop} disabled={totalMeasures === 0}>
+            <button className="secondary-button" onClick={handleSetLoop} disabled={setupLocked || totalMeasures === 0}>
               Set Loop
             </button>
           </>
@@ -812,7 +830,12 @@ export function GameScreen({
     );
   };
 
+  const isCapstoneRun = source.kind === 'lesson-drill' && source.isCapstone === true;
+
   const rebuildForSessionConfig = async (nextSessionConfig: SessionConfig) => {
+    if (isCapstoneRun) {
+      return;
+    }
     const currentSourceSong = sourceSong;
     const previousGame = gameSessionRef.current;
     if (!currentSourceSong || !previousGame) {
@@ -889,11 +912,12 @@ export function GameScreen({
 
     const game = gameSessionRef.current;
     if (!game) return;
-    const now = performance.now();
     if (shouldAutoplayMode(countdownConfig.mode)) {
       await playSessionAudio(song, startSec, countdownConfig);
     }
-    game.play(now);
+    // Read the clock after the audio start resolves: a stale reading would leave the game ahead of
+    // the sound, and the first notes would already be late when the player hears them.
+    game.play(performance.now());
     setStatusMessage(
       countdownConfig.mode === 'learning'
         ? 'Learning mode active. Progress pauses until the correct note is played.'
@@ -933,7 +957,7 @@ export function GameScreen({
     if (shouldAutoplayMode(sessionConfig.mode)) {
       await playSessionAudio(currentSessionSong, game.getCurrentTimeSec(now), sessionConfig);
     }
-    game.play(now);
+    game.play(performance.now());
     setStatusMessage(
       sessionConfig.mode === 'learning'
         ? 'Learning mode active. Progress pauses until the correct note is played.'
@@ -957,13 +981,16 @@ export function GameScreen({
     game.restart(now);
     if (wasPlaying && shouldAutoplayMode(sessionConfig.mode)) {
       await playSessionAudio(currentSessionSong, loopStartForSong(currentSessionSong, sessionConfig), sessionConfig);
-      game.play(now);
+      game.play(performance.now());
     } else {
       audioEngine.pauseSong();
     }
   };
 
   const handleTempoChange = async (value: number) => {
+    if (isCapstoneRun) {
+      return;
+    }
     const game = gameSessionRef.current;
     const currentSessionSong = sessionSong;
     const nextSessionConfig = {
@@ -1002,7 +1029,7 @@ export function GameScreen({
     game.seek(targetSec, now);
     if (shouldResume) {
       await playSessionAudio(currentSessionSong, targetSec, sessionConfig);
-      game.play(now);
+      game.play(performance.now());
     } else {
       audioEngine.seek();
     }
@@ -1183,6 +1210,7 @@ export function GameScreen({
       totalMeasures={sessionSong ? getMeasureCount(sessionSong) : 0}
       canEditFingering={canPersistCurrentSong}
       isEditingFingering={isEditingFingering}
+      setupLocked={isCapstoneRun}
       onRebuild={(next) => void rebuildForSessionConfig(next)}
       onHandSizeChange={(handSize) => {
         const nextConfig = { ...sessionConfig, handSize };
@@ -1423,6 +1451,7 @@ export function GameScreen({
               canPlay={Boolean(sessionSong)}
               isPlaying={snapshot.isPlaying}
               tempo={sessionConfig.tempoMultiplier}
+              tempoLocked={isCapstoneRun}
               progress={Math.max(0, Math.min(1, progress))}
               songTitle={currentSongRef.current.title}
               currentTimeLabel={currentTimeLabel}

@@ -15,6 +15,8 @@ interface LessonScreenProps {
   curriculum: LearningTier[];
   progress: LearningProgress;
   initialStepIndex?: number;
+  /** The last try at a step that missed its pass mark, shown on that step. */
+  lastAttempt?: { stepIndex: number; accuracy: number; target: number } | null;
   onBack: () => void;
   onOpenLesson: (lessonId: string) => void;
   onStartDrill: (lessonId: string, stepIndex: number) => void;
@@ -38,6 +40,7 @@ export function LessonScreen({
   curriculum,
   progress,
   initialStepIndex,
+  lastAttempt,
   onBack,
   onOpenLesson,
   onStartDrill,
@@ -226,6 +229,12 @@ export function LessonScreen({
               >
                 Next Step
               </button>
+            ) : null}
+
+            {lastAttempt && lastAttempt.stepIndex === currentStepIndex && step.kind !== 'tip' ? (
+              <span className="lesson-step-note" role="status">
+                {lastAttempt.accuracy}% of {lastAttempt.target}% needed. Try again.
+              </span>
             ) : null}
 
             {!stepCompleted && step.kind !== 'tip' ? (

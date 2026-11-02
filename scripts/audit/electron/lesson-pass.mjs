@@ -111,26 +111,17 @@ await withElectron(profile, async (h) => {
   await resetWatch(page);
   await page.keyboard.press('Space');
   const tStart = await waitPlay(page);
-  // Learning mode blocks at each note until it is played, so a press shortly after the
-  // note arrives is judged at zero offset. Each press re-anchors the timeline (the clock
-  // resumes from that note). A press that does not register is repeated until it does.
-  let anchor = tStart;
-  let prevT = CAP[0].t;
+  // The capstone is a Play-mode run: the clock keeps moving and a press is judged against
+  // it, so every note is pressed at its scheduled time (note time / capstone tempo 0.9)
+  // after the count-in ends. Nothing waits for a late or missing press.
+  const TEMPO = 0.9;
   let retried = 0;
   const pressLog = [];
   for (const [k, note] of CAP.entries()) {
-    await sleep(anchor + ((note.t - prevT) / 0.9) * 1000 + 60 - Date.now());
-    let before = await scoreCount(page);
-    let pressedAt = Date.now();
+    await sleep(tStart + (note.t / TEMPO) * 1000 + Number(process.env.CAPSTONE_LEAD_MS ?? 0) - Date.now());
+    const pressedAt = Date.now();
     await tap(page, note.key);
-    for (let i = 0; i < 40 && (await scoreCount(page)) === before; i++) {
-      await sleep(40);
-      if ((await scoreCount(page)) !== before) break;
-      retried++; pressedAt = Date.now(); await tap(page, note.key);
-    }
-    anchor = pressedAt; prevT = note.t;
     pressLog.push(`${k + 1}:${note.key}@${pressedAt - tStart}`);
-    if (k === CAP.length - 1) break;
   }
   const scoreLog = (await page.evaluate(() => window.__w?.scores ?? []).catch(() => [])).map((x) => `${x.score}@${x.t - tStart}`);
   console.log('WF-011 capstone presses (note:key@ms after count-in)', pressLog.join(' '));

@@ -11,6 +11,9 @@ export function launchBrowser(extra = {}) {
   return playwright[browserName].launch({ ...(exe ? { executablePath: exe } : {}), ...extra });
 }
 
+// LUMAKEYS_REPO points the driver at another checkout (a worktree); the default is unchanged.
+const REPO = process.env.LUMAKEYS_REPO || '/media/storage/LumaKeys';
+
 export async function withServer(dataDir, fn, opts = {}) {
   fs.mkdirSync(dataDir, { recursive: true });
   const port = opts.port ?? 3777;
@@ -18,7 +21,7 @@ export async function withServer(dataDir, fn, opts = {}) {
   // servers opt out explicitly; pass opts.env to test the token gate instead.
   const env = { ...process.env, PORT: String(port), LUMAKEYS_DATA_DIR: dataDir, LUMAKEYS_TRUST_UPSTREAM_AUTH: '1', ...(opts.env ?? {}) };
   const log = fs.createWriteStream(path.join(dataDir, 'server.log'), { flags: 'a' });
-  let srv = spawn('node', ['/media/storage/LumaKeys/dist/server/index.cjs'], { env, stdio: ['ignore', 'pipe', 'pipe'], cwd: '/media/storage/LumaKeys' });
+  let srv = spawn('node', [`${REPO}/dist/server/index.cjs`], { env, stdio: ['ignore', 'pipe', 'pipe'], cwd: REPO });
   srv.stdout.pipe(log); srv.stderr.pipe(log);
   const base = `http://127.0.0.1:${port}`;
   for (let i = 0; i < 50; i++) {
@@ -35,7 +38,7 @@ export async function withServer(dataDir, fn, opts = {}) {
   page.on('requestfailed', (r) => errors.push(`[requestfailed] ${r.url()} ${r.failure()?.errorText}`));
   const restart = async () => {
     if (srv.exitCode === null && srv.signalCode === null) { srv.kill('SIGTERM'); await new Promise((r) => srv.once('exit', r)); }
-    const s2 = spawn('node', ['/media/storage/LumaKeys/dist/server/index.cjs'], { env, stdio: ['ignore', 'pipe', 'pipe'], cwd: '/media/storage/LumaKeys' });
+    const s2 = spawn('node', [`${REPO}/dist/server/index.cjs`], { env, stdio: ['ignore', 'pipe', 'pipe'], cwd: REPO });
     s2.stdout.pipe(log); s2.stderr.pipe(log);
     for (let i = 0; i < 50; i++) { try { const r = await fetch(base + '/'); if (r.ok) break; } catch {} await new Promise((r) => setTimeout(r, 100)); }
     srv = s2;

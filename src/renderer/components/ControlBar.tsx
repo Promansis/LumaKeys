@@ -2,6 +2,8 @@ interface ControlBarProps {
   canPlay: boolean;
   isPlaying: boolean;
   tempo: number;
+  /** Locks the tempo slider, for a run judged at a fixed tempo. */
+  tempoLocked?: boolean;
   progress: number;
   songTitle: string;
   currentTimeLabel: string;
@@ -54,7 +56,7 @@ export function ControlBar(props: ControlBarProps) {
             step={0.01}
             value={props.tempo}
             onChange={(event) => props.onTempoChange(Number(event.target.value))}
-            disabled={!props.canPlay}
+            disabled={!props.canPlay || props.tempoLocked}
           />
         </label>
 
