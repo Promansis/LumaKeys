@@ -688,6 +688,10 @@ export function SettingsScreen({
             nextValues[compositeKey] = value;
           }
         });
+        // First-run setup used to store "off" here; the setting is an integer where 0 means off.
+        if (nextValues['practice.postureReminderMinutes'] === 'off') {
+          nextValues['practice.postureReminderMinutes'] = '0';
+        }
 
         nextValues[getSettingKey('input', 'mode')] = inputMode;
         nextValues[getSettingKey('audio', 'pitchBendEnabled')] = pitchBendEnabled ? 'true' : 'false';

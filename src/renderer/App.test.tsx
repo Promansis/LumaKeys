@@ -131,7 +131,12 @@ vi.mock('./components/NoveltySoundboardScreen', () => ({
 }));
 
 vi.mock('./components/SetupGuideScreen', () => ({
-  SetupGuideScreen: () => <div>Setup</div>,
+  SetupGuideScreen: ({ onSkip }: { onSkip: () => Promise<void> }) => (
+    <>
+      <div>Setup</div>
+      <button onClick={() => void onSkip()}>Skip Setup</button>
+    </>
+  ),
 }));
 
 vi.mock('./components/LibraryScreen', () => ({
@@ -733,6 +738,19 @@ describe('App', () => {
     fireEvent.click(await screen.findByText('Start Recommended Song'));
 
     expect(screen.getByTestId('game-session-lead-in')).toHaveTextContent('0');
+  });
+
+  it('stores 0, not "off", when first-run setup is skipped with reminders off', async () => {
+    vi.mocked(window.appBridge!.getSetting).mockResolvedValue(null);
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByText('Skip Setup'));
+
+    await waitFor(() => {
+      expect(setSettingSpy).toHaveBeenCalledWith('practice', 'postureReminderMinutes', '0');
+    });
+    expect(setSettingSpy).not.toHaveBeenCalledWith('practice', 'postureReminderMinutes', 'off');
   });
 
   it('keeps the shell usable with defaults when startup settings fail', async () => {

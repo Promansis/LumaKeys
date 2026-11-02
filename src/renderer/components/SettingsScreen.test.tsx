@@ -427,6 +427,22 @@ describe('SettingsScreen', () => {
     await waitFor(() => expect(screen.getByText('Changes saved.')).toBeInTheDocument());
   });
 
+  it('shows 0 for a posture reminder stored as the legacy "off"', async () => {
+    window.appBridge = {
+      ...window.appBridge!,
+      getSetting: vi.fn(async (category: string, key: string) =>
+        category === 'practice' && key === 'postureReminderMinutes' ? 'off' : null),
+    } as unknown as typeof window.appBridge;
+
+    renderSettingsScreen();
+
+    fireEvent.click(await screen.findByRole('tab', { name: 'Practice' }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Posture Reminder (minutes)')).toHaveValue(0);
+    });
+  });
+
   it('clamps numeric settings before saving', async () => {
     const onSettingChange = vi.fn();
 
