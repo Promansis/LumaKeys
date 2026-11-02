@@ -19,6 +19,7 @@ import { midiToLabel } from '../../lib/piano/pianoLayout';
 import { useTimeoutRegistry } from '../useTimeoutRegistry';
 import { AnimalSoundboardCanvas, type AnimalSoundboardBurst } from './AnimalSoundboardCanvas';
 import { ImmersiveHud, type ImmersiveHudDestination, type ImmersiveHudNavigationItem } from './ImmersiveHud';
+import { inertWhenClosed } from './inertWhenClosed';
 import { PianoKeyboard, type KeyboardKeyLabel, type KeyboardOverlayEffect } from './PianoKeyboard';
 import { useModalFocusTrap } from '../useModalFocusTrap';
 
@@ -466,7 +467,7 @@ export function NoveltySoundboardScreen({
             aria-controls="soundboard-key-map-popout"
             aria-expanded={isAnimalMapOpen}
             onClick={() => {
-              if (isAnimalMapOpen) {
+              if (isAnimalMapPinned) {
                 closeAnimalMap(true);
                 return;
               }
@@ -492,7 +493,7 @@ export function NoveltySoundboardScreen({
               aria-controls="soundboard-mode-popout"
               aria-expanded={isModeSelectorOpen}
               onClick={() => {
-                if (isModeSelectorOpen) {
+                if (isModeSelectorPinned) {
                   closeModeSelector(true);
                   return;
                 }
@@ -533,6 +534,7 @@ export function NoveltySoundboardScreen({
           id="soundboard-key-map-popout"
           aria-label={isAnimalMode ? 'Animal key map' : 'Sound key map'}
           aria-hidden={!isAnimalMapOpen}
+          {...inertWhenClosed(isAnimalMapOpen)}
           data-testid="animal-key-map-popout"
            onMouseEnter={keepAnimalMapOpen}
            onMouseLeave={scheduleAnimalMapClose}
@@ -592,6 +594,7 @@ export function NoveltySoundboardScreen({
           id="soundboard-mode-popout"
           aria-label="Soundboard mode controls"
           aria-hidden={!isModeSelectorOpen}
+          {...inertWhenClosed(isModeSelectorOpen)}
           data-testid="soundboard-mode-popout"
            onMouseEnter={keepModeSelectorOpen}
            onMouseLeave={scheduleModeSelectorClose}

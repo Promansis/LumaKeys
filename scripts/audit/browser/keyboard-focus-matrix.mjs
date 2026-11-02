@@ -214,4 +214,4 @@ await withServer(process.env.DATA, async ({ ctx, base, errors }) => {
     await p.keyboard.press('Escape'); await p.waitForTimeout(500);
     st = await dlgState(p); console.log(`   Escape -> dialogs=${j(st.dialogs)} screen=${st.screen} focus after close=${st.focus}`);
   }
-}, { port: 3793, timeout: 15000 });
+}, { port: 3793, timeout: 15000, context: { bypassCSP: true } });

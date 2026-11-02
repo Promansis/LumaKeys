@@ -307,7 +307,7 @@ describe('FreePlayScreen', () => {
     expect(screen.getByTestId('free-play-visual-popout')).toHaveAttribute('aria-hidden', 'false');
   });
 
-  it('opens the visual mode popout on hover and closes it on click when already open', () => {
+  it('opens the visual mode popout on hover, pins it on click and closes it on a second click', () => {
     render(
       <FreePlayScreen
         audioEngine={buildAudioEngineStub()}
@@ -330,11 +330,23 @@ describe('FreePlayScreen', () => {
     const toggleButton = screen.getByRole('button', { name: 'Show visual mode controls' });
     const popout = screen.getByTestId('free-play-visual-popout');
 
-    fireEvent.mouseEnter(toggleButton);
-    expect(popout).toHaveAttribute('aria-hidden', 'false');
+    vi.useFakeTimers();
+    try {
+      fireEvent.mouseEnter(toggleButton);
+      expect(popout).toHaveAttribute('aria-hidden', 'false');
 
-    fireEvent.click(toggleButton);
-    expect(popout).toHaveAttribute('aria-hidden', 'true');
+      fireEvent.click(toggleButton);
+      fireEvent.mouseLeave(toggleButton);
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(popout).toHaveAttribute('aria-hidden', 'false');
+
+      fireEvent.click(toggleButton);
+      expect(popout).toHaveAttribute('aria-hidden', 'true');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('keeps the visual popout open while moving from the toggle into the panel', () => {
@@ -712,5 +724,40 @@ describe('FreePlayScreen', () => {
 
     await waitFor(() => expect(screen.getByText(/Backing track volume is active for this session only/)).toBeInTheDocument());
     expect(setSetting).toHaveBeenCalledWith('audio', 'backingTrackVolume', '42');
+  });
+
+  it('keeps the closed visual popout inert and pins it on the first keyboard press', () => {
+    render(
+      <FreePlayScreen
+        audioEngine={buildAudioEngineStub()}
+        midiInputService={new MockMidiInputService() as unknown as MidiInputService}
+        keyboardInputService={new MockKeyboardInputService() as unknown as ComputerKeyboardInputService}
+        inputMode="both"
+        keyboardOverlaySize="medium"
+        postureReminderMinutes={null}
+        breakReminderMinutes={null}
+        pitchBendEnabled
+        stagePalette="default"
+        instrumentId="acoustic-piano"
+        onBackToMainMenu={vi.fn()}
+        onInstrumentChange={vi.fn()}
+        onStagePaletteChange={vi.fn()}
+        onOpenKeyboardSetup={vi.fn()}
+      />,
+    );
+
+    const popout = screen.getByTestId('free-play-visual-popout');
+    const toggle = screen.getByRole('button', { name: 'Show visual mode controls' });
+    expect(popout).toHaveAttribute('inert');
+
+    fireEvent.focus(toggle);
+    fireEvent.click(toggle);
+    fireEvent.blur(toggle);
+    expect(popout).toHaveAttribute('aria-hidden', 'false');
+    expect(popout).not.toHaveAttribute('inert');
+
+    fireEvent.click(toggle);
+    expect(popout).toHaveAttribute('aria-hidden', 'true');
+    expect(popout).toHaveAttribute('inert');
   });
 });

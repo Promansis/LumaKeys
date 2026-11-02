@@ -596,7 +596,8 @@ select:focus {
 .library-screen,
 .theory-hub-screen,
 .theory-practice-screen,
-.settings-screen {
+.settings-screen,
+.app-topbar {
   --product-deck-gap-xs: 6px;
   --product-deck-gap-sm: 8px;
   --product-deck-gap-md: 12px;
@@ -2564,6 +2565,51 @@ main > .deck-layout-shell {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   font-size: 1.05em;
   line-height: 1;
+}
+
+/* PH-UI-011: strong focus ring and a non-colour current-page marker for the top-bar nav.
+   The outline sits inside the button so the nav scroller and the corner clip cannot hide it.
+   The selector outranks the Settings-screen nav overrides. */
+.app-frame .app-topbar .immersive-hud-nav-btn:focus-visible {
+  outline: 3px solid color-mix(in oklch, var(--product-deck-accent) 78%, var(--product-deck-ink));
+  outline-offset: -3px;
+  clip-path: none;
+  transform: none;
+  border-color: var(--product-deck-ink);
+  background: color-mix(in oklch, var(--product-deck-accent) 30%, var(--product-deck-bg));
+  color: var(--product-deck-ink);
+}
+
+.app-frame .app-topbar .immersive-hud-nav-btn[aria-current="page"] {
+  border-bottom-width: 4px;
+  border-bottom-color: var(--product-deck-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+/* PH-UI-012: between the phone layout and wide desktops the nav, stats and actions do not fit
+   on one row (the nav alone is about 555 px), so the nav takes its own row. */
+@media (min-width: 781px) and (max-width: 1100px) {
+  .immersive-hud {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 6px;
+  }
+
+  .immersive-hud > .immersive-hud-core {
+    grid-row: 1;
+  }
+
+  .immersive-hud > .immersive-hud-actions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .immersive-hud > .immersive-hud-nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: stretch;
+  }
 }
 
 @media (max-width: 780px) {

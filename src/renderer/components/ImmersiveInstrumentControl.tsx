@@ -4,6 +4,7 @@ import { Info } from 'lucide-react';
 import { getInstrumentDefinition, INSTRUMENTS, isInstrumentSelectable } from '../../lib/audio/instrumentCatalog';
 import { isRewardUnlocked, REWARD_CATALOG } from '../../lib/rewards/rewardCatalog';
 import type { InstrumentSamplePackStatus } from '../../shared/ipc';
+import { inertWhenClosed } from './inertWhenClosed';
 
 interface ImmersiveInstrumentControlProps {
   instrumentId: string;
@@ -29,6 +30,7 @@ export function ImmersiveInstrumentControl({
   const [isHovered, setIsHovered] = useState(false);
   const [openInfoInstrumentId, setOpenInfoInstrumentId] = useState<string | null>(null);
   const controlRef = useRef<HTMLDivElement | null>(null);
+  const toggleRef = useRef<HTMLButtonElement | null>(null);
   const popoutRef = useRef<HTMLElement | null>(null);
   const hoverCloseTimeoutRef = useRef<number | null>(null);
   const selectedInstrument = getInstrumentDefinition(instrumentId);
@@ -90,6 +92,7 @@ export function ImmersiveInstrumentControl({
       className={`panel immersive-instrument-popout${popoutPlacement === 'stage' ? ' stage-popout' : ''}${isOpen ? ' open' : ''}`}
       aria-label="Instrument controls"
       aria-hidden={!isOpen}
+      {...inertWhenClosed(isOpen)}
       data-testid="immersive-instrument-popout"
       onMouseEnter={() => {
         clearHoverClose();
@@ -140,6 +143,8 @@ export function ImmersiveInstrumentControl({
                   onPopoutHoverChange?.(false);
                   setIsPinned(false);
                   setIsHovered(false);
+                  // The closed popout is inert, which would drop focus to body; hand it back to the toggle.
+                  window.requestAnimationFrame(() => toggleRef.current?.focus());
                 }}
                 type="button"
               >
@@ -184,6 +189,7 @@ export function ImmersiveInstrumentControl({
       onMouseLeave={scheduleHoverClose}
     >
       <button
+        ref={toggleRef}
         className="immersive-menu-btn immersive-instrument-toggle"
         aria-label="Show instrument controls"
         aria-expanded={isOpen}

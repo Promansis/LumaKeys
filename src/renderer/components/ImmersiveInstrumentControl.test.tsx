@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ImmersiveInstrumentControl } from './ImmersiveInstrumentControl';
 
@@ -63,6 +63,18 @@ describe('ImmersiveInstrumentControl', () => {
     expect(screen.getByTestId('immersive-instrument-popout')).toHaveAttribute('aria-hidden', 'true');
   });
 
+  it('returns focus to the toggle when choosing an instrument closes the popout', async () => {
+    render(<ImmersiveInstrumentControl instrumentId="acoustic-piano" onInstrumentChange={vi.fn()} />);
+
+    const toggle = screen.getByRole('button', { name: 'Show instrument controls' });
+    fireEvent.click(toggle);
+    const option = screen.getByRole('button', { name: 'Organ' });
+    option.focus();
+    fireEvent.click(option);
+
+    await waitFor(() => expect(toggle).toHaveFocus());
+  });
+
   it('reveals instrument descriptions from compact info controls', () => {
     render(<ImmersiveInstrumentControl instrumentId="acoustic-piano" onInstrumentChange={vi.fn()} />);
 
@@ -70,5 +82,15 @@ describe('ImmersiveInstrumentControl', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Organ info' }));
 
     expect(screen.getByText(/Sampled pipe organ/i)).toBeInTheDocument();
+  });
+
+  it('removes the closed instrument popout from the tab order with inert and restores it when open', () => {
+    render(<ImmersiveInstrumentControl instrumentId="acoustic-piano" onInstrumentChange={vi.fn()} />);
+
+    const popout = screen.getByTestId('immersive-instrument-popout');
+    expect(popout).toHaveAttribute('inert');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show instrument controls' }));
+    expect(popout).not.toHaveAttribute('inert');
   });
 });
