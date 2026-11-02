@@ -3,7 +3,7 @@
 - Lane: MUS
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), lane C, 2026-10-19
 - Verifier: TBD
@@ -102,8 +102,7 @@ the tempo in force at tick 0.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: `remediation/p11-s09-timing`, slice 9, implemented 2026-11-02, awaiting
-  independent review; not merged.
+- Fix branch/commit/issue: `remediation/p11-s09-timing`, slice 9, implemented and independently reviewed 2026-11-02; merged to `main` in `6f327c9`; `fixed`, not `verified`: the browser metronome driver rerun after `1a77e90` (lead) is owed, plus optional owner sitting 1 item 7 by ear; stored songs keep their old BPM until re-imported.
 - What changed: `parseMidiFile` (`src/lib/midi/midiFileParser.ts`) inserts `{ ticks: 0, bpm: 120 }`
   at the front of the tempo list when the first tempo event is after tick 0, and calls
   `header.update()` before any time is read. Note times, durations, barlines and the song length are

@@ -3,7 +3,7 @@
 - Lane: MUS
 - Severity: P2
 - Confidence: high (the file Electron saves is all zero samples; the one-change control renders sound in the same Electron renderer)
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-19
 - Verifier: TBD
@@ -89,7 +89,7 @@ notes and asserts non-zero samples after each onset.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: `remediation/p11-s06-audio`, commit `662e621` (slice 6), implemented 2026-11-02, awaiting independent review; not merged.
+- Fix branch/commit/issue: `remediation/p11-s06-audio`, commit `662e621` (slice 6), implemented and independently reviewed 2026-11-02; merged to `main` in `c7216e2`; `fixed`, not `verified`: `scripts/audit/sitting1-audio-desktop.mjs` item 6 (needs PulseAudio; lead runs it) and owner sitting 1 items 5 and 6 on speakers are owed.
 - What changed: `renderRecordingToWav` takes the context passed to the `Tone.Offline` callback and schedules and starts on `offlineContext.transport` instead of the global `tone.Transport`. WAV files saved earlier stay silent; the user records and exports again.
 - Tests (`src/lib/audio/audioEngine.test.ts`; the fake Tone renders only what the offline context's transport plays, like the real library): `renders sound after each note onset by scheduling on the offline transport` failed before the fix (`expected false to be true`: no energy in the 0.5 to 0.8 s window, and the schedules went to the global Transport) and passes after it (energy after both onsets, silence before the first, all schedules on the offline transport, one start). Source identity for the reproduction: product code `1180731`.
 - Driver result: `browser/wav-render-probe.mjs` (headless Chromium, product bundle of this worktree's `audioEngine.ts`, 3 runs): header valid, 5.00 s, `peak=0.3911` every run, energy after all three onsets, the same numbers as the finding's control build (the in-memory control patch no longer applies to the fixed file, so the copy compares the product with itself and the CSP needed `bypassCSP` for the inline bundle). `electron/freeplay-export.mjs` (headless Electron on this worktree's `out/`): Export WAV status "WAV saved to ...take.wav.", 6.68 s 16-bit stereo 44.1 kHz file, `peak 0.47052`, 234,051 non-zero samples (finding: peak 0, 0 non-zero). Driver copies were made under `$TMPDIR` with paths pointed at this worktree (the committed drivers hard-code the main checkout). 

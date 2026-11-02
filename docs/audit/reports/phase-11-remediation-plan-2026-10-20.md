@@ -139,6 +139,9 @@ in `64a8160` (ADR 0002, `CONTEXT.md`, and the audit's citations):
   | `8a0a764` | Follow-up f1, lead-in beats (owner decision 6) | PH-MUS-018 | `verified`. A missing or blank `leadInBeats` setting keeps the default of 2; a saved `0` stays 0. Two `App` tests; the reviewer reproduced the failure before the fix; the post-merge desktop and web runs below passed |
   | `d5507a6` | Follow-up f2, desktop file dialogs (owner decision 7) | PH-UI-021 | `fixed`. `src/main/dialogDefaults.ts` remembers the last folder per dialog kind until the app closes, wired into the 11 dialog calls in `src/main/index.ts`; 15 tests, and all 7 of the reviewer's mutations were caught. Real-display checks owed (B15, sitting 2 item 4) |
   | `93ac583` | Follow-up f3, slices 2 and 3 (owner decision 11) | PH-SEC-006; leads (a), (b), (f), (k) | PH-SEC-006 `fixed`: the cookie gets `Secure` behind a proxy that reports https. hono 4.13.13, `engines.node` `>=22.14.0`, the dead native rebuild path removed. `npm run verify` passed on Node 22.23.3 and 24.15.0; a test image passed the container checks. Redeploy and A2 owed |
+  | `c7216e2` | Slice 6, audio output (merged 2026-11-02) | PH-PAR-006, PH-MUS-007, PH-MUS-015 | `fixed`; independently reviewed. `sitting1-audio-desktop.mjs` item 6 (needs PulseAudio; the lead runs it) and owner sitting 1 items 5 and 6 on speakers owed |
+  | `ea89f3e` | Slice 4, practice input integrity (merged 2026-11-02) | PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019 | `fixed`; independently reviewed. The Electron and web drivers (`paused-input.mjs`, `workflows.mjs`, `sitting1-visual-desktop.mjs` and `-chrome.mjs` for Ctrl+0, `pause-resume-focus.mjs`, `sitting4-midi-web.mjs` and `-desktop.mjs` item 7 with `seamMs = -15`, the Scale Practice 8-of-8 check) are run by the lead; owner sitting 4 item 4 and a Learn-mode loop on a MIDI keyboard owed |
+  | `6f327c9` | Slice 9, timing (merged 2026-11-02) | PH-MUS-006, PH-MUS-008 | `fixed`; independently reviewed. The browser metronome driver rerun after `1a77e90` (lead) owed; owner sitting 1 item 7 by ear is optional; stored songs keep their old BPM until re-imported |
 
 - The owner ran `npm ci` in the main checkout on 2026-10-21, so its `node_modules` now holds
   Electron 44.9.2 and better-sqlite3 13.0.3 (user tests G1, pass). Since better-sqlite3 13,
@@ -1532,7 +1535,7 @@ Docker sets `/data`, which is absolute. Rollback: code revert.
 
 ## Proof Owed By Fixed Findings
 
-These 19 findings are `fixed`, not `verified`. None needs new product code unless noted.
+These 28 findings are `fixed`, not `verified`. None needs new product code unless noted.
 The owner sittings run by the agent on 2026-10-20
 ([report](phase-11-owner-sittings-2026-10-20.md)) moved PH-PAR-002, PH-UI-001, PH-UI-002
 and PH-UI-004 to `verified`. The [agent proofs](phase-11-agent-proofs-2026-10-21.md) of
@@ -1547,7 +1550,7 @@ PH-SEC-002, PH-SEC-003, PH-OPS-005, PH-MUS-014), so they joined it. On the same 
 PH-DATA-007, PH-OPS-003, PH-SEC-005); PH-DATA-007 then passed its headless Electron run, moved
 to `verified` and left this table. The follow-ups merged at `93ac583` fixed three more:
 PH-SEC-006 and PH-UI-021 joined, and PH-MUS-018 passed its desktop and web runs and went
-straight to `verified`. The proof each of the 19 still owes follows. The
+straight to `verified`. On 2026-11-02 wave 2 slices 6, 4 and 9 merged (`c7216e2`, `ea89f3e`, `6f327c9`) and moved nine more from `accepted` to `fixed`: PH-PAR-006, PH-MUS-007, PH-MUS-015, PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019, PH-MUS-006, PH-MUS-008. The proof each of the 28 still owes follows. The
 packaged runs "with the real lock" cannot run in the agent sandbox (the single-instance
 lock needs a Unix socket); they run outside it, if the owner allows that through
 `/sandbox`, or the real-display checks cover them:
@@ -1573,6 +1576,15 @@ lock needs a Unix socket); they run outside it, if the owner allows that through
 | PH-SEC-005 | P3 | A real click on a Soundboard credit link in the packaged app: the system browser opens and no LumaKeys window does. The unit tests, the driver on Electron 30.5.1 and 44.9.2, and the post-merge `window-open.mjs` run passed | owner B8; sitting 2 item 8 |
 | PH-UI-021 | P3 | The system file dialog on a real display starts in the folder the app passes, on Linux (GNOME portal) and Windows. The unit tests and the headless `dialog-defaults.mjs` run (19 of 19, with a failing control) passed | owner B15; sitting 2 item 4 |
 | PH-SEC-006 | P3 | After a redeploy from `93ac583` or later, the live site's `lumakeys_web_access` cookie shows `Secure`. The unit tests and the throwaway-container check of a `93ac583` image passed | owner A2 |
+| PH-PAR-006 | P2 | `sitting1-audio-desktop.mjs` item 6 (needs PulseAudio; the lead runs it) and owner sitting 1 items 5 and 6 on speakers. Slice 6 merged in `c7216e2`; the web sample-pack and log driver passed in the slice | lead; owner sitting 1 items 5, 6 |
+| PH-MUS-007 | P2 | The same PulseAudio item 6 and the speaker check; the WAV render probe and the Electron export driver passed in the slice | lead; owner sitting 1 items 5, 6 |
+| PH-MUS-015 | P3 | The same PulseAudio item 6 and the speaker check of the release tail with an installed pack | lead; owner sitting 1 items 5, 6 |
+| PH-MUS-005 | P2 | The Electron and web drivers `paused-input.mjs` and `workflows.mjs`, then owner sitting 4 item 4 and a Learn-mode loop on a MIDI keyboard. Slice 4 merged in `ea89f3e` | lead; owner sitting 4 item 4 |
+| PH-MUS-012 | P3 | The same driver reruns (`paused-input.mjs`, `workflows.mjs`, `pause-resume-focus.mjs`) and the Scale Practice 8-of-8 check | lead |
+| PH-MUS-016 | P3 | `sitting4-midi-web.mjs` and `sitting4-midi-desktop.mjs` item 7 with `seamMs = -15`, then a Learn-mode loop on a MIDI keyboard (owner sitting 4 item 4) | lead; owner sitting 4 item 4 |
+| PH-UI-019 | P3 | `sitting1-visual-desktop.mjs` and `sitting1-visual-chrome.mjs` (Ctrl+0 resets the zoom) | lead |
+| PH-MUS-006 | P2 | The browser metronome driver rerun after `1a77e90`, then optionally owner sitting 1 item 7 by ear. Slice 9 merged in `6f327c9` | lead; owner sitting 1 item 7 (optional) |
+| PH-MUS-008 | P3 | The same browser metronome driver rerun; stored songs keep their old BPM until re-imported, so a song imported before the fix stays as it was | lead |
 
 ## Phase 11 Remediation Start Gate
 

@@ -3,7 +3,7 @@
 - Lane: MUS
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-20
 - Verifier: TBD
@@ -119,7 +119,7 @@ clock while the session is still playing, so it is unaffected.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: `remediation/p11-s04-input`, slice 4, commit `418d6fe`; implemented 2026-11-02, awaiting independent review; not merged.
+- Fix branch/commit/issue: `remediation/p11-s04-input`, slice 4, commit `418d6fe`; implemented and independently reviewed 2026-11-02; merged to `main` in `ea89f3e`; `fixed`, not `verified`: input-integrity driver reruns (lead runs them) and owner sitting 4 item 4 plus a Learn-mode loop on a MIDI keyboard are owed.
 - What changed: `GameSession.ingestInputEvent` still records held-note and sustain state for every event, but judges a note-on only while `isPlaying` is true (new `judgePress`, which wraps `matchNote`). `GameScreen` is unchanged and keeps forwarding events, so a press before Space, during the count-in or while paused still sounds and lights the keyboard. Learning mode's wait-for-input holds the clock while the session is still playing, so it is unaffected. Stored results from before the fix are left as they are.
 - Judging rule settled by this slice (slice 12 capstone accuracy depends on it): a press is judged only against a running song clock. While the transport is stopped (before Space, during the 3-2-1 count-in and lead-in, while paused) a press sounds, lights the keyboard and updates held-note and sustain state, but is never judged, so it cannot add score, combo or accuracy, and a pending note stays pending for the real press. While playing, a press is matched against the note within the hit window of the song clock; in a loop, a press up to one hit window before the loop end also answers a note at the start of the loop, at the wrapped time, with the same timing tiers.
 - Tests (`GameSession.test.ts`, `input while the transport is stopped`): `does not judge a press before the song has started or during the count-in` failed before the fix (`expected 1 to be +0`, perfectCount) and `does not judge a press made while paused next to a note` failed before it (`expected 50 to be +0`, totalScore); both pass after. `keeps the pressed note active while stopped so the keyboard still lights`, `still judges the same note on time once the song runs` and `still judges a press while playing, and ignores one far from any note` pass before and after. The existing GameScreen test `requires confirmation before structural controls restart a judged run` relied on a pre-start press scoring, so it now starts the transport before pressing. Source identity for the reproduction: `1180731`.

@@ -3,7 +3,7 @@
 - Lane: PAR
 - Severity: P2
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-20
 - Verifier: TBD
@@ -93,7 +93,7 @@ set), in both `loadInstrument` and `renderRecordingToWav`.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: `remediation/p11-s06-audio`, commit `662e621` (slice 6), implemented 2026-11-02, awaiting independent review; not merged.
+- Fix branch/commit/issue: `remediation/p11-s06-audio`, commit `662e621` (slice 6), implemented and independently reviewed 2026-11-02; merged to `main` in `c7216e2`; `fixed`, not `verified`: `scripts/audit/sitting1-audio-desktop.mjs` item 6 (needs PulseAudio; lead runs it) and owner sitting 1 items 5 and 6 on speakers are owed.
 - What changed: `src/lib/audio/audioEngine.ts` has a small helper, `customSamplerOptions`, used by both custom-sampler builds (`loadInstrument` and `renderRecordingToWav`). It leaves the `baseUrl` key out of the Sampler options when a pack has none, instead of passing `undefined`. Packs already in IndexedDB play with no reinstall.
 - Tests (`src/lib/audio/audioEngine.test.ts`, new; a fake Tone that merges options the way Tone's `deepMerge` does): `loads a pack with no base URL without prefixing "undefined" onto the sample URLs` and `renders a WAV from a pack with no base URL without "undefined" URLs` both failed before the fix (`undefinedblob:http://127.0.0.1/abc`) and pass after it. `keeps a base URL when the pack has one` passes before and after and guards against over-correcting. Source identity for the reproduction: product code `1180731`.
 - Driver result: `sample-pack-engine-log.mjs` (web, headless Chromium, three page loads) against this worktree's build: install status "Flute Enhanced Pack ready."; no `Failed to load custom sampler` and no fallback `Loading sampler from: /samples/nbrosowsky/flute/` after the install or after either reload (audio log empty). `electron/sample-pack.mjs`: unchanged result (10 files installed, first sample 190,962 bytes from the `file:///` base URL, no sampler error after install or relaunch; the remove step still logs its known fetch errors while the files are deleted under a live sampler). Driver copies were made under `$TMPDIR` with paths pointed at this worktree (the committed drivers hard-code the main checkout). 

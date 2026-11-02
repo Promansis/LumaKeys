@@ -3,7 +3,7 @@
 - Lane: MUS
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-20
 - Verifier: TBD
@@ -99,7 +99,7 @@ In `GameSession`, when a loop is set and the playhead is within the hit window o
 ## Resolution
 
 - Accepted/rejected rationale: accepted 2026-10-20.
-- Fix branch/commit/issue: `remediation/p11-s04-input`, slice 4, commit `418d6fe`; implemented 2026-11-02, awaiting independent review; not merged.
+- Fix branch/commit/issue: `remediation/p11-s04-input`, slice 4, commit `418d6fe`; implemented and independently reviewed 2026-11-02; merged to `main` in `ea89f3e`; `fixed`, not `verified`: input-integrity driver reruns (lead runs them) and owner sitting 4 item 4 plus a Learn-mode loop on a MIDI keyboard are owed.
 - What changed: in a loop, when a note-on matches no pending note at the song clock and sits within one hit window before `loopEndSec`, `GameSession` checks whether a loop-start note answers it at the wrapped time (`loopStart + (press - loopEnd)`). If one does, the press is held (`seamPresses`) and judged against the fresh first pass the moment the playhead wraps, because the wrap resets the schedule and a judgement made before it would be wiped. Held presses expire after the remaining time to the seam plus one hit window, and are dropped on pause, seek, restart, config change and song load. A press after the seam behaves as before. The HUD still resets at the wrap, which is the current design.
 - Judging rule settled by this slice (slice 12 capstone accuracy depends on it): a press is judged only against a running song clock. While the transport is stopped (before Space, during the 3-2-1 count-in and lead-in, while paused) a press sounds, lights the keyboard and updates held-note and sustain state, but is never judged, so it cannot add score, combo or accuracy, and a pending note stays pending for the real press. While playing, a press is matched against the note within the hit window of the song clock; in a loop, a press up to one hit window before the loop end also answers a note at the start of the loop, at the wrapped time, with the same timing tiers.
 - Tests (`GameSession.test.ts`, `a press just before the loop seam`): `counts a press hitWindow - 1 ms early for the loop first note` failed before the fix (`expected +0 to be 1`, okCount), `scores a 15 ms early press as perfect and lets the rest of the pass score` failed before it (`expected +0 to be 1`, perfectCount) and `does not wait on the first note after the wrap in Learn mode` failed before it (`expected 2 to be greater than 2`, the playhead stayed on the first note); all pass after. `still counts a press just after the seam, as before`, `does not carry an early press across a pause`, `ignores a press near the seam that no loop-start note answers` and `does not treat a non-loop song end as a seam` pass before and after. Source identity for the reproduction: `1180731`.

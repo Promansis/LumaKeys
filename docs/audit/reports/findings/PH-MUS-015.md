@@ -3,7 +3,7 @@
 - Lane: MUS
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-20
 - Verifier: TBD
@@ -80,7 +80,7 @@ custom-sampler constructions in `src/lib/audio/audioEngine.ts`.
 ## Resolution
 
 - Accepted/rejected rationale: accepted 2026-10-20.
-- Fix branch/commit/issue: `remediation/p11-s06-audio`, commit `662e621` (slice 6), implemented 2026-11-02, awaiting independent review; not merged.
+- Fix branch/commit/issue: `remediation/p11-s06-audio`, commit `662e621` (slice 6), implemented and independently reviewed 2026-11-02; merged to `main` in `c7216e2`; `fixed`, not `verified`: `scripts/audit/sitting1-audio-desktop.mjs` item 6 (needs PulseAudio; lead runs it) and owner sitting 1 items 5 and 6 on speakers are owed.
 - What changed: both custom-sampler builds in `src/lib/audio/audioEngine.ts` (live and offline render) now take the active instrument's `release` through `customSamplerOptions`, as the built-in sampler does (Flute `1.1`). The key is left out when the instrument defines no sampler `release` (for example a synth voice), so Tone's default still applies there rather than an explicit `undefined`.
 - Tests (`src/lib/audio/audioEngine.test.ts`): `gives the live custom sampler the instrument release` and `gives the offline custom sampler the instrument release` both failed before the fix (`expected undefined to be 1.1`) and pass after it. `leaves release unset for an instrument that defines none` passes before and after. Source identity for the reproduction: product code `1180731`.
 - Driver result: `sitting1-audio-desktop.mjs` item 6 not run: it needs a PulseAudio null sink (`PULSE_SINK=lk_s1a`) and the sandbox has no access to the PulseAudio socket. `electron/sample-pack.mjs` unchanged (see PH-PAR-006).

@@ -3,7 +3,7 @@
 - Lane: MUS
 - Severity: P2
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -81,7 +81,7 @@ undo the PH-UI-001 focus return.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: `remediation/p11-s04-input`, slice 4, commit `418d6fe`; implemented 2026-11-02, awaiting independent review; not merged.
+- Fix branch/commit/issue: `remediation/p11-s04-input`, slice 4, commit `418d6fe`; implemented and independently reviewed 2026-11-02; merged to `main` in `ea89f3e`; `fixed`, not `verified`: input-integrity driver reruns (lead runs them) and owner sitting 4 item 4 plus a Learn-mode loop on a MIDI keyboard are owed.
 - What changed: `isEditableTarget` in `src/lib/input/computerKeyboardInputService.ts` now takes the key code. A focused `BUTTON` blocks only `Space`, `Enter` and `NumpadEnter`, the keys that activate it; `INPUT`, `TEXTAREA`, `SELECT` and contenteditable still block every key. The PH-UI-001 focus return is unchanged, and no stored data changes.
 - Tests: in `computerKeyboardInputService.test.ts`, `focused controls > plays note keys while a button has focus` failed before the fix (`expected [] to deeply equal ['noteon:48']`) and passes after it. `leaves Space and Enter to a focused button`, `still sustains on Space when nothing is focused` and `ignores every key while a input/select/textarea has focus` pass before and after and guard against over-correcting. In `GameScreen.test.tsx`, `ingests a computer-keyboard note after Resume returns focus to the Menu button` (real `ComputerKeyboardInputService`, click Menu, click Resume, assert focus is the Menu button, press KeyZ) failed before the fix (`ingestInputEvent` was never called with the noteon) and passes after it. Source identity for the reproduction: `1180731`.
 - Driver result: not run, needs a rebuilt Electron and browser run outside this worktree. `scripts/audit/electron/*.mjs` launch `/media/storage/LumaKeys/out` (the harness hard-codes the main checkout), so they would not exercise this branch, and they need an Electron-ABI `better-sqlite3` (`LK_SQLITE_MODULE`) and a Playwright install. The deterministic engine probe `node --import tsx scripts/audit/paused-input-probe.ts` was run (see PH-MUS-012). The lead runs the drivers named under Proof owed.
