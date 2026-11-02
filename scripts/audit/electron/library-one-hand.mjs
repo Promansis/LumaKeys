@@ -1,8 +1,8 @@
 // Desktop halves of lane F's library items (A2: WF-007 and PH-UI-006; A3: WF-008).
 // A2: import four songs through the Upload MIDI dialog path, create a folder in the sidebar,
 //   tick two songs and move them into it with the bulk bar, relaunch, check the folder still
-//   holds them; then tick two other songs and press the bulk bar's Delete, recording any
-//   prompt (window.confirm, an in-page dialog, or a main-process message box).
+//   holds them; then tick two other songs and press the bulk bar's Delete: the in-page prompt must name
+//   the count and the history, take focus on Cancel, delete nothing on Cancel, and delete on Confirm.
 // A3: import "Two Hand Study" (Melody F4 G4 A4 B4 C5 C5 above C4, Accompaniment C3 E3 G3
 //   C3 E3 G3 below), start Learn, choose Right Hand in the overlay, play the six melody keys,
 //   read the results; set Melody to Left Hand, relaunch, start the song again and read the
@@ -30,11 +30,13 @@ await withElectron(profile, async (h) => {
   const toLibrary = async () => {
     await settle(2000);
     if (/FIRST PRACTICE SETUP/i.test(await text(page()))) await page().getByRole('button', { name: 'Skip for now' }).click();
-    if (!(await text(page())).includes('Training and Setup')) {
-      if (await page().locator('main.game-screen, .canvas-shell').count() && !(await page().locator('#game-overlay-title').count())) { await page().keyboard.press('Escape'); await settle(300); }
-      await page().getByRole('button', { name: /^(Main Menu|Back to Main Menu)$/ }).filter({ visible: true }).first().click(); await settle(800);
+    if (await page().locator('main.game-screen, .canvas-shell').count()) {
+      if (!(await page().locator('#game-overlay-title').count())) { await page().keyboard.press('Escape'); await settle(300); }
+      const back = page().getByRole('button', { name: /^(Main Menu|Back to Main Menu)$/ }).filter({ visible: true });
+      if (await back.count()) { await back.first().click(); await settle(800); }
     }
-    await page().getByRole('button', { name: 'Play Songs', exact: true }).click();
+    // The main menu now has a top nav ("Play" opens the library); older builds had a "Play Songs" tile.
+    await page().getByRole('button', { name: 'Play' }).first().click();
     await page().waitForSelector('h1:has-text("Your Library")'); await settle(800);
   };
   const dbRead = (fn) => {
@@ -77,16 +79,26 @@ await withElectron(profile, async (h) => {
   await sel('charlie etude').locator('input[type=checkbox]').check();
   await sel('Delta Scale').locator('input[type=checkbox]').check(); await settle(200);
   await page().screenshot({ path: path.join(profile, 'a2-before-delete.png') });
-  await page().locator('.bulk-action-bar').getByRole('button', { name: 'Delete', exact: true }).click();
-  await settle(150);
-  const modalNow = (await page().locator('[role=dialog], [role=alertdialog]').count()) > 0;
+  const bulkDelete = page().locator('.bulk-action-bar').getByRole('button', { name: 'Delete', exact: true });
+  await bulkDelete.click();
+  await settle(300);
+  const dlg = page().getByRole('dialog');
+  const promptText = (await dlg.count()) ? (await dlg.first().innerText()).replace(/\s+/g, ' ') : null;
+  const focused = await page().evaluate(() => document.activeElement?.textContent?.trim());
+  const midOpen = { songs: (await bridge(page(), 'getAllSongs')).length, files: midiFiles().length };
+  console.log('A2 bulk delete prompt', JSON.stringify({ promptText, focused, midOpen, confirm: await page().evaluate(() => window.__dialogs), mainBoxes: await h.app.evaluate(() => globalThis.__boxes) }));
+  check('A2 bulk Delete asks first, names 2 songs, results and practice history', !!promptText && /Delete 2 songs\?/.test(promptText) && /results/.test(promptText) && /practice history/.test(promptText), promptText ?? 'no dialog');
+  check('A2 Cancel takes the focus and nothing is deleted while the prompt is open', focused === 'Cancel' && midOpen.songs === 4 && midOpen.files === 4, JSON.stringify({ focused, midOpen }));
+  await page().getByRole('button', { name: 'Cancel', exact: true }).click(); await settle(300);
+  const afterCancel = { songs: (await bridge(page(), 'getAllSongs')).length, files: midiFiles().length, modal: (await page().getByRole('dialog').count()) > 0 };
+  check('A2 Cancel closes the prompt and keeps 4 songs and 4 files', afterCancel.songs === 4 && afterCancel.files === 4 && !afterCancel.modal, JSON.stringify(afterCancel));
+  await bulkDelete.click(); await settle(300);
+  await page().getByRole('dialog').getByRole('button', { name: 'Delete 2 songs', exact: true }).click();
   await settle(900);
-  const prompts = { confirm: await page().evaluate(() => window.__dialogs), mainBoxes: await h.app.evaluate(() => globalThis.__boxes), inPageModal: modalNow };
   const after = { songs: (await bridge(page(), 'getAllSongs')).map((s) => s.title).sort(), files: midiFiles().length };
   const status = (await page().locator('.library-header .song-title').first().textContent().catch(() => null))?.trim();
-  console.log('A2 bulk delete', JSON.stringify({ before, after, prompts, status }));
-  check('A2 bulk delete removed both songs and their files at once', after.songs.length === 2 && after.files === 2 && before.songs === 4, JSON.stringify(after));
-  console.log('A2 no confirmation step (PH-UI-006 holds):', prompts.confirm.length === 0 && prompts.mainBoxes.length === 0 && !modalNow);
+  console.log('A2 bulk delete after Confirm', JSON.stringify({ before, after, status }));
+  check('A2 Confirm removes both songs and their files', after.songs.length === 2 && after.files === 2 && before.songs === 4, JSON.stringify(after));
 
   // ---------- A3: one-hand session ----------
   await h.stubOpen([process.env.FIX_TWO]);

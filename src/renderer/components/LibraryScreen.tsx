@@ -6,6 +6,7 @@ import type { FolderRow, LibrarySnapshot, PlaylistRow, RecommendationResult, Son
 import { carryOverLegacyFilterPresets } from '../legacyFilterPresets';
 import { AdvancedFilters, type LibraryAdvancedFilters } from './AdvancedFilters';
 import { BulkActionBar } from './BulkActionBar';
+import { DeleteSongsModal } from './DeleteSongsModal';
 import { LibrarySidebar, type LibraryActiveView } from './LibrarySidebar';
 import { LoadingPanel } from './LoadingPanel';
 import { PlaylistView } from './PlaylistView';
@@ -155,6 +156,8 @@ export function LibraryScreen({
   onStartTheoryPractice,
 }: LibraryScreenProps) {
   const [songs, setSongs] = useState<SongRow[]>([]);
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<string[] | null>(null);
+  const deleteTriggerRef = useRef<HTMLElement | null>(null);
   const [statsBySongId, setStatsBySongId] = useState<Record<string, UserStatsRow | null>>({});
   const [songGoals, setSongGoals] = useState<Record<string, number>>({});
   const [folders, setFolders] = useState<FolderRow[]>([]);
@@ -523,6 +526,14 @@ export function LibraryScreen({
     } catch (error) {
       setStatusMessage(`Unable to save metadata: ${(error as Error).message}`);
     }
+  };
+
+  const requestDeleteSongs = (songIds: string[]) => {
+    if (songIds.length === 0) {
+      return;
+    }
+    deleteTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setPendingDeleteIds(songIds);
   };
 
   const handleDeleteSongs = async (songIds: string[]) => {
@@ -1367,7 +1378,7 @@ export function LibraryScreen({
               folders={folders}
               playlists={playlists}
               onClearSelection={() => setSelectedSongIds(new Set())}
-              onDelete={() => void handleDeleteSongs([...selectedSongIds])}
+              onDelete={() => requestDeleteSongs([...selectedSongIds])}
               onMoveToFolder={(folderId) =>
                 void (async () => {
                   if (!window.appBridge) {
@@ -1455,7 +1466,7 @@ export function LibraryScreen({
                   <h2>{selectedSong.title}</h2>
                 </div>
                 <div className="transport-buttons">
-                  <button className="secondary-button" onClick={() => void handleDeleteSongs([selectedSong.id])}>
+                  <button className="secondary-button" onClick={() => requestDeleteSongs([selectedSong.id])}>
                     Delete Song
                   </button>
                   <button
@@ -1588,6 +1599,18 @@ export function LibraryScreen({
           )}
         </div>
       </section>
+      {pendingDeleteIds ? (
+        <DeleteSongsModal
+          songCount={pendingDeleteIds.length}
+          triggerRef={deleteTriggerRef}
+          onCancel={() => setPendingDeleteIds(null)}
+          onConfirm={() => {
+            const songIds = pendingDeleteIds;
+            setPendingDeleteIds(null);
+            void handleDeleteSongs(songIds);
+          }}
+        />
+      ) : null}
     </main>
   );
 }

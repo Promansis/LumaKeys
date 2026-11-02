@@ -420,6 +420,15 @@ function SettingsRangeField({
   );
 }
 
+const DELETE_USER_DATA_REMOVED_LIST =
+  'songs, playlists, folders, results, practice history and streak, achievements, fingerings, trouble spots';
+
+function getDeleteUserDataScope(): string {
+  return IS_WEB
+    ? `${DELETE_USER_DATA_REMOVED_LIST} and saved settings from the server. This affects every browser that uses it. It also removes installed instrument packs from this browser.`
+    : `${DELETE_USER_DATA_REMOVED_LIST}, saved settings and installed instrument packs from this device.`;
+}
+
 interface ConfirmActionModalProps {
   busy: boolean;
   confirmLabel: string;
@@ -1840,7 +1849,7 @@ export function SettingsScreen({
                     <path d="M12 17h.01" />
                   </svg>
                   <span>Delete User Data</span>
-                  <strong>Removes songs, playlists, folders, results, achievements, and saved settings from this device.</strong>
+                  <strong>Removes {getDeleteUserDataScope()}</strong>
                   <button
                     className="danger-button"
                     disabled={isResetting || resetTarget !== null}
@@ -1891,7 +1900,7 @@ export function SettingsScreen({
         <ConfirmActionModal
           busy={isResetting}
           confirmLabel="Delete User Data"
-          description="This removes songs, playlists, folders, results, achievements, and saved settings from this device."
+          description={`This removes ${getDeleteUserDataScope()}`}
           title="Delete all user data?"
           onCancel={() => setResetTarget(null)}
           onConfirm={() => {
