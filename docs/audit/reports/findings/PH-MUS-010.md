@@ -82,7 +82,10 @@ does not remount the session.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue:
-- Verification evidence:
-- Residual risk:
-- Revisit trigger, if accepted-risk:
+- Fix branch/commit/issue: `remediation/p11-s05-midi-devices`, slice 5, commit `ff3067e`; implemented 2026-11-02, awaiting independent review; not merged. Fixes PH-MUS-010 and PH-MUS-011 together.
+- What changed: `src/renderer/App.tsx` builds the GameScreen `source` once per screen state with `useMemo` keyed on `currentScreen` (one memo for the `game`, `lesson-drill` and `capstone` screens), instead of a new object literal on every App render. `GameScreen` now exports its `GameScreenSource` type for it. GameScreen's song-load effect is unchanged, so an App re-render caused by the device list, a setting or anything else no longer reloads the song. No stored data changes.
+- Tests (`src/renderer/App.test.tsx`; the GameScreen mock re-creates GameScreen's `[source]` effect dependency, and a captured `subscribeDevices` listener changes the device list). Source identity `1180731`. Failed before the fix, pass after it: `App > keeps the running game session when the MIDI device list changes` (expected 1 source change, got 3), `App > keeps a running lesson drill when the MIDI device list changes` (expected 1, got 2), `App > keeps a running capstone when the MIDI device list changes` (expected 1, got 2).
+- Driver result: `scripts/audit/browser/midi-permission-fallback.mjs` run against this worktree's web build (a copy of the harness pointed at the worktree `dist/`, isolated `$TMPDIR` data, port 3781; the committed harness hardcodes the main checkout's `dist/`). Baseline against the main checkout's older `dist/` (Oct 19 build) reproduced the bug: after unplug `HUD 0 | 0`, status "Loaded repeat-c4 with 148 notes across 1 tracks.", and again after replug. With the fix, both retain variants: before unplug `HUD 100 | 1`, after unplug `HUD 100 | 1` and the status unchanged, a computer key then scores to `200 | 2`, after replug `200 | 2`, and a MIDI C4 after replug scores (`250 | 3`). The driver's own Space presses now pause the running game (status "Playback paused."), which is the driver script expecting the old reload; it is not a product fault. The driver prints results and has no assertions.
+- Proof owed (agent-runnable): Electron run of the same renderer path (needs the lead's Electron launch under the lock). Human-only: sitting 4 item 3 with a real keyboard unplugged and replugged mid-song (owed, owner sitting).
+- Residual risk: a navigation that sets a new `currentScreen` object for the same song (for example a drill to its next step) still reloads, which is intended. Nothing else changes identity during a run.
+- Revisit trigger: reviewer verification, the Electron run and the owner's sitting 4 item 3.
