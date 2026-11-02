@@ -260,7 +260,11 @@ describe('AudioEngine custom sampler release (PH-MUS-015)', () => {
     await engine.setCustomSampler(BLOB_URLS, null);
     await engine.init();
 
-    const custom = fake.state.samplers.filter((sampler) => sampler.resolvedUrls[0]?.startsWith('blob:'));
+    // Select by the requested sample URLs, not the resolved ones, so this test does not depend on
+    // the PH-PAR-006 base-URL fix to find the sampler.
+    const custom = fake.state.samplers.filter((sampler) =>
+      Object.values(sampler.options.urls as Record<string, string>).some((url) => url.startsWith('blob:')),
+    );
     expect(custom.at(-1)?.options.release).toBe(1.1);
   });
 
@@ -274,7 +278,7 @@ describe('AudioEngine custom sampler release (PH-MUS-015)', () => {
     expect(fake.state.samplers[0].options.release).toBe(1.1);
   });
 
-  it('leaves release unset for an instrument that defines none', async () => {
+  it('passes no sampler-level release for an instrument without a numeric release', async () => {
     const engine = new AudioEngine();
     await engine.setInstrument('warm-pad');
     await engine.setCustomSampler(BLOB_URLS, null);
