@@ -134,4 +134,53 @@ describe('parseMidiFile', () => {
       expect(getMeasureCount(song)).toBe(4);
     });
   });
+
+  describe('first tempo event after tick 0', () => {
+    // late-first-tempo.mid: 4/4, no tempo at tick 0, 60 BPM at tick 1920, quarter notes from tick 0.
+    // SMF keeps 120 BPM until the first Set Tempo event, so bar 1 is 2 s and bar 2 is 4 s (PH-MUS-008).
+    it('keeps 120 BPM until the first tempo event and reports the tick-0 tempo', () => {
+      const song = parseFixture('late-first-tempo');
+      const noteAt = (ticks: number) => song.notes.find((note) => note.ticks === ticks);
+
+      expect(song.bpm).toBe(120);
+      expect(noteAt(1440)?.startSec).toBeCloseTo(1.5, 6);
+      expect(noteAt(1440)?.durationSec).toBeCloseTo(0.5, 6);
+      expect(noteAt(1920)?.startSec).toBeCloseTo(2, 6);
+      expect(noteAt(2400)?.startSec).toBeCloseTo(3, 6);
+      expect(noteAt(3360)?.startSec).toBeCloseTo(5, 6);
+      expect(boundaryTuples(song)).toEqual([
+        [0, 1920, 0, 2],
+        [1920, 3840, 2, 6],
+      ]);
+      expect(song.durationSec).toBeCloseTo(6, 6);
+    });
+
+    it('carries the continuous tempo map on the parsed song', () => {
+      const song = parseFixture('late-first-tempo');
+
+      expect(song.tempoMap).toEqual([
+        { ticks: 0, bpm: 120, timeSec: 0 },
+        { ticks: 1920, bpm: 60, timeSec: 2 },
+      ]);
+    });
+
+    it('carries a single 120 BPM entry when the file has no tempo event', () => {
+      const midi = new Midi();
+      midi.addTrack().addNote({ midi: 60, ticks: 0, durationTicks: 480, velocity: 0.8 });
+      const song = parseMidiFile(midi.toArray().slice().buffer, { songId: 'no-tempo', title: 'No tempo' });
+
+      expect(song.bpm).toBe(120);
+      expect(song.tempoMap).toEqual([{ ticks: 0, bpm: 120, timeSec: 0 }]);
+    });
+
+    it('leaves a file with a tick-0 tempo unchanged', () => {
+      const song = parseFixture('3-4-to-4-4-tempo');
+
+      expect(song.bpm).toBe(120);
+      expect(song.tempoMap).toEqual([
+        { ticks: 0, bpm: 120, timeSec: 0 },
+        { ticks: 3840, bpm: 60, timeSec: 4 },
+      ]);
+    });
+  });
 });

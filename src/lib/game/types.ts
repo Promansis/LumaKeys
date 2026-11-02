@@ -60,6 +60,16 @@ export interface MeasureBoundary {
   endSec: number;
 }
 
+/**
+ * One tempo in force from `ticks` onward. `timeSec` is the song time of that tick, so the map is
+ * continuous: the first entry is always at tick 0 (the SMF default of 120 BPM when the file sets none).
+ */
+export interface TempoChange {
+  ticks: number;
+  bpm: number;
+  timeSec: number;
+}
+
 export interface ParsedSong {
   id: string;
   title: string;
@@ -69,6 +79,7 @@ export interface ParsedSong {
   tracks: ParsedTrack[];
   notes: ParsedNote[];
   measureBoundaries?: MeasureBoundary[];
+  tempoMap?: TempoChange[];
 }
 
 export interface ScheduledNote extends ParsedNote {

@@ -120,7 +120,35 @@ the only clock input (no second tempo factor). Have the effect call it. The coun
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue:
-- Verification evidence:
-- Residual risk:
-- Revisit trigger, if accepted-risk:
+- Fix branch/commit/issue: `remediation/p11-s09-timing`, slice 9, implemented 2026-11-02, awaiting
+  independent review; not merged.
+- What changed: a new pure helper `getBeatAtSongTime` (`src/lib/game/beatClock.ts`) maps song
+  time to a quarter-note beat index and a downbeat flag, from the song's tempo map and
+  `measureBoundaries`. Song time is its only clock input, so the practice tempo is not applied a
+  second time. Beats count from the start of each measure, so the accent falls on the barline in
+  any meter and the spacing follows tempo changes. A song without a tempo map or barlines (the
+  learning drills) falls back to 4/4 at `song.bpm`. `ParsedSong` gained an optional `tempoMap`
+  (see PH-MUS-008). The metronome effect in `GameScreen.tsx` calls the helper and no longer
+  depends on the tempo multiplier. The count-in and lead-in code is unchanged. No audible click
+  sound changed.
+- Tests (`src/lib/game/beatClock.test.ts`, new): `clicks every beat of a 4/4 120 BPM song and
+  accents each barline`; `clicks once per beat of wall time at practice tempo 0.5 / 1 / 1.5` (driven
+  by the real `GameSession` clock: wall gaps 1.0, 0.5 and 0.333 s); `accents the first beat of each
+  6/8 bar and keeps accenting through a change to 3/4`; `doubles the beat spacing after a 120 to
+  60 BPM change and accents the new barline`; `keeps the beat grid continuous when the first tempo
+  event is after tick 0`; the no-tempo-map fallback; monotonicity. All failed before the fix because
+  the helper did not exist (`Failed to resolve import "./beatClock"`); the old formula in
+  `GameScreen.tsx` is the one the finding reproduced (2.0 s wall gaps at 50 %). All pass after.
+  Source identity for the reproduction: `ea89f3e` (product code of the branch base).
+- Driver result: `scripts/audit/browser/metronome-and-quiz.mjs` part B, run against this branch's
+  web build in headless Chromium with an isolated data dir (the harness copied to a temp path so it
+  starts this worktree's `dist/server/index.cjs`; part C skipped with `QUIZZES=0`). At 100 % the
+  playback gaps are 0.50 s; at 50 % they are 1.00 s (7 gaps of 1.00 s; before: 2.00 s). Accent
+  frequency cannot be read from this driver (every click reads 440 Hz at `start()`), so accents
+  rest on the unit tests.
+- Proof owed: optional by-ear check in sitting 1 item 7 (human-only). Agent-runnable: none left.
+- Residual risk: the click is on quarter-note beats in every meter (6/8 gets three clicks per bar,
+  not two dotted-quarter pulses); the first beat at song time 0 is still skipped because the first
+  tick only seeds the counter. `scripts/audit/metronome-replay-probe.ts` still copies the old
+  formula and would show the old behaviour; it was not changed.
+- Revisit trigger: reviewer verification; a request for compound-meter (dotted-quarter) clicks.
