@@ -161,3 +161,69 @@ the fixes above touches them.
   slices as deferred with the reasons in this report.
 - Approved by: pending repository owner
 - Date: 2026-11-02
+
+## Lockfile refresh (slice 23)
+
+Date: 2026-11-02. Base `30165ff`, branch `remediation/p11-s23-lockfile`. Done in a separate
+worktree with its own `npm ci` (`LUMAKEYS_SKIP_ELECTRON_REBUILD=1`, so the Electron probe did
+not run) and `npm update <the 13 fix-now names>`. `package.json` is unchanged (every range
+was already loose enough, including `concurrently ^9.1.2`); no `npm audit fix`. Only
+`package-lock.json` changed.
+
+### Audit totals (packages)
+
+| Command | Before | After |
+|---|---|---|
+| `npm audit --json` | 59: critical 5, high 25, moderate 22, low 7 | **33**: critical 3, high 10, moderate 18, low 2 |
+| `npm audit --omit=dev --json` | 0 | 0 |
+
+26 packages cleared, none newly flagged. (`npm ci` itself printed 58 because it counts
+differently from `npm audit --json` metadata; the JSON total of 59 matches this report's
+baseline.)
+
+### Resolved versions
+
+| Package | Before | After |
+|---|---|---|
+| concurrently | 9.2.1 | 9.2.5 |
+| shell-quote (via concurrently) | 1.8.3 | 1.12.0 |
+| ws | 8.20.0 | 8.22.1 |
+| form-data | 4.0.5 | 4.0.6 |
+| postcss | 8.5.8 | 8.5.32 |
+| nanoid | 3.3.11 | 3.3.20 |
+| source-map-js | 1.2.1 | 1.2.2 |
+| @babel/core | 7.29.0 | 7.29.7 |
+| browserslist | 4.28.2 | 4.29.5 |
+| baseline-browser-mapping | 2.10.13 | 2.11.34 |
+| js-yaml | 4.1.1 | 4.3.2 |
+| tmp | 0.2.5 | 0.2.7 |
+| @xmldom/xmldom | 0.8.12 | 0.8.15 |
+| tsx | 4.21.0 | 4.23.15 |
+| tsx's esbuild | 0.27.7 | 0.28.2 (at or above the 0.28.1 fix) |
+
+tsx 4.23.15 no longer depends on `get-tsconfig` / `resolve-pkg-maps`, so those two entries
+left the lockfile. Unchanged (checked with `npm ls` before and after): electron 44.9.2,
+better-sqlite3 13.0.3, electron-builder 24.13.3, vite 5.4.21, electron-vite 2.3.0, vitest
+2.1.9, top-level esbuild 0.25.12 (the `build:web` bundler); esbuild 0.21.5 under
+electron-vite and vite also unchanged.
+
+### What remains (33 packages, all dev tooling; `--omit=dev` still 0)
+
+- electron-builder 24 tree (major bump to 26): tar (critical), brace-expansion, minimatch,
+  glob, builder-util-runtime, app-builder-lib and their rolled-up parents (archiver,
+  dmg-builder, ejs/jake/filelist, @electron/asar, @electron/universal, config-file-ts,
+  dir-compare, read-config-file, readdir-glob, zip-stream, http-proxy-agent,
+  @tootallnate/once).
+- vitest 2 tree (major bump to 4): vitest and tinypool (critical), @vitest/mocker, vite-node.
+- vite 5 tree (major bump to 6.4.5 or later, with electron-vite 4 or later): vite, the
+  esbuild 0.21.5 copies, electron-vite, @vitejs/plugin-react.
+
+The criticals dropped from 5 to 3 (concurrently/shell-quote cleared; tar, tinypool and
+vitest remain). `glob` was not cleared by an in-range bump.
+
+### Verification
+
+`npm run verify` passed (exit 0): both typechecks, vitest 81 files passed + 1 skipped (82),
+637 tests passed + 1 skipped (638), `npm run build`, `npm run build:web`, Electron asset
+check (647 public files). `npx concurrently --version` prints 9.2.5, and a two-command
+`concurrently "node -e 1" "node -e 1"` run exited 0. `dev:web` was not run.
