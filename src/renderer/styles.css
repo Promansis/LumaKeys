@@ -2596,18 +2596,16 @@ main > .deck-layout-shell {
     row-gap: 6px;
   }
 
-  .immersive-hud-core {
+  .immersive-hud > .immersive-hud-core {
     grid-row: 1;
   }
 
-  .immersive-hud-actions,
-  .free-play-hud-actions,
-  .animal-soundboard-hud-actions {
+  .immersive-hud > .immersive-hud-actions {
     grid-column: 2;
     grid-row: 1;
   }
 
-  .immersive-hud-nav {
+  .immersive-hud > .immersive-hud-nav {
     grid-column: 1 / -1;
     grid-row: 2;
     justify-self: stretch;

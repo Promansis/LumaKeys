@@ -330,15 +330,23 @@ describe('FreePlayScreen', () => {
     const toggleButton = screen.getByRole('button', { name: 'Show visual mode controls' });
     const popout = screen.getByTestId('free-play-visual-popout');
 
-    fireEvent.mouseEnter(toggleButton);
-    expect(popout).toHaveAttribute('aria-hidden', 'false');
+    vi.useFakeTimers();
+    try {
+      fireEvent.mouseEnter(toggleButton);
+      expect(popout).toHaveAttribute('aria-hidden', 'false');
 
-    fireEvent.click(toggleButton);
-    fireEvent.mouseLeave(toggleButton);
-    expect(popout).toHaveAttribute('aria-hidden', 'false');
+      fireEvent.click(toggleButton);
+      fireEvent.mouseLeave(toggleButton);
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(popout).toHaveAttribute('aria-hidden', 'false');
 
-    fireEvent.click(toggleButton);
-    expect(popout).toHaveAttribute('aria-hidden', 'true');
+      fireEvent.click(toggleButton);
+      expect(popout).toHaveAttribute('aria-hidden', 'true');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('keeps the visual popout open while moving from the toggle into the panel', () => {
