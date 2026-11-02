@@ -3,7 +3,7 @@
 - Lane: DATA
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-20
 - Verifier: TBD
@@ -73,7 +73,7 @@ session-only message and toast that settings use.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: `remediation/p11-s12-learning`, slice 12 (Learning Flow, with PH-MUS-013, PH-UI-018 and PH-DATA-009 on one branch), implemented 2026-11-02, awaiting independent review; not merged. The commit hash is in the slice hand-back, since a document cannot name its own commit.
+- Fix branch/commit/issue: `remediation/p11-s12-learning`, slice 12 (Learning Flow, with PH-MUS-013, PH-UI-018 and PH-DATA-009 on one branch), implemented and independently reviewed 2026-11-02; merged to `main` in `571571b`; `fixed`, not `verified`: the Electron learning driver run (lead) and owner sitting 1 capstone on a real MIDI keyboard are owed. The commit hash is in the slice hand-back, since a document cannot name its own commit.
 - What changed: `updateLearningProgressState` in `src/renderer/App.tsx` no longer saves from inside a state updater. It computes the next progress from a ref outside any updater, sets state, and awaits `saveLearningProgress` through a serial chain so two quick changes write in order. If the write fails it logs, shows the same session-only message Settings uses ("Lesson progress is active for this session only. Save failed; try again.") and pushes an error toast "Lesson progress not saved". Callers use `void`, so a rejected write is no longer an unhandled rejection. The Strict Mode double-run of an updater can no longer save twice.
 - Tests: `src/renderer/App.test.tsx` `lesson drill result > tells the player when progress could not be saved, without an unhandled rejection` failed before (no "Lesson progress not saved" text) and passes after; it also asserts the session-only banner and that no `unhandledRejection` fires. Source identity for the reproduction: product code equal to `ccc68c2`.
 - Driver result: `scripts/audit/electron/lesson-pass.mjs` (desktop, `$TMPDIR` profile, one launch at a time) and `scripts/audit/browser/lesson-progression.mjs` (web, `$TMPDIR` data dir, port 3781) were updated and run against this branch through the new `LUMAKEYS_REPO` override (default unchanged). Web: with `setSetting` forced to return 500, Complete Tip showed the "Startup Defaults Active / Lesson progress is active for this session only" banner and the "Lesson progress not saved" error toast, the completed step stayed complete for the session (the IN PROGRESS badge is on the next step), and a reload showed the lesson as it was before the change.

@@ -3,7 +3,7 @@
 - Lane: UI
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-20
 - Verifier: TBD
@@ -73,7 +73,7 @@ step's pass mark ("72% of 80% needed. Try again.").
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: `remediation/p11-s12-learning`, slice 12 (Learning Flow, with PH-MUS-013, PH-UI-018 and PH-DATA-009 on one branch), implemented 2026-11-02, awaiting independent review; not merged. The commit hash is in the slice hand-back, since a document cannot name its own commit.
+- Fix branch/commit/issue: `remediation/p11-s12-learning`, slice 12 (Learning Flow, with PH-MUS-013, PH-UI-018 and PH-DATA-009 on one branch), implemented and independently reviewed 2026-11-02; merged to `main` in `571571b`; `fixed`, not `verified`: the Electron learning driver run (lead) and owner sitting 1 capstone on a real MIDI keyboard are owed. The commit hash is in the slice hand-back, since a document cannot name its own commit.
 - What changed: the `lesson` screen state carries `lastAttempt` (`stepIndex`, `accuracy`, `target`). `handleLearningSessionResult` sets it when a drill misses its pass mark, with the accuracy rounded down so a near miss never reads as a pass, and `LessonScreen` shows "<accuracy>% of <target>% needed. Try again." on that step only (not on tips, and not on another step). A passing drill sets nothing.
 - Tests: `src/renderer/App.test.tsx` `lesson drill result > shows the accuracy and the target after a drill that missed its pass mark` failed before (no `lesson-last-attempt` element) and passes after; `shows no failed-attempt message after a drill that passed` passes before and after (guard). `src/renderer/components/LessonScreen.test.tsx` `shows the accuracy and the pass mark on the step that missed it` failed before (text not found, prop did not exist) and passes after; `shows nothing when the attempt belongs to another step or there was none` is the guard. Source identity for the reproduction: product code equal to `ccc68c2`.
 - Driver result: `scripts/audit/electron/lesson-pass.mjs` (desktop, `$TMPDIR` profile, one launch at a time) and `scripts/audit/browser/lesson-progression.mjs` (web, `$TMPDIR` data dir, port 3781) were updated and run against this branch through the new `LUMAKEYS_REPO` override (default unchanged). Web: a failed lesson 2 drill with no input returned to the lesson showing "0% of 70% needed. Try again." with the step still IN PROGRESS; a drill spam run that scored 68% showed "68% of 70% needed. Try again." Desktop: the passing drill showed no failed-attempt message.

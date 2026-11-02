@@ -63,7 +63,7 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-MUS-008 | A MIDI file whose first tempo event comes after tick 0 is timed with a jump at that event | MUS | P3 | high | runtime-independent | fixed | WF-004, WF-008, MOD-011 | [PH-MUS-008](reports/findings/PH-MUS-008.md) | Claude Code (acting) |
 | PH-MUS-009 | Theory quiz and interval trainer place the correct answer first or last more often than chance | MUS | P3 | high | both | accepted | WF-012, WF-013 | [PH-MUS-009](reports/findings/PH-MUS-009.md) | Claude Code (acting) |
 | PH-OPS-006 | A desktop startup failure leaves a running process with no window and the error only on stderr | OPS | P2 | high | Electron | fixed | OP-015, DATA-017 | [PH-OPS-006](reports/findings/PH-OPS-006.md) | Claude Code (acting) |
-| PH-UI-006 | Deleting songs has no confirmation and silently removes their practice history | UI | P2 | high | both | accepted | WF-007 | [PH-UI-006](reports/findings/PH-UI-006.md) | Claude Code (acting) |
+| PH-UI-006 | Deleting songs has no confirmation and silently removes their practice history | UI | P2 | high | both | fixed | WF-007 | [PH-UI-006](reports/findings/PH-UI-006.md) | Claude Code (acting) |
 | PH-UI-007 | The library "Date Added" filter mixes UTC and local time and misplaces songs by up to a day | UI | P3 | high | both | accepted | WF-007 | [PH-UI-007](reports/findings/PH-UI-007.md) | Claude Code (acting) |
 | PH-UI-008 | Playlist order can only be changed by dragging | UI | P3 | high | both | accepted | WF-007 | [PH-UI-008](reports/findings/PH-UI-008.md) | Claude Code (acting) |
 | PH-UI-009 | A failed upload still tells the user to "Review the metadata before playing" | UI | P3 | high | both | accepted | WF-025, WF-004 | [PH-UI-009](reports/findings/PH-UI-009.md) | Claude Code (acting) |
@@ -82,16 +82,16 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-MUS-011 | A saved MIDI device that is gone keeps filtering input while Settings reads "Any connected device" | MUS | P2 | high | both | fixed | WF-002, WF-018, RT-011 | [PH-MUS-011](reports/findings/PH-MUS-011.md) | Claude Code (acting) |
 | PH-PAR-007 | The web app stays on "Loading services..." until the MIDI permission prompt is answered | PAR | P2 | high | web | fixed | WF-001, WF-002, RT-011 | [PH-PAR-007](reports/findings/PH-PAR-007.md) | Claude Code (acting) |
 | PH-DATA-008 | Unbinding a key does not survive a reload, so remapped keys come back doubled | DATA | P3 | high | both | accepted | WF-003, DATA-016 | [PH-DATA-008](reports/findings/PH-DATA-008.md) | Claude Code (acting) |
-| PH-UI-018 | A lesson drill that falls short returns to the lesson with no score and no target | UI | P3 | high | both | accepted | WF-011 | [PH-UI-018](reports/findings/PH-UI-018.md) | Claude Code (acting) |
-| PH-DATA-009 | Lesson progress that fails to save is lost without a message | DATA | P3 | high | both | accepted | WF-011, DATA-016 | [PH-DATA-009](reports/findings/PH-DATA-009.md) | Claude Code (acting) |
+| PH-UI-018 | A lesson drill that falls short returns to the lesson with no score and no target | UI | P3 | high | both | fixed | WF-011 | [PH-UI-018](reports/findings/PH-UI-018.md) | Claude Code (acting) |
+| PH-DATA-009 | Lesson progress that fails to save is lost without a message | DATA | P3 | high | both | fixed | WF-011, DATA-016 | [PH-DATA-009](reports/findings/PH-DATA-009.md) | Claude Code (acting) |
 | PH-MUS-012 | Notes pressed while the song is not playing (before Space, during the count-in, or while paused) are judged against the frozen clock and score | MUS | P3 | high | both | fixed | WF-009, WF-011, WF-014, MOD-003, MOD-011 | [PH-MUS-012](reports/findings/PH-MUS-012.md) | Claude Code (acting) |
-| PH-MUS-013 | Capstone accuracy in wait-for-input mode rewards waiting and penalises anticipation, so the tier gate does not measure timing | MUS | P3 | high | both | accepted | WF-011, MOD-011 | [PH-MUS-013](reports/findings/PH-MUS-013.md) | Claude Code (acting) |
+| PH-MUS-013 | Capstone accuracy in wait-for-input mode rewards waiting and penalises anticipation, so the tier gate does not measure timing | MUS | P3 | high | both | fixed | WF-011, MOD-011 | [PH-MUS-013](reports/findings/PH-MUS-013.md) | Claude Code (acting) |
 | PH-MUS-014 | On a fresh profile the app plays about 60 dB too quietly while Settings shows the default volumes | MUS | P1 | high | both | fixed | WF-015, WF-016, WF-018, WF-009 | [PH-MUS-014](reports/findings/PH-MUS-014.md) | Claude Code (acting) |
 | PH-MUS-015 | Installed instrument packs cut notes off 0.1 s after release | MUS | P3 | high | Electron | fixed | WF-019 | [PH-MUS-015](reports/findings/PH-MUS-015.md) | Claude Code (acting) |
 | PH-MUS-016 | In a loop, a downbeat played slightly early at the seam is dropped | MUS | P3 | high | both | fixed | WF-009, WF-002 | [PH-MUS-016](reports/findings/PH-MUS-016.md) | Claude Code (acting) |
 | PH-UI-019 | Ctrl+0 cannot reset the zoom because the computer keyboard takes Digit0 as a note | UI | P3 | high | both | fixed | RT-006 | [PH-UI-019](reports/findings/PH-UI-019.md) | Claude Code (acting) |
 | PH-MUS-017 | Changing a track assignment silently deletes every saved fingering for the song | MUS | P2 | high | both | fixed | WF-008, DATA-007, BR-034, MOD-003 | [PH-MUS-017](reports/findings/PH-MUS-017.md) | Claude Code (acting) |
-| PH-DATA-010 | The reset confirmation does not name packs, practice history or fingerings, and on the web says "from this device" for server-side data | DATA | P3 | high | both | accepted | DATA-014, OP-009, WF-022 | [PH-DATA-010](reports/findings/PH-DATA-010.md) | Claude Code (acting) |
+| PH-DATA-010 | The reset confirmation does not name packs, practice history or fingerings, and on the web says "from this device" for server-side data | DATA | P3 | high | both | fixed | DATA-014, OP-009, WF-022 | [PH-DATA-010](reports/findings/PH-DATA-010.md) | Claude Code (acting) |
 | PH-UI-020 | The song-load error panel does not take focus, and Retry is about 54 Tab presses away | UI | P3 | high | both | accepted | WF-009, RT-008, MOD-003 | [PH-UI-020](reports/findings/PH-UI-020.md) | Claude Code (acting) |
 | PH-MUS-018 | On a fresh profile the count-in after the 3-2-1 countdown is lost while Settings shows 2 lead-in beats | MUS | P3 | high | both | verified | WF-009, WF-018, MOD-002, MOD-003 | [PH-MUS-018](reports/findings/PH-MUS-018.md) | Claude Code (acting) |
 | PH-UI-021 | Since the Electron 44 upgrade every desktop file dialog opens in Downloads and forgets the last folder | UI | P3 | high | Electron | fixed | WF-004, WF-005, WF-006, WF-020, MOD-008 | [PH-UI-021](reports/findings/PH-UI-021.md) | Claude Code (acting) |
@@ -223,6 +223,16 @@ in the detailed report.
   Hand sequence (slice 20); the owner owes sitting 4 items 3 and 6, a real unwritable profile on
   Windows and macOS, and the fresh-Chrome check with the prompt unanswered for 30 s (sitting 1
   item 8). Counts: 72 findings (13 verified, 33 fixed, 25 accepted, 1 accepted-risk). See
+  [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#remediation-progress-2026-10-21).
+
+- Phase 11 wave 2 merges, 2026-11-02 (third batch): slices 21 (`cb8926e`), 12 (`571571b`) and 8
+  (`c1a1fbf`) merged to local `main` after independent review. Slice 21 (ADR 0002 items 3, 4, 6
+  and 7) has no finding rows. PH-MUS-013, PH-UI-018, PH-DATA-009, PH-UI-006 and PH-DATA-010 moved
+  from `accepted` to `fixed`. None is `verified`: the lead owes the Electron userdata probe rerun
+  on a main build (slice 21), the Electron learning driver run (slice 12) and the
+  `library-one-hand.mjs` A2/A3 rerun (slice 8); the owner owes sitting 1 capstone on a real MIDI
+  keyboard and a keyboard-only and screen-reader read of the delete prompt and the new Delete User
+  Data wording. Counts: 72 findings (13 verified, 38 fixed, 20 accepted, 1 accepted-risk). See
   [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#remediation-progress-2026-10-21).
 
 - PH-DATA-001 is the canonical cross-store atomicity finding for backup restore,

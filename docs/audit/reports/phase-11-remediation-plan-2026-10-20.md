@@ -146,6 +146,9 @@ in `64a8160` (ADR 0002, `CONTEXT.md`, and the audit's citations):
   | `c03f220` | Slice 20, fingering preservation (merged 2026-11-02) | PH-MUS-017 | `fixed`; independently reviewed. The web-bridge Ignore to Left Hand sequence in headless Chromium (lead) owed; the Electron `proof-mus-003.mjs` already passes 27/27 |
   | `c8f9b1a` | Slice 19, destructive-operation failures (merged 2026-11-02) | PH-DATA-001 | `fixed` (reopened to `accepted` on 2026-10-21); independently reviewed. A real unwritable profile on Windows and macOS (owner) owed; the web 31/31 and Electron 40/40 integrity drivers ran on the branch build |
   | `8fc933f` | Slice 7, web startup without MIDI permission (merged 2026-11-02) | PH-PAR-007 | `fixed`; independently reviewed. The owner fresh-Chrome check with the prompt left unanswered for 30 s (sitting 1 item 8) owed |
+  | `cb8926e` | Slice 21, ADR 0002 window items 3, 4, 6 and 7 (merged 2026-11-02) | none (ADR 0002 items) | Independently reviewed; no finding changes status. The Electron userdata probe rerun on a main build (lead) owed |
+  | `571571b` | Slice 12, learning flow (merged 2026-11-02) | PH-MUS-013, PH-UI-018, PH-DATA-009 | `fixed`; independently reviewed. The Electron learning driver run (lead) and owner sitting 1 capstone on a real MIDI keyboard owed |
+  | `c1a1fbf` | Slice 8, delete confirmation (merged 2026-11-02) | PH-UI-006, PH-DATA-010 | `fixed`; independently reviewed. The `library-one-hand.mjs` A2/A3 rerun after its `toLibrary` change (lead) and the owner keyboard-only and screen-reader read of the delete prompt and the new Delete User Data wording owed |
 
 - The owner ran `npm ci` in the main checkout on 2026-10-21, so its `node_modules` now holds
   Electron 44.9.2 and better-sqlite3 13.0.3 (user tests G1, pass). Since better-sqlite3 13,
@@ -1577,7 +1580,7 @@ Docker sets `/data`, which is absolute. Rollback: code revert.
 
 ## Proof Owed By Fixed Findings
 
-These 33 findings are `fixed`, not `verified`. None needs new product code unless noted.
+These 38 findings are `fixed`, not `verified`. None needs new product code unless noted.
 The owner sittings run by the agent on 2026-10-20
 ([report](phase-11-owner-sittings-2026-10-20.md)) moved PH-PAR-002, PH-UI-001, PH-UI-002
 and PH-UI-004 to `verified`. The [agent proofs](phase-11-agent-proofs-2026-10-21.md) of
@@ -1592,7 +1595,7 @@ PH-SEC-002, PH-SEC-003, PH-OPS-005, PH-MUS-014), so they joined it. On the same 
 PH-DATA-007, PH-OPS-003, PH-SEC-005); PH-DATA-007 then passed its headless Electron run, moved
 to `verified` and left this table. The follow-ups merged at `93ac583` fixed three more:
 PH-SEC-006 and PH-UI-021 joined, and PH-MUS-018 passed its desktop and web runs and went
-straight to `verified`. On 2026-11-02 wave 2 slices 6, 4 and 9 merged (`c7216e2`, `ea89f3e`, `6f327c9`) and moved nine more from `accepted` to `fixed`: PH-PAR-006, PH-MUS-007, PH-MUS-015, PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019, PH-MUS-006, PH-MUS-008. Then slices 5, 20, 19 and 7 merged (`ccc68c2`, `c03f220`, `c8f9b1a`, `8fc933f`) and moved five more to `fixed`: PH-MUS-010, PH-MUS-011, PH-MUS-017, PH-DATA-001, PH-PAR-007. The proof each of the 33 still owes follows. The
+straight to `verified`. On 2026-11-02 wave 2 slices 6, 4 and 9 merged (`c7216e2`, `ea89f3e`, `6f327c9`) and moved nine more from `accepted` to `fixed`: PH-PAR-006, PH-MUS-007, PH-MUS-015, PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019, PH-MUS-006, PH-MUS-008. Then slices 5, 20, 19 and 7 merged (`ccc68c2`, `c03f220`, `c8f9b1a`, `8fc933f`) and moved five more to `fixed`: PH-MUS-010, PH-MUS-011, PH-MUS-017, PH-DATA-001, PH-PAR-007. Then slices 21, 12 and 8 merged (`cb8926e`, `571571b`, `c1a1fbf`; slice 21 has no finding rows) and moved five more to `fixed`: PH-MUS-013, PH-UI-018, PH-DATA-009, PH-UI-006, PH-DATA-010. The proof each of the 38 still owes follows. The
 packaged runs "with the real lock" cannot run in the agent sandbox (the single-instance
 lock needs a Unix socket); they run outside it, if the owner allows that through
 `/sandbox`, or the real-display checks cover them:
@@ -1632,6 +1635,11 @@ lock needs a Unix socket); they run outside it, if the owner allows that through
 | PH-MUS-017 | P2 | The web-bridge Ignore to Left Hand sequence in headless Chromium (lead). Slice 20 merged in `c03f220`; the Electron `proof-mus-003.mjs` already passes 27/27 | lead |
 | PH-DATA-001 | P2 | A real unwritable profile on Windows and macOS. Slice 19 merged in `c8f9b1a`; the web 31/31 and Electron 40/40 integrity drivers ran on the branch build | owner |
 | PH-PAR-007 | P2 | Fresh Chrome with the MIDI permission prompt left unanswered for 30 s: the app loads (owner sitting 1 item 8). Slice 7 merged in `8fc933f` | owner sitting 1 item 8 |
+| PH-MUS-013 | P3 | The Electron learning driver run (lead), then owner sitting 1 capstone on a real MIDI keyboard: late presses no longer pass the gate. Slice 12 merged in `571571b` | lead; owner sitting 1 |
+| PH-UI-018 | P3 | The Electron learning driver run (lead): a drill that falls short returns to the lesson with its score and target. Slice 12 merged in `571571b` | lead |
+| PH-DATA-009 | P3 | The Electron learning driver run (lead): a lesson progress save that fails shows the error toast. Slice 12 merged in `571571b` | lead |
+| PH-UI-006 | P2 | `scripts/audit/electron/library-one-hand.mjs` A2/A3 rerun after its `toLibrary` change (lead), then the owner keyboard-only and screen-reader read of the delete prompt. Slice 8 merged in `c1a1fbf` | lead; owner |
+| PH-DATA-010 | P3 | The owner keyboard-only and screen-reader read of the new Delete User Data wording, on both runtimes. Slice 8 merged in `c1a1fbf` | owner |
 
 ## Phase 11 Remediation Start Gate
 

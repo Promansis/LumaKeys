@@ -213,7 +213,8 @@ Current failures on the audited baseline:
    - [PH-MUS-006](findings/PH-MUS-006.md): the metronome is wrong at any practice tempo
      other than 100 %.
    - [PH-MUS-012](findings/PH-MUS-012.md) and [PH-MUS-013](findings/PH-MUS-013.md): notes
-     score before the song starts, and the capstone gate does not measure timing.
+     score before the song starts, and the capstone gate does not measure timing
+     (PH-MUS-013 fixed in wave 2, `571571b`; awaiting proof).
    - [PH-MUS-016](findings/PH-MUS-016.md): a downbeat played slightly early at a loop
      seam is dropped, and Learn mode then waits on it.
 6. Features that report success and do nothing:
@@ -222,7 +223,7 @@ Current failures on the audited baseline:
    - [PH-PAR-007](findings/PH-PAR-007.md): the web app does not load until the MIDI
      prompt is answered (fixed in wave 2, `8fc933f`; awaiting proof).
 7. [PH-UI-006](findings/PH-UI-006.md): two clicks delete every song and its practice
-   history, with no confirmation.
+   history, with no confirmation (fixed in wave 2, `c1a1fbf`; awaiting proof).
 8. Keyboard and zoom access:
    - [PH-UI-010](findings/PH-UI-010.md): the latency calibration dialog is not keyboard
      operable.
@@ -336,7 +337,7 @@ One finding was accepted as a risk after consolidation: [PH-OPS-004](findings/PH
 | PH-DATA-005 Windows half | A real `%APPDATA%\luma-keys` profile update. Slice 1 merged on 2026-10-21 (`c95586b`); the check needs a new Windows build from `main` at `a84acb0` or later | Owner, sitting 2 | After the new Windows build |
 | RT-006 residual | Edge's own browser zoom (Edge was checked with emulated zoom) | Owner, user tests D1 (optional) | After slice 11 |
 | RT-011, PH-MUS-001, PH-MUS-002, PH-MUS-004 | A physical MIDI keyboard: driver, OS path, Chrome's permission prompt, latency feel and a musician's check of loop labels. Slice 5 merged 2026-11-02 (`ccc68c2`): PH-MUS-010 and PH-MUS-011 are `fixed` and owe sitting 4 items 3 and 6 | Owner, user tests C | After slices 4 and 5 |
-| 17 fixed findings not yet `verified` (7 at consolidation) | Each one's owed proof is listed in the [remediation plan](phase-11-remediation-plan-2026-10-20.md#proof-owed-by-fixed-findings). Four of the earlier 12 were verified on 2026-10-21 and PH-DATA-001 was reopened. Slice 0 then verified PH-ARCH-001, and slices 2, 0 and 18 added PH-OPS-002, PH-SEC-002, PH-SEC-003, PH-OPS-005 and PH-MUS-014 as `fixed` (2026-10-21). Slices 1, 15 and 3 then added PH-DATA-005, PH-DATA-006, PH-OPS-006, PH-DATA-004, PH-DATA-007, PH-OPS-003 and PH-SEC-005 as `fixed` (2026-10-21), and PH-DATA-007 then moved to `verified` after its headless Electron run. On 2026-11-02 slices 6, 4 and 9 (`c7216e2`, `ea89f3e`, `6f327c9`) added PH-PAR-006, PH-MUS-007, PH-MUS-015, PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019, PH-MUS-006 and PH-MUS-008 as `fixed`, then slices 5, 20, 19 and 7 (`ccc68c2`, `c03f220`, `c8f9b1a`, `8fc933f`) added PH-MUS-010, PH-MUS-011, PH-MUS-017, PH-DATA-001 and PH-PAR-007 as `fixed`, so 33 are now `fixed` | Claude Code (acting) and owner sittings | When the named sitting, deploy or GitHub run happens |
+| 17 fixed findings not yet `verified` (7 at consolidation) | Each one's owed proof is listed in the [remediation plan](phase-11-remediation-plan-2026-10-20.md#proof-owed-by-fixed-findings). Four of the earlier 12 were verified on 2026-10-21 and PH-DATA-001 was reopened. Slice 0 then verified PH-ARCH-001, and slices 2, 0 and 18 added PH-OPS-002, PH-SEC-002, PH-SEC-003, PH-OPS-005 and PH-MUS-014 as `fixed` (2026-10-21). Slices 1, 15 and 3 then added PH-DATA-005, PH-DATA-006, PH-OPS-006, PH-DATA-004, PH-DATA-007, PH-OPS-003 and PH-SEC-005 as `fixed` (2026-10-21), and PH-DATA-007 then moved to `verified` after its headless Electron run. On 2026-11-02 slices 6, 4 and 9 (`c7216e2`, `ea89f3e`, `6f327c9`) added PH-PAR-006, PH-MUS-007, PH-MUS-015, PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019, PH-MUS-006 and PH-MUS-008 as `fixed`, then slices 5, 20, 19 and 7 (`ccc68c2`, `c03f220`, `c8f9b1a`, `8fc933f`) added PH-MUS-010, PH-MUS-011, PH-MUS-017, PH-DATA-001 and PH-PAR-007 as `fixed`, then slices 21, 12 and 8 (`cb8926e`, `571571b`, `c1a1fbf`; slice 21 has no finding rows) added PH-MUS-013, PH-UI-018, PH-DATA-009, PH-UI-006 and PH-DATA-010 as `fixed`, so 38 are now `fixed` | Claude Code (acting) and owner sittings | When the named sitting, deploy or GitHub run happens |
 | `CLAUDE.md` and `AGENTS.md` | Closed 2026-10-21. Decision 3 keeps them gitignored. Task D1 moved the architecture and runtime content the audit cites into tracked documents (`CONTEXT.md`, ADR 0002) and repointed the citations, so a fresh clone has what the audit relies on. Merged to `main` in `64a8160` after a documentation review. The facts in `CONTEXT.md` change with the slices that change them | Claude Code (acting), task D1 | When a slice changes a cited runtime fact (the slice updates `CONTEXT.md`) |
 
 ## Remediation Roadmap
@@ -357,11 +358,11 @@ added slice 18 to wave 1 on 2026-10-21 (decision 5). Slices 19 and 20, added on
 | 5 | PH-MUS-010, PH-MUS-011 | MIDI device changes neither restart the song nor silently filter input. Merged 2026-11-02 (`ccc68c2`), `fixed` |
 | 6 | PH-PAR-006, PH-MUS-007, PH-MUS-015 | Installed web packs play; WAV export has sound; desktop packs release naturally. Merged 2026-11-02 (`c7216e2`), `fixed` |
 | 7 | PH-PAR-007 | The web app loads without answering the MIDI prompt. Merged 2026-11-02 (`8fc933f`), `fixed` |
-| 8 | PH-UI-006, PH-DATA-010 | Song deletion asks first; the reset dialog names everything it removes |
+| 8 | PH-UI-006, PH-DATA-010 | Song deletion asks first; the reset dialog names everything it removes. Merged 2026-11-02 (`c1a1fbf`), `fixed` |
 | 9 | PH-MUS-006, PH-MUS-008 | Metronome and late first-tempo timing are correct. Merged 2026-11-02 (`6f327c9`), `fixed` |
 | 10 | PH-UI-010, PH-UI-013, PH-UI-017, PH-UI-020 | Dialogs own focus and Escape; the load-error panel takes focus |
 | 11 | PH-UI-011, PH-UI-012, PH-UI-014 | Navigation focus is visible and the HUD fits at 150 to 200 % |
-| 12 | PH-MUS-013, PH-UI-018, PH-DATA-009 | Capstones measure timing; drill results and save failures are shown |
+| 12 | PH-MUS-013, PH-UI-018, PH-DATA-009 | Capstones measure timing; drill results and save failures are shown. Merged 2026-11-02 (`571571b`), `fixed` |
 | 13 | PH-PAR-004, PH-UI-009, PH-ARCH-004, PH-SEC-004 | Import outcomes are accurate and cheap |
 | 14 | PH-DATA-008, PH-ARCH-003 | Settings values survive reload with their declared type |
 | 15 | PH-DATA-004, PH-DATA-007 | Browser stores renamed in August are carried over |
