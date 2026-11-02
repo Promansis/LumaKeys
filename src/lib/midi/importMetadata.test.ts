@@ -26,6 +26,20 @@ describe('imported song titles', () => {
   });
 });
 
+describe('imported song tempo (PH-MUS-019)', () => {
+  it('stores the dominant tempo of a slow intro and a longer fast body, not the first tempo', () => {
+    const midi = new Midi();
+    midi.header.tempos.push({ ticks: 0, bpm: 40 }, { ticks: 1920, bpm: 160 });
+    midi.header.update();
+    const track = midi.addTrack();
+    for (let index = 0; index < 24; index += 1) {
+      track.addNote({ midi: 60 + (index % 5), ticks: index * 480, durationTicks: 480, velocity: 0.8 });
+    }
+
+    expect(computeSongMetadata(midi.toArray(), 'Slow intro').bpm).toBe(160);
+  });
+});
+
 function makeNote(overrides: Partial<ParsedNote>): ParsedNote {
   return {
     id: overrides.id ?? 'n',

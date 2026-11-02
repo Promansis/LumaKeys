@@ -1,5 +1,6 @@
 import * as MidiPackage from '@tonejs/midi';
 import { getPulseTicks } from '../game/beatClock';
+import { getDominantTempo } from './dominantTempo';
 import { defaultAssignmentForNotes, defaultHandForMidi, noteNumberToName } from '../game/songUtils';
 import type { ParsedNote, ParsedSong, ParsedTrack, TempoChange } from '../game/types';
 
@@ -90,7 +91,6 @@ export function parseMidiFile(arrayBuffer: ArrayBuffer, meta: MidiSourceMeta): P
   const midi = new MidiCtor(arrayBuffer);
   ensureTempoAtTickZero(midi);
   const tempoMap = buildTempoMap(midi);
-  const bpm = tempoMap[0].bpm;
 
   const tracks: ParsedTrack[] = midi.tracks.map((track: MidiTrack, index: number) => {
     const trackId = `track-${index}`;
@@ -120,6 +120,13 @@ export function parseMidiFile(arrayBuffer: ArrayBuffer, meta: MidiSourceMeta): P
     })),
   );
 
+  const sortedNotes = notes.sort((left, right) => left.startSec - right.startSec || left.midi - right.midi);
+  // The song's tempo is the one it spends the most time at while notes play. The tempo map stays the
+  // timing source; only this number, which the Library shows and the difficulty score reads, is a summary.
+  const spanStartSec = sortedNotes.length > 0 ? sortedNotes[0].startSec : 0;
+  const spanEndSec = sortedNotes.reduce((end, note) => Math.max(end, note.startSec + note.durationSec), spanStartSec);
+  const bpm = getDominantTempo(tempoMap, spanStartSec, spanEndSec);
+
   return {
     id: meta.songId,
     title: meta.title,
@@ -127,7 +134,7 @@ export function parseMidiFile(arrayBuffer: ArrayBuffer, meta: MidiSourceMeta): P
     bpm,
     durationSec: midi.duration,
     tracks,
-    notes: notes.sort((left, right) => left.startSec - right.startSec || left.midi - right.midi),
+    notes: sortedNotes,
     measureBoundaries: buildMeasureBoundaries(midi),
     tempoMap,
   };

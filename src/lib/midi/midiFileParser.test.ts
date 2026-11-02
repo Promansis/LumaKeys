@@ -14,6 +14,24 @@ function parseFixture(name: string) {
   return parseMidiFile(new Uint8Array(bytes).buffer, { songId: name, title: name });
 }
 
+// Builds a 480-ppq file with the given tempo events and `noteCount` quarter notes from tick 0.
+function buildTempoFile(tempos: Array<[ticks: number, bpm: number]>, noteCount: number): ArrayBuffer {
+  const midi = new Midi();
+  for (const [ticks, bpm] of tempos) {
+    midi.header.tempos.push({ ticks, bpm });
+  }
+  midi.header.update();
+  const track = midi.addTrack();
+  for (let index = 0; index < noteCount; index += 1) {
+    track.addNote({ midi: 60 + (index % 5), ticks: index * 480, durationTicks: 480, velocity: 0.8 });
+  }
+  return midi.toArray().slice().buffer;
+}
+
+function parseTempoFile(tempos: Array<[ticks: number, bpm: number]>, noteCount: number) {
+  return parseMidiFile(buildTempoFile(tempos, noteCount), { songId: 'tempo', title: 'Tempo' });
+}
+
 function boundaryTuples(song: ReturnType<typeof parseFixture>) {
   return (song.measureBoundaries ?? []).map((b) => [b.startTick, b.endTick, b.startSec, b.endSec]);
 }
@@ -138,11 +156,12 @@ describe('parseMidiFile', () => {
   describe('first tempo event after tick 0', () => {
     // late-first-tempo.mid: 4/4, no tempo at tick 0, 60 BPM at tick 1920, quarter notes from tick 0.
     // SMF keeps 120 BPM until the first Set Tempo event, so bar 1 is 2 s and bar 2 is 4 s (PH-MUS-008).
-    it('keeps 120 BPM until the first tempo event and reports the tick-0 tempo', () => {
+    it('keeps 120 BPM until the first tempo event and times the notes continuously', () => {
       const song = parseFixture('late-first-tempo');
       const noteAt = (ticks: number) => song.notes.find((note) => note.ticks === ticks);
 
-      expect(song.bpm).toBe(120);
+      // The song spends 2 s at 120 BPM and 4 s at 60 BPM, so 60 is its tempo (PH-MUS-019).
+      expect(song.bpm).toBe(60);
       expect(noteAt(1440)?.startSec).toBeCloseTo(1.5, 6);
       expect(noteAt(1440)?.durationSec).toBeCloseTo(0.5, 6);
       expect(noteAt(1920)?.startSec).toBeCloseTo(2, 6);
@@ -176,11 +195,39 @@ describe('parseMidiFile', () => {
     it('leaves a file with a tick-0 tempo unchanged', () => {
       const song = parseFixture('3-4-to-4-4-tempo');
 
-      expect(song.bpm).toBe(120);
+      // The tempo map is untouched; the song tempo is the longer-lasting 60 BPM (PH-MUS-019).
+      expect(song.bpm).toBe(60);
       expect(song.tempoMap).toEqual([
         { ticks: 0, bpm: 120, timeSec: 0 },
         { ticks: 3840, bpm: 60, timeSec: 4 },
       ]);
+    });
+  });
+  describe('song tempo (PH-MUS-019)', () => {
+    it('reports the dominant tempo of a slow intro and a longer fast body, not the first tempo', () => {
+      // 40 BPM for 4 beats (6 s), then 160 BPM for 20 beats (7.5 s).
+      const song = parseTempoFile([[0, 40], [1920, 160]], 24);
+
+      expect(song.tempoMap?.map((tempo) => tempo.bpm)).toEqual([40, 160]);
+      expect(song.bpm).toBe(160);
+    });
+
+    it('reports the longer slow body of a fast intro', () => {
+      const song = parseTempoFile([[0, 160], [1920, 60]], 24);
+
+      expect(song.bpm).toBe(60);
+    });
+
+    it('does not let the inserted 120 BPM placeholder win over a later first tempo that lasts', () => {
+      // 120 BPM until tick 1920 (2 s), then 90 BPM for the other 20 beats.
+      const song = parseTempoFile([[1920, 90]], 24);
+
+      expect(song.tempoMap?.[0]).toMatchObject({ ticks: 0, bpm: 120 });
+      expect(song.bpm).toBeCloseTo(90, 3);
+    });
+
+    it('keeps a constant tempo as is', () => {
+      expect(parseTempoFile([[0, 96]], 8).bpm).toBe(96);
     });
   });
 });
