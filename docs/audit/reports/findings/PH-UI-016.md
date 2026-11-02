@@ -73,7 +73,21 @@ Use theme-aware grade colours (mix with white in dark themes). Owning module: `s
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: none.
-- Verification evidence: none yet.
-- Residual risk: other themes unmeasured.
-- Revisit trigger, if accepted-risk: n/a.
+- Fix branch/commit/issue: `remediation/p11-s16-colour`, slice 16, implemented 2026-11-02, awaiting independent review; not merged. Status is left for the lead.
+- What changed: `src/renderer/styles.css` gains `--grade-ink-mix` (`black` in `:root`, which `warm` and `light` inherit; `white` in `[data-theme="dark"]` and `[data-theme="neon"]`). The four grade rules (`.grade-S`, `.grade-A`, `.grade-B/.grade-C`, `.grade-D/.grade-F`) mix their state colour with `var(--grade-ink-mix)` instead of a fixed `black`. The light themes render exactly as before. Themes found: `warm`, `light` (no block of its own, uses `:root`), `dark` (the default) and `neon`, the four values `applyTheme` accepts in `src/renderer/App.tsx`.
+- Driver: `scripts/audit/browser/grade-badge-contrast.mjs` now loops over all four themes, mounts each badge in a real `.results-screen > .panel.results-hero` inside the running app, screenshots it and measures the rendered glyph pixel against the rendered background pixel (the computed colours are also printed). The unmodified dark-theme figures match the finding (2.67, 2.99, 2.41, 1.69 there; 2.73, 3.01, 2.45, 1.71 here).
+- Measured contrast, rendered, large bold text, before then after the fix:
+
+| Theme | S | A | B and C | D and F |
+|---|---|---|---|---|
+| warm | 3.63 then 3.63 | 3.58 then 3.58 | 4.38 then 4.38 | 6.47 then 6.47 |
+| light | 3.98 then 3.98 | 4.03 then 4.03 | 4.79 then 4.79 | 7.28 then 7.28 |
+| dark (default) | 2.73 then 9.40 | 3.01 then 7.26 | 2.45 then 6.60 | 1.71 then 6.35 |
+| neon | 2.80 then 9.64 | 2.81 then 6.76 | 2.39 then 6.45 | 1.96 then 7.31 |
+
+  Every grade is at or above 3:1 in every theme (lowest: warm A, 3.58). Before the fix, 11 of 24 theme/grade cells were below 3:1 (dark: all but A at 3.01; neon: all six); the finding had only measured dark.
+- Tests: none in jsdom (computed contrast); the driver above is the regression proof, as the finding specifies. `npm run verify` passes.
+- Driver result: run in headless Chromium on a web build of this branch, result above. The results-screen screenshot of a real run (grade C, dark theme) shows a readable light-blue letter on its badge.
+- Proof owed: Electron results-screen screenshot in sitting 1 (agent-runnable under the Electron lock, not run here). Human-only: none.
+- Residual risk: the driver mounts the badge in a real results panel but not through a played session; the real results screen puts the same `.panel` behind the badge, and the dark-theme numbers agree with the finding's, so the gap is small.
+- Revisit trigger: reviewer verification; a new theme or a change to `.panel` backgrounds.
