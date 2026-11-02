@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AudioEngine } from '../../lib/audio/audioEngine';
 import { EASY_INTERVALS, HARD_INTERVALS, MEDIUM_INTERVALS } from '../../lib/theory/intervals';
+import { shuffle } from '../../lib/theory/shuffle';
 import { useTimeoutRegistry } from '../useTimeoutRegistry';
 
 interface IntervalTrainerScreenProps {
@@ -22,10 +23,6 @@ interface TrainerQuestion {
 
 function pickRandom<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
-}
-
-function shuffle<T>(items: T[]): T[] {
-  return [...items].sort(() => Math.random() - 0.5);
 }
 
 function buildQuestion(difficulty: IntervalDifficulty): TrainerQuestion {

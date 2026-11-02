@@ -3,6 +3,7 @@ import { AudioEngine } from '../../lib/audio/audioEngine';
 import { CHORD_TEMPLATES, detectChord, PITCH_CLASS_NAMES } from '../../lib/theory/chords';
 import { ALL_INTERVALS } from '../../lib/theory/intervals';
 import { buildScale, SCALE_DEFINITIONS } from '../../lib/theory/scales';
+import { shuffle } from '../../lib/theory/shuffle';
 import { useTimeoutRegistry } from '../useTimeoutRegistry';
 
 interface TheoryQuizScreenProps {
@@ -76,10 +77,6 @@ interface QuizQuestion {
 
 function pickRandom<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
-}
-
-function shuffle<T>(items: T[]): T[] {
-  return [...items].sort(() => Math.random() - 0.5);
 }
 
 export function TheoryQuizScreen({ audioEngine, onAchievementsUnlocked, onSessionComplete, onBack, preset }: TheoryQuizScreenProps) {
