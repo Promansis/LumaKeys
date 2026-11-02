@@ -1,6 +1,7 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { AudioEngine } from '../../lib/audio/audioEngine';
 import { GameSession } from '../../lib/game/GameSession';
+import { advanceMetronome, getBeatAtSongTime } from '../../lib/game/beatClock';
 import { ComputerKeyboardInputService } from '../../lib/input/computerKeyboardInputService';
 import { HeldNoteTracker } from '../../lib/input/heldNotes';
 import type { InputEvent, InputMode } from '../../lib/input/types';
@@ -595,23 +596,14 @@ export function GameScreen({
       }
 
       const now = performance.now();
-      const currentTimeSec = game.getCurrentTimeSec(now);
-      const beatsPerSecond = (sessionSong.bpm * Math.max(sessionConfig.tempoMultiplier, 0.01)) / 60;
-      const beatIndex = Math.floor(currentTimeSec * beatsPerSecond);
-
-      if (metronomeLastBeatRef.current === null) {
-        metronomeLastBeatRef.current = beatIndex;
-        return;
-      }
-
-      if (beatIndex < metronomeLastBeatRef.current) {
-        metronomeLastBeatRef.current = beatIndex;
-        return;
-      }
-
-      if (beatIndex > metronomeLastBeatRef.current) {
-        metronomeLastBeatRef.current = beatIndex;
-        void audioEngine.playMetronomeClick(beatIndex % 4 === 0);
+      // Song time already runs at the practice tempo, so the helper takes it as is.
+      const step = advanceMetronome(
+        metronomeLastBeatRef.current,
+        getBeatAtSongTime(sessionSong, game.getCurrentTimeSec(now)),
+      );
+      metronomeLastBeatRef.current = step.lastBeatIndex;
+      if (step.click) {
+        void audioEngine.playMetronomeClick(step.click.accent);
       }
     }, 25);
 
@@ -619,7 +611,7 @@ export function GameScreen({
       window.clearInterval(interval);
       metronomeLastBeatRef.current = null;
     };
-  }, [audioEngine, sessionConfig.metronomeEnabled, sessionConfig.tempoMultiplier, sessionSong]);
+  }, [audioEngine, sessionConfig.metronomeEnabled, sessionSong]);
 
   useEffect(() => {
     const loadSelectedSong = async () => {

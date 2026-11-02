@@ -102,7 +102,30 @@ the tempo in force at tick 0.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue:
-- Verification evidence:
-- Residual risk:
-- Revisit trigger, if accepted-risk:
+- Fix branch/commit/issue: `remediation/p11-s09-timing`, slice 9, implemented 2026-11-02, awaiting
+  independent review; not merged.
+- What changed: `parseMidiFile` (`src/lib/midi/midiFileParser.ts`) inserts `{ ticks: 0, bpm: 120 }`
+  at the front of the tempo list when the first tempo event is after tick 0, and calls
+  `header.update()` before any time is read. Note times, durations, barlines and the song length are
+  now continuous, and `bpm` is the tempo at tick 0. `ParsedSong` carries the resulting `tempoMap`
+  (`{ ticks, bpm, timeSec }` per entry; a single 120 BPM entry when the file has no tempo event),
+  which the PH-MUS-006 metronome helper reads. Files with a tick-0 tempo parse exactly as before.
+- Tests (`src/lib/midi/midiFileParser.test.ts`, new fixture
+  `src/lib/midi/fixtures/late-first-tempo.mid`, a byte copy of the audit fixture, sha256
+  `2af80503...fb63b`): `keeps 120 BPM until the first tempo event and reports the tick-0 tempo`
+  failed before (`expected 60 to be 120`) and passes (note at tick 1920 at 2 s, tick-1440 note 0.5 s,
+  boundaries [0, 2] and [2, 6] s, duration 6 s); `carries the continuous tempo map on the parsed
+  song`, `carries a single 120 BPM entry when the file has no tempo event` and `leaves a file with a
+  tick-0 tempo unchanged` failed before (`tempoMap` undefined) and pass. Source identity for the
+  reproduction: `ea89f3e` (product code of the branch base).
+- Driver result: `measure-map-probe.ts` and the library upload were not run; the unit test covers the
+  parser. Web upload of the fixture to check the library BPM is optional and owed to no one.
+- Stored data: songs imported before the fix keep their stored BPM and duration until they are
+  re-imported. No recompute was done here. Only files whose first tempo event is after tick 0 differ,
+  and the owner's library is not known to contain any; if the lead wants stored metadata corrected, that
+  is a separate, reviewed data change (re-parse `midi-files` with `computeSongMetadata` and update
+  `bpm` and `durationSec`).
+- Proof owed: none beyond review; no hardware or owner proof.
+- Residual risk: a file with several tempo events at tick 0 or unsorted events relies on
+  `@tonejs/midi` ordering, as before.
+- Revisit trigger: reviewer verification; a decision on recomputing stored metadata.

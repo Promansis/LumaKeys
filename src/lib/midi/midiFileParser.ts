@@ -1,6 +1,7 @@
 import * as MidiPackage from '@tonejs/midi';
+import { getPulseTicks } from '../game/beatClock';
 import { defaultAssignmentForNotes, defaultHandForMidi, noteNumberToName } from '../game/songUtils';
-import type { ParsedNote, ParsedSong, ParsedTrack } from '../game/types';
+import type { ParsedNote, ParsedSong, ParsedTrack, TempoChange } from '../game/types';
 
 interface MidiTrackNote {
   midi: number;
@@ -26,9 +27,10 @@ interface MetaEvent {
 interface MidiInstance {
   header: {
     ppq: number;
-    tempos: Array<{ bpm: number; ticks: number }>;
+    tempos: Array<{ bpm: number; ticks: number; time?: number }>;
     timeSignatures: Array<{ ticks: number; timeSignature: number[] }>;
     ticksToSeconds: (ticks: number) => number;
+    update: () => void;
     name?: string;
     meta?: MetaEvent[];
   };
@@ -86,7 +88,9 @@ export function extractMidiMeta(arrayBuffer: ArrayBuffer): MidiFileMeta {
 
 export function parseMidiFile(arrayBuffer: ArrayBuffer, meta: MidiSourceMeta): ParsedSong {
   const midi = new MidiCtor(arrayBuffer);
-  const bpm = midi.header.tempos[0]?.bpm ?? 120;
+  ensureTempoAtTickZero(midi);
+  const tempoMap = buildTempoMap(midi);
+  const bpm = tempoMap[0].bpm;
 
   const tracks: ParsedTrack[] = midi.tracks.map((track: MidiTrack, index: number) => {
     const trackId = `track-${index}`;
@@ -125,7 +129,30 @@ export function parseMidiFile(arrayBuffer: ArrayBuffer, meta: MidiSourceMeta): P
     tracks,
     notes: notes.sort((left, right) => left.startSec - right.startSec || left.midi - right.midi),
     measureBoundaries: buildMeasureBoundaries(midi),
+    tempoMap,
   };
+}
+
+// SMF keeps 120 BPM until the first Set Tempo event. @tonejs/midi times that first event as if its
+// own tempo had applied from tick 0, so a file whose first tempo is later leaves a jump. Giving the
+// map an explicit 120 BPM entry at tick 0 and recomputing the header makes the times continuous.
+function ensureTempoAtTickZero(midi: MidiInstance) {
+  const first = midi.header.tempos[0];
+  if (first && first.ticks > 0) {
+    midi.header.tempos.unshift({ ticks: 0, bpm: 120 });
+    midi.header.update();
+  }
+}
+
+function buildTempoMap(midi: MidiInstance): TempoChange[] {
+  if (midi.header.tempos.length === 0) {
+    return [{ ticks: 0, bpm: 120, timeSec: 0 }];
+  }
+  return midi.header.tempos.map((tempo) => ({
+    ticks: tempo.ticks,
+    bpm: tempo.bpm,
+    timeSec: tempo.time ?? midi.header.ticksToSeconds(tempo.ticks),
+  }));
 }
 
 function buildMeasureBoundaries(midi: MidiInstance) {
@@ -144,7 +171,7 @@ function buildMeasureBoundaries(midi: MidiInstance) {
     signatures.unshift({ ticks: 0, timeSignature: [4, 4] });
   }
 
-  const boundaries: Array<{ startTick: number; endTick: number; startSec: number; endSec: number }> = [];
+  const boundaries: Array<{ startTick: number; endTick: number; startSec: number; endSec: number; pulseTicks: number }> = [];
   let tick = 0;
   let signatureIndex = 0;
   while (tick < endTick) {
@@ -164,6 +191,7 @@ function buildMeasureBoundaries(midi: MidiInstance) {
       endTick: end,
       startSec: midi.header.ticksToSeconds(tick),
       endSec: midi.header.ticksToSeconds(end),
+      pulseTicks: getPulseTicks(midi.header.ppq, numerator, denominator),
     });
     tick = end;
   }
