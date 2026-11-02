@@ -78,7 +78,35 @@ exists). Alternatively race `init()` against a short timeout and treat it as pen
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue:
-- Verification evidence:
-- Residual risk:
-- Revisit trigger, if accepted-risk:
+- Fix branch/commit/issue: `remediation/p11-s07-midi-startup`, slice 7, implemented
+  2026-11-02, awaiting independent review; not merged. Base `ccc68c2`.
+- What changed: `src/renderer/App.tsx` no longer has the `midiReady` state. The loading
+  screen now waits only for the settings (`settingsReady`) and the MIDI service object, so
+  `midiInputService.init()` settles in the background: `midiError` and the device list update
+  when it resolves or rejects, and the permission-change listener and Try MIDI Again work as
+  before. Settings still load before the first render. The MIDI device setting is applied to
+  the service from the stored value only and is written nowhere in startup, so a pending
+  prompt writes nothing. Electron is unchanged in behaviour (its request resolves at once).
+- Tests (`src/renderer/App.test.tsx`; source identity `1180731`, product code equal to
+  `ccc68c2` for this file): `App > shows the main menu while the MIDI permission prompt is
+  still unanswered` and `App > keeps the main menu when a pending MIDI request is refused
+  later` both failed before the fix (the page stayed on "Loading services..." and
+  `findByText('Start Recommended Song')` timed out) and pass after it. Both also assert that
+  `input.midiDeviceId` is never written and the first also asserts the computer keyboard
+  service was initialised. The other 24 tests in the file pass before and after.
+- Driver result: `midi-permission-fallback.mjs` run in headless Chromium against this
+  worktree's web build (`LUMAKEYS_TRUST_UPSTREAM_AUTH=1`, `$TMPDIR` data dir, port 3793).
+  Case "pending": after 6 s with the promise unsettled the page shows the main menu ("LIBRARY
+  READY / repeat-c4 / ... START SONG"); after the promise settles it still shows the main
+  menu. A pending-only run that never settles the promise opened Settings, then a game, and
+  the computer key (Comma) scored (HUD `100 | 1`). In the full run, "absent" and "rejected"
+  still load the menu and score; "pending" and "empty" showed `false` for the Comma score once
+  each, and the same "empty" `false` appears in the slice 5 driver run. The key-timing check
+  is sensitive to load on a busy machine, and the pending-only rerun scored, so these are not
+  attributed to this change; the lead may rerun.
+- Proof owed: human-only, the sitting 1 item 8 check in a fresh Chrome profile, prompt left
+  unanswered for 30 s, main menu visible. Nothing agent-runnable remains.
+- Residual risk: the loading screen text still says "Preparing MIDI, ..." although it no
+  longer waits for MIDI. A visitor who answers the prompt late sees the device list fill in
+  without a notice.
+- Revisit trigger, if accepted-risk: reviewer verification and the owner's fresh-Chrome check.

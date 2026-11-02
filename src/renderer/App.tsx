@@ -291,7 +291,6 @@ export function App() {
   const audioEngineRef = useRef(new AudioEngine());
   const midiServiceRef = useRef<MidiInputService | null>(null);
   const keyboardServiceRef = useRef(new ComputerKeyboardInputService());
-  const [midiReady, setMidiReady] = useState(false);
   const [midiError, setMidiError] = useState(false);
   const [settingsReady, setSettingsReady] = useState(false);
   const [handSize, setHandSize] = useState<'small' | 'medium' | 'large'>('medium');
@@ -390,6 +389,8 @@ export function App() {
       setMidiDevices(devices);
     });
 
+    // The browser's MIDI permission prompt can stay unanswered indefinitely, so the
+    // app never waits on it: the device list and error state update when it settles.
     const tryInit = () => {
       service
         .init()
@@ -401,11 +402,6 @@ export function App() {
         .catch(() => {
           if (!disposed) {
             setMidiError(true);
-          }
-        })
-        .finally(() => {
-          if (!disposed) {
-            setMidiReady(true);
           }
         });
     };
@@ -1324,7 +1320,7 @@ export function App() {
     }
   }, [currentScreen]);
 
-  if (!midiReady || !midiServiceRef.current || !settingsReady) {
+  if (!midiServiceRef.current || !settingsReady) {
     return (
       <main className="app-shell">
         <section className="control-bar panel">
