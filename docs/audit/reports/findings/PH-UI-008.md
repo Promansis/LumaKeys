@@ -78,8 +78,11 @@ to each playlist row, with a status announcement.
 
 ## Resolution
 
-- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: none
-- Verification evidence: none
-- Residual risk: keyboard users cannot reorder
-- Revisit trigger, if accepted-risk: not applicable
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge. Owner decision 15 (2026-11-02) puts slice 17 in wave 3.
+- Fix branch/commit: `remediation/p11-s17-small`, commits `1d31a8f` (buttons) and `6806afb` (keep the view mounted); implemented 2026-11-02, awaiting independent review; not merged.
+- What changed: each playlist row in `src/renderer/components/PlaylistView.tsx` has `Move up` and `Move down` buttons (accessible names `Move up: <title>` and `Move down: <title>`). They call the existing `onReorderSong(songId, index ∓ 1)`, are disabled on the first and last row and whenever filters stop reordering, and drag-and-drop is unchanged. After the order updates, a polite live region (`Moved <title> to position N of M.`, class `.visually-hidden`, added to `src/renderer/styles.css`) announces the move and focus returns to the used button, or to the opposite button when the used one is now disabled. `LibraryScreen.refreshLibrary` gained a `keepVisible` option so a reorder refreshes in place instead of showing the loading panel, which had unmounted `PlaylistView` and dropped the focus and the announcement. No bridge, schema or stored data change.
+- Tests: `src/renderer/components/PlaylistView.test.tsx` (5 tests: move down and up call `onReorderSong`, disabled at the ends, all disabled when `canReorder` is false, focus plus announcement after rerender, focus fallback at the list end) failed before the fix (`Unable to find an accessible element with the role "button" and name /Move down.*Alpha Waltz/`) and pass after. `LibraryScreen.test.tsx > LibraryScreen playlist reorder > keeps the playlist view mounted through a reorder so focus and the announcement survive` failed without `keepVisible` (`Unable to find an element with the text: Moved Alpha Waltz to position 2 of 3.`) and passes with it. Source identity for the reproduction: product code equal to `cc40b63`.
+- Driver result: `library-organize-bulk.mjs` (web build of this branch, throwaway data directory), extended with a keyboard-reorder block: Move down by Enter and Move up by Space swapped the rows, the database order matched, the order persisted after reload, the end buttons were disabled, focus stayed on the used button and the live region announced the new position. 100 checks passed, 0 failed (a first run before `6806afb` failed the focus and announcement checks and found the remount).
+- Proof owed: agent-runnable, none. Human-only: sitting 1 keyboard-only pass and a screen reader listening to the announcement.
+- Residual risk: other library actions that call `refreshLibrary` without `keepVisible` still show the loading panel and would drop focus inside the open view; not in this finding's scope.
+- Revisit trigger: reviewer verification, or a user report of a lost focus after a playlist change.

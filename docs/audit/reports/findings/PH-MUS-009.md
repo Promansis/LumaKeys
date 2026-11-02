@@ -111,8 +111,11 @@ and use it for choices and distractor selection.
 
 ## Resolution
 
-- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue:
-- Verification evidence:
-- Residual risk:
-- Revisit trigger, if accepted-risk:
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge. Owner decision 15 (2026-11-02) puts slice 17 in wave 3.
+- Fix branch/commit: `remediation/p11-s17-small`, commit `fc1fa7c`; implemented 2026-11-02, awaiting independent review; not merged.
+- What changed: new `src/lib/theory/shuffle.ts` exports `shuffle<T>(items, random = Math.random)`, a Fisher-Yates shuffle that returns a new array and never mutates its input. The local `sort(() => Math.random() - 0.5)` helpers in `src/renderer/components/TheoryQuizScreen.tsx` and `IntervalTrainerScreen.tsx` were removed and both import `shuffle`. No stored data changes.
+- Tests (`src/lib/theory/shuffle.test.ts`, 5 tests): the scripted-permutation test and the 20,000-shuffle uniformity test (4 items, every item and position within 1.5 points of 25%, seeded) failed against the biased comparator (`expected [ 'd', 'c', 'b', 'a' ] to deeply equal [ 'b', 'c', 'd', 'a' ]`; `item 0 at position 0: 34.8%`) and pass after the fix. The permutation, no-mutation, empty/single-item and default-`Math.random` tests guard the helper. Source identity for the reproduction: the biased comparator of `cc40b63`.
+- Driver result: `scripts/audit/shuffle-bias-probe.cjs` is a standalone copy of the old algorithm, so it cannot verify the fix; it still prints the old bias under Node 24.15 (element 0 lands at 36, 17.3, 15.6 and 31.1 percent). A probe that imports the fixed `shuffle.ts` (`node --import tsx`, 200,000 shuffles of 4) gave about 25.0% in every cell (24.9 to 25.2). Not run under Electron.
+- Proof owed: agent-runnable, none. Human-only: none required.
+- Residual risk: the quiz and trainer order is only as random as `Math.random`.
+- Revisit trigger: reviewer verification.

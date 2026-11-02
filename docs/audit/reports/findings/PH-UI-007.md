@@ -85,8 +85,11 @@ day). Owner: `LibraryScreen.tsx` helper `withinDateRange`.
 
 ## Resolution
 
-- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: none
-- Verification evidence: none
-- Residual risk: wrong day bucket near midnight
-- Revisit trigger, if accepted-risk: not applicable
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge. Owner decision 15 (2026-11-02) puts slice 17 in wave 3.
+- Fix branch/commit: `remediation/p11-s17-small`, commit `7b72c72`; implemented 2026-11-02, awaiting independent review; not merged.
+- What changed: `withinDateRange` in `src/renderer/components/LibraryScreen.tsx` (now exported) parses a zone-less SQLite `date_added` as UTC (`parseDateAddedUtc`) and builds the filter bounds from the local calendar date parts (`localDayBound`: local 00:00:00.000 and 23:59:59.999). A song added in the evening or just after midnight now lands on the local day shown on its card. No stored data changes.
+- Tests (`src/renderer/components/LibraryScreen.test.tsx`, `describe('withinDateRange')`, 3 `it.each` cases just after local midnight, midday and just before local midnight, plus a UTC-parse case and a no-bounds case; stored strings are built from local wall-clock time so they hold in any zone): run with `TZ` set to `Pacific/Kiritimati`, `America/Los_Angeles`, `Pacific/Pago_Pago`, `Australia/Perth` and `UTC`. Against the old logic, 4 failed in Kiritimati, Los_Angeles and Pago_Pago and 2 (after-midnight and midday) in Perth; all 22 tests in the file passed in every zone after the fix. Source identity for the reproduction: product code equal to `cc40b63`.
+- Driver result: `library-date-filter-timezone.mjs` (web build of this branch, throwaway data directory) passed in all four zones (Pacific/Kiritimati, Pacific/Pago_Pago, Australia/Perth, America/Los_Angeles): same day gives 1 card, next day 0, previous day 0.
+- Proof owed: agent-runnable, none. Human-only: none required.
+- Residual risk: a song with a `date_added` that already carries a zone (an ISO string with `Z`) is parsed as written; only the zone-less SQLite form is treated as UTC. Daylight-saving days are covered by building bounds from date parts, not by a fixed 24-hour offset.
+- Revisit trigger: reviewer verification, or a user report of a wrong day bucket.
