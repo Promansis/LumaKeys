@@ -89,6 +89,12 @@ export function extractMidiMeta(arrayBuffer: ArrayBuffer): MidiFileMeta {
 
 export function parseMidiFile(arrayBuffer: ArrayBuffer, meta: MidiSourceMeta): ParsedSong {
   const midi = new MidiCtor(arrayBuffer);
+  // SMPTE time division counts ticks per frame, not per quarter note, so tempo, barlines and the beat
+  // clock have no meaning in it. Refuse it up front: the import path reports the throw as an import error.
+  if (!Number.isFinite(midi.header.ppq) || midi.header.ppq <= 0) {
+    throw new Error('SMPTE time division is not supported');
+  }
+  dropMalformedTempos(midi);
   collapseSameTickTempos(midi);
   ensureTempoAtTickZero(midi);
   const tempoMap = buildTempoMap(midi);
@@ -126,7 +132,8 @@ export function parseMidiFile(arrayBuffer: ArrayBuffer, meta: MidiSourceMeta): P
   // timing source; only this number, which the Library shows and the difficulty score reads, is a summary.
   const spanStartSec = sortedNotes.length > 0 ? sortedNotes[0].startSec : 0;
   const spanEndSec = sortedNotes.reduce((end, note) => Math.max(end, note.startSec + note.durationSec), spanStartSec);
-  const bpm = getDominantTempo(tempoMap, spanStartSec, spanEndSec);
+  // Rounded to 2 decimals so the float residue of whole-microsecond tempos (89.99995, 190.00028) reads as 90 and 190.
+  const bpm = Math.round(getDominantTempo(tempoMap, spanStartSec, spanEndSec) * 100) / 100;
 
   return {
     id: meta.songId,
@@ -139,6 +146,17 @@ export function parseMidiFile(arrayBuffer: ArrayBuffer, meta: MidiSourceMeta): P
     measureBoundaries: buildMeasureBoundaries(midi),
     tempoMap,
   };
+}
+
+// A Set Tempo of 0 microseconds per beat reads as an infinite BPM, which makes every later time
+// Infinity or NaN. A tempo that is not a finite positive number carries no timing, so it is dropped and
+// the usual 120 BPM default (SMF's own until the first tempo) applies.
+function dropMalformedTempos(midi: MidiInstance) {
+  const valid = midi.header.tempos.filter((tempo) => Number.isFinite(tempo.bpm) && tempo.bpm > 0);
+  if (valid.length !== midi.header.tempos.length) {
+    midi.header.tempos.splice(0, midi.header.tempos.length, ...valid);
+    midi.header.update();
+  }
 }
 
 // Exports often carry a default 120 BPM "setup" tempo beside the real one, or one in every track, so

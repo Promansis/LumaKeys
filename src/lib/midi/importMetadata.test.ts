@@ -38,6 +38,18 @@ describe('imported song tempo (PH-MUS-019)', () => {
 
     expect(computeSongMetadata(midi.toArray(), 'Slow intro').bpm).toBe(160);
   });
+
+  it('stores a 190 BPM file as exactly 190, not 190.0002850004275', () => {
+    const midi = new Midi();
+    midi.header.tempos.push({ ticks: 0, bpm: 190 });
+    midi.header.update();
+    const track = midi.addTrack();
+    for (let index = 0; index < 8; index += 1) {
+      track.addNote({ midi: 60 + (index % 5), ticks: index * 480, durationTicks: 480, velocity: 0.8 });
+    }
+
+    expect(computeSongMetadata(midi.toArray(), '190').bpm).toBe(190);
+  });
 });
 
 function makeNote(overrides: Partial<ParsedNote>): ParsedNote {

@@ -223,7 +223,7 @@ describe('parseMidiFile', () => {
       const song = parseTempoFile([[1920, 90]], 24);
 
       expect(song.tempoMap?.[0]).toMatchObject({ ticks: 0, bpm: 120 });
-      expect(song.bpm).toBeCloseTo(90, 3);
+      expect(song.bpm).toBe(90);
     });
 
     it('keeps a constant tempo as is', () => {
@@ -234,7 +234,7 @@ describe('parseMidiFile', () => {
     it('uses the later of a 120 then 90 BPM pair at tick 0 as the one tempo', () => {
       const song = parseTempoFile([[0, 120], [0, 90]], 16);
 
-      expect(song.bpm).toBeCloseTo(90, 3);
+      expect(song.bpm).toBe(90);
       expect(song.tempoMap).toHaveLength(1);
       expect(song.tempoMap?.[0]).toMatchObject({ ticks: 0, timeSec: 0 });
       expect(song.tempoMap?.[0].bpm).toBeCloseTo(90, 3);
@@ -245,7 +245,7 @@ describe('parseMidiFile', () => {
     it('uses the later tempo when the order is reversed (90 then 120)', () => {
       const song = parseTempoFile([[0, 90], [0, 120]], 16);
 
-      expect(song.bpm).toBeCloseTo(120, 3);
+      expect(song.bpm).toBe(120);
       expect(song.tempoMap).toHaveLength(1);
       expect(song.tempoMap?.[0]).toMatchObject({ ticks: 0, timeSec: 0 });
       expect(song.tempoMap?.[0].bpm).toBeCloseTo(120, 3);
@@ -258,6 +258,72 @@ describe('parseMidiFile', () => {
       expect(song.tempoMap?.map((tempo) => tempo.ticks)).toEqual([0, 1920]);
       expect(song.tempoMap?.[1].bpm).toBeCloseTo(120, 3);
       expect(song.tempoMap?.[1].timeSec).toBeCloseTo(4 * (60 / 100), 3);
+    });
+  });
+  describe('stored tempo precision (PH-MUS-019)', () => {
+    // A Set Tempo event stores whole microseconds per beat, so 90 BPM reads back as 89.99995... and
+    // 190 BPM as 190.00028... The stored tempo is rounded to 2 decimals; the map keeps the raw value.
+    it('rounds the float residue of 90 BPM to 90', () => {
+      const song = parseTempoFile([[0, 89.999955]], 8);
+
+      expect(song.bpm).toBe(90);
+    });
+
+    it('rounds the float residue of 190 BPM to 190', () => {
+      const song = parseTempoFile([[0, 190.000285]], 8);
+
+      expect(song.bpm).toBe(190);
+    });
+
+    it('keeps two decimals of a genuinely fractional tempo', () => {
+      expect(parseTempoFile([[0, 97.5]], 8).bpm).toBe(97.5);
+    });
+  });
+
+  describe('malformed tempo and time division (PH-MUS-019)', () => {
+    // Raw SMF bytes: tonejs/midi cannot write a 0 us/beat tempo or an SMPTE division.
+    function smfBytes(division: number[], tempoMicros: number | null, noteDeltaTicks: number[]): ArrayBuffer {
+      const track: number[] = [];
+      if (tempoMicros !== null) {
+        track.push(0x00, 0xff, 0x51, 0x03, (tempoMicros >> 16) & 0xff, (tempoMicros >> 8) & 0xff, tempoMicros & 0xff);
+      }
+      noteDeltaTicks.forEach((delta, index) => {
+        const pitch = 60 + (index % 5);
+        track.push(0x00, 0x90, pitch, 0x64);
+        // Delta as a variable-length quantity (7-bit groups).
+        const groups = [delta & 0x7f];
+        for (let rest = delta >> 7; rest > 0; rest >>= 7) groups.unshift((rest & 0x7f) | 0x80);
+        track.push(...groups, 0x80, pitch, 0x00);
+      });
+      track.push(0x00, 0xff, 0x2f, 0x00);
+      const header = [0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, ...division];
+      const length = track.length;
+      const body = [0x4d, 0x54, 0x72, 0x6b, (length >> 24) & 0xff, (length >> 16) & 0xff, (length >> 8) & 0xff, length & 0xff, ...track];
+      return new Uint8Array([...header, ...body]).buffer;
+    }
+
+    it('reads a 0 microsecond tempo as the 120 BPM default with finite times', () => {
+      const song = parseMidiFile(smfBytes([0x01, 0xe0], 0, [480, 480, 480, 480]), { songId: 'zero', title: 'Zero' });
+
+      expect(song.bpm).toBe(120);
+      expect(Number.isFinite(song.durationSec)).toBe(true);
+      expect(song.durationSec).toBeCloseTo(2, 3);
+      expect(song.tempoMap?.every((tempo) => Number.isFinite(tempo.bpm) && tempo.bpm > 0)).toBe(true);
+      expect(song.notes.every((note) => Number.isFinite(note.startSec))).toBe(true);
+    });
+
+    it('still reads a plain 120 BPM file after the tempo guard', () => {
+      const song = parseMidiFile(smfBytes([0x01, 0xe0], 500000, [480, 480]), { songId: 'ok', title: 'Ok' });
+
+      expect(song.bpm).toBe(120);
+      expect(song.durationSec).toBeCloseTo(1, 3);
+    });
+
+    it('rejects an SMPTE time division instead of returning a NaN duration', () => {
+      // 0xE728 = -25 frames per second, 40 ticks per frame.
+      const bytes = smfBytes([0xe7, 0x28], 500000, [40, 40, 40]);
+
+      expect(() => parseMidiFile(bytes, { songId: 'smpte', title: 'Smpte' })).toThrow(/SMPTE/i);
     });
   });
 });
