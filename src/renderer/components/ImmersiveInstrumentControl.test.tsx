@@ -71,4 +71,14 @@ describe('ImmersiveInstrumentControl', () => {
 
     expect(screen.getByText(/Sampled pipe organ/i)).toBeInTheDocument();
   });
+
+  it('removes the closed instrument popout from the tab order with inert and restores it when open', () => {
+    render(<ImmersiveInstrumentControl instrumentId="acoustic-piano" onInstrumentChange={vi.fn()} />);
+
+    const popout = screen.getByTestId('immersive-instrument-popout');
+    expect(popout).toHaveAttribute('inert');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show instrument controls' }));
+    expect(popout).not.toHaveAttribute('inert');
+  });
 });

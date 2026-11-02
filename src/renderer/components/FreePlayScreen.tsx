@@ -14,6 +14,7 @@ import type { InstrumentSamplePackStatus } from '../../shared/ipc';
 import { PianoKeyboard } from './PianoKeyboard';
 import { useModalFocusTrap } from '../useModalFocusTrap';
 import { saveSetting } from '../saveSetting';
+import { inertWhenClosed } from './inertWhenClosed';
 import {
   FREE_PLAY_VISUAL_MODE_OPTIONS,
   FreePlayVisualizer,
@@ -801,7 +802,7 @@ export function FreePlayScreen({
             aria-controls="free-play-visual-popout"
             aria-expanded={isVisualControlsOpen}
             onClick={() => {
-              if (isVisualControlsOpen) {
+              if (isVisualControlsPinned) {
                 closeVisualControls(true);
                 return;
               }
@@ -852,6 +853,7 @@ export function FreePlayScreen({
           id="free-play-visual-popout"
           aria-label="Visual mode controls"
           aria-hidden={!isVisualControlsOpen}
+          {...inertWhenClosed(isVisualControlsOpen)}
           data-testid="free-play-visual-popout"
            onMouseEnter={keepVisualControlsOpen}
            onMouseLeave={scheduleVisualControlsClose}

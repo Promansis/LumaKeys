@@ -344,4 +344,39 @@ describe('NoveltySoundboardScreen', () => {
     expect(audioEngine.playOneShot).toHaveBeenCalledTimes(2);
     vi.useRealTimers();
   });
+
+  it('keeps closed soundboard popouts inert and pins them on the first keyboard press', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(buildCanvasContextStub());
+    render(
+      <NoveltySoundboardScreen
+        audioEngine={buildAudioEngineStub()}
+        midiInputService={new MockMidiInputService() as unknown as MidiInputService}
+        keyboardInputService={new MockKeyboardInputService() as unknown as ComputerKeyboardInputService}
+        inputMode="both"
+        keyboardOverlaySize="medium"
+        onBackToMainMenu={vi.fn()}
+        onOpenKeyboardSetup={vi.fn()}
+      />,
+    );
+
+    const cases = [
+      { toggle: /Show soundboard mode controls/i, popout: screen.getByTestId('soundboard-mode-popout') },
+      { toggle: /Show sound key map/i, popout: screen.getByTestId('animal-key-map-popout') },
+    ];
+
+    for (const { toggle, popout } of cases) {
+      const button = screen.getByRole('button', { name: toggle });
+      expect(popout).toHaveAttribute('inert');
+
+      fireEvent.focus(button);
+      fireEvent.click(button);
+      fireEvent.blur(button);
+      expect(popout).toHaveAttribute('aria-hidden', 'false');
+      expect(popout).not.toHaveAttribute('inert');
+
+      fireEvent.click(button);
+      expect(popout).toHaveAttribute('aria-hidden', 'true');
+      expect(popout).toHaveAttribute('inert');
+    }
+  });
 });

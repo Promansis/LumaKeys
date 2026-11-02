@@ -4,6 +4,7 @@ import { Info } from 'lucide-react';
 import { getInstrumentDefinition, INSTRUMENTS, isInstrumentSelectable } from '../../lib/audio/instrumentCatalog';
 import { isRewardUnlocked, REWARD_CATALOG } from '../../lib/rewards/rewardCatalog';
 import type { InstrumentSamplePackStatus } from '../../shared/ipc';
+import { inertWhenClosed } from './inertWhenClosed';
 
 interface ImmersiveInstrumentControlProps {
   instrumentId: string;
@@ -90,6 +91,7 @@ export function ImmersiveInstrumentControl({
       className={`panel immersive-instrument-popout${popoutPlacement === 'stage' ? ' stage-popout' : ''}${isOpen ? ' open' : ''}`}
       aria-label="Instrument controls"
       aria-hidden={!isOpen}
+      {...inertWhenClosed(isOpen)}
       data-testid="immersive-instrument-popout"
       onMouseEnter={() => {
         clearHoverClose();
