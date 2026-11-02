@@ -60,6 +60,21 @@ function resolveVoiceConstructor(tone: ToneModule, voice: InstrumentVoice): any 
   }
 }
 
+// Tone merges sampler options with an explicit-undefined-wins rule, so an absent value must be left out
+// of the options object instead of being passed as `undefined` or `null`.
+function customSamplerOptions(
+  definition: InstrumentDefinition,
+  urls: Record<string, string>,
+  baseUrl: string | null,
+): { urls: Record<string, string>; baseUrl?: string; release?: number } {
+  const release = (definition.options as { release?: number }).release;
+  return {
+    urls,
+    ...(baseUrl ? { baseUrl } : {}),
+    ...(typeof release === 'number' ? { release } : {}),
+  };
+}
+
 function createSamplerFallbackDefinition(definition: InstrumentDefinition): InstrumentDefinition {
   return {
     ...definition,
@@ -470,11 +485,11 @@ export class AudioEngine {
     const customUrls = this.customSamplerUrls;
     const customBaseUrl = this.customSamplerBaseUrl;
 
-    const toneBuffer = await tone.Offline(async () => {
+    const toneBuffer = await tone.Offline(async (offlineContext) => {
       let instrument: Tone.Sampler | Tone.PolySynth;
 
       if (customUrls) {
-        instrument = new tone.Sampler({ urls: customUrls, baseUrl: customBaseUrl ?? undefined }).toDestination();
+        instrument = new tone.Sampler(customSamplerOptions(definition, customUrls, customBaseUrl)).toDestination();
         await tone.loaded();
       } else if (definition.voice === 'sampler' && definition.sampleUrls && definition.sampleBaseUrl) {
         const samplerOpts = definition.options as { release?: number };
@@ -493,7 +508,7 @@ export class AudioEngine {
       }
 
       for (const note of notes) {
-        tone.Transport.schedule((time: number) => {
+        offlineContext.transport.schedule((time: number) => {
           const noteName = midiToName(tone, note.midi);
           const duration = Math.max(0.05, note.durationSec);
           if (instrument instanceof tone.Sampler) {
@@ -504,7 +519,7 @@ export class AudioEngine {
         }, note.startTimeSec);
       }
 
-      tone.Transport.start();
+      offlineContext.transport.start();
     }, renderDuration);
 
     const audioBuffer = toneBuffer.get();
@@ -577,10 +592,9 @@ export class AudioEngine {
 
     if (this.customSamplerUrls) {
       try {
-        this.sampler = new tone.Sampler({
-          urls: this.customSamplerUrls,
-          baseUrl: this.customSamplerBaseUrl ?? undefined,
-        }).connect(this.instrumentOutputNode!);
+        this.sampler = new tone.Sampler(
+          customSamplerOptions(definition, this.customSamplerUrls, this.customSamplerBaseUrl),
+        ).connect(this.instrumentOutputNode!);
         await tone.loaded();
         return;
       } catch (err) {
