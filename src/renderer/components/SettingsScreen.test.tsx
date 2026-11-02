@@ -45,6 +45,7 @@ describe('SettingsScreen', () => {
     cleanup();
     localStorage.clear();
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
     resetLearningProgress.mockClear();
     resetUserData.mockClear();
@@ -71,6 +72,66 @@ describe('SettingsScreen', () => {
       expect(resetUserData).not.toHaveBeenCalled();
       expect(localStorage.getItem('lumakeys-filter-presets')).toBe('{"demo":true}');
     });
+  });
+
+  const REMOVED_STORES = [
+    'songs',
+    'playlists',
+    'folders',
+    'results',
+    'practice history and streak',
+    'achievements',
+    'fingerings',
+    'trouble spots',
+    'lesson progress',
+    'saved settings',
+    'installed instrument packs',
+  ];
+
+  it('names every store the desktop reset removes on the card and in the dialog', async () => {
+    vi.stubGlobal('IS_WEB', false);
+    renderSettingsScreen();
+
+    fireEvent.click(await screen.findByText('Practice'));
+    const card = screen.getByText('Delete User Data', { selector: 'span' }).closest('article') as HTMLElement;
+    const dialogCopy = () => (screen.getByRole('dialog').textContent ?? '');
+
+    for (const store of REMOVED_STORES) {
+      expect(card.textContent).toContain(store);
+    }
+    expect(card.textContent).toContain('from this device');
+    expect(card.textContent).not.toContain('server');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete User Data' }));
+    for (const store of REMOVED_STORES) {
+      expect(dialogCopy()).toContain(store);
+    }
+    expect(dialogCopy()).toContain('from this device');
+    expect(dialogCopy()).not.toContain('server');
+  });
+
+  it('says on the web that the data is on the server and affects every browser', async () => {
+    vi.stubGlobal('IS_WEB', true);
+    renderSettingsScreen();
+
+    fireEvent.click(await screen.findByText('Practice'));
+    const card = screen.getByText('Delete User Data', { selector: 'span' }).closest('article') as HTMLElement;
+
+    for (const store of REMOVED_STORES) {
+      expect(card.textContent).toContain(store);
+    }
+    expect(card.textContent).toContain('from the server');
+    expect(card.textContent).toContain('every browser that uses it');
+    expect(card.textContent).not.toContain('from this device');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete User Data' }));
+    const dialog = screen.getByRole('dialog').textContent ?? '';
+    for (const store of REMOVED_STORES) {
+      expect(dialog).toContain(store);
+    }
+    expect(dialog).toContain('from the server');
+    expect(dialog).toContain('every browser that uses it');
+    expect(dialog).not.toContain('from this device');
   });
 
   it('keeps all five settings tabs and action button names after adding decorative icons', async () => {

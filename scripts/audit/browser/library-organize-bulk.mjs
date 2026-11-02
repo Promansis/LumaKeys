@@ -409,13 +409,30 @@ await withServer(data, async ({ page, base, errors }) => {
   await sel('charlie etude').locator('input[type=checkbox]').check(); await settle(200);
   dialogs.length = 0;
   await page.screenshot({ path: `${shots}/04-before-bulk-delete.png` });
+  const confirmDialog = () => page.locator('[role=dialog]');
+  const dependentBefore = JSON.stringify(countFor(doomedIds));
+  const filesBefore = JSON.stringify(walk(path.join(data, 'midi-files')).sort());
+  // PH-UI-006: Delete asks first. Cancel owns focus and changes nothing.
   await page.locator('.bulk-action-bar').getByRole('button', { name: 'Delete', exact: true }).click();
-  await settle(150);
-  const modalNow = (await page.locator('[role=dialog], [role=alertdialog]').count()) > 0;
+  await settle(300);
+  const promptText = (await confirmDialog().count()) ? await confirmDialog().innerText() : '';
+  const focusedLabel = await page.evaluate(() => document.activeElement?.textContent?.trim() ?? '');
+  console.log('bulk delete prompt:', JSON.stringify(promptText), '; focused:', JSON.stringify(focusedLabel), '; native dialogs =', JSON.stringify(dialogs));
+  await page.screenshot({ path: `${shots}/04b-bulk-delete-prompt.png` });
+  check('bulk Delete asks first, names 2 songs and their results and practice history', /Delete 2 songs\?/.test(promptText) && /results/.test(promptText) && /practice history/.test(promptText), JSON.stringify(promptText));
+  check('Cancel takes the focus', focusedLabel === 'Cancel', focusedLabel);
+  check('nothing was deleted while the prompt is open', (await rpc(base, 'getAllSongs')).length === 5, '');
+  await confirmDialog().getByRole('button', { name: 'Cancel' }).click(); await settle(500);
+  check('Cancel closes the prompt, keeps 5 songs, their results, playlist rows and files',
+    (await confirmDialog().count()) === 0 && (await rpc(base, 'getAllSongs')).length === 5 && JSON.stringify(countFor(doomedIds)) === dependentBefore && JSON.stringify(walk(path.join(data, 'midi-files')).sort()) === filesBefore,
+    `${dependentBefore} -> ${JSON.stringify(countFor(doomedIds))}`);
+  check('Cancel leaves the 2 songs selected and no "Deleted" status', (await page.locator('.bulk-action-bar h2').innerText()).startsWith('2 selected') && !/Deleted/.test(await status()), JSON.stringify(await status()));
+  await page.locator('.bulk-action-bar').getByRole('button', { name: 'Delete', exact: true }).click(); await settle(300);
+  await confirmDialog().getByRole('button', { name: 'Delete 2 songs' }).click();
   await settle(900);
-  console.log('bulk delete: native dialogs =', JSON.stringify(dialogs), '; in-page modal present =', modalNow, '; status:', JSON.stringify(await status()));
-  const goneImmediately = (await rpc(base, 'getAllSongs')).length === 3;
-  console.log('bulk delete removed 2 songs with no confirmation step:', goneImmediately && !modalNow && dialogs.length === 0);
+  console.log('bulk delete confirmed: status:', JSON.stringify(await status()));
+  const goneAfterConfirm = (await rpc(base, 'getAllSongs')).length === 3;
+  console.log('bulk delete removed 2 songs after Confirm:', goneAfterConfirm && (await confirmDialog().count()) === 0);
   await gotoLibrary();
   songs = await storageAgrees('after bulk delete + reload');
   check('only doomed songs deleted', eq(songs.map((s) => s.id).sort(), keepIds.sort()), JSON.stringify(songs.map((s) => s.title)));
@@ -425,14 +442,22 @@ await withServer(data, async ({ page, base, errors }) => {
   await sel('Foxtrot Epic').getByRole('button', { name: 'More' }).click();
   await sel('Foxtrot Epic').getByRole('button', { name: 'Edit Metadata' }).click(); await settle(300);
   dialogs.length = 0;
-  await ed.getByRole('button', { name: 'Delete Song' }).click(); await settle(900);
-  console.log('single delete (editor): dialogs =', JSON.stringify(dialogs), 'modal =', (await page.locator('[role=dialog]').count()) > 0);
+  await ed.getByRole('button', { name: 'Delete Song' }).click(); await settle(300);
+  const editorPrompt = (await confirmDialog().count()) ? await confirmDialog().innerText() : '';
+  console.log('single delete (editor) prompt:', JSON.stringify(editorPrompt));
+  check('Delete Song asks first, names 1 song', /Delete 1 song\?/.test(editorPrompt) && /practice history/.test(editorPrompt), JSON.stringify(editorPrompt));
+  await confirmDialog().getByRole('button', { name: 'Cancel' }).click(); await settle(400);
+  check('Cancel from the editor prompt keeps the song and the editor', (await rpc(base, 'getAllSongs')).length === 3 && (await ed.count()) > 0, '');
+  await ed.getByRole('button', { name: 'Delete Song' }).click(); await settle(300);
+  await confirmDialog().getByRole('button', { name: 'Delete 1 song' }).click(); await settle(900);
+  console.log('single delete (editor) confirmed: dialogs =', JSON.stringify(dialogs), 'modal =', (await confirmDialog().count()) > 0);
   await gotoLibrary();
   songs = await storageAgrees('after single delete + reload');
   check('single delete removed exactly one', songs.length === 2 && !songs.some((s) => s.title === 'Foxtrot Epic'), JSON.stringify(songs.map((s) => s.title)));
   // delete all remaining via Select All + Delete -> empty state
   await page.getByRole('button', { name: 'Select All Visible' }).click();
-  await page.locator('.bulk-action-bar').getByRole('button', { name: 'Delete', exact: true }).click(); await settle(900);
+  await page.locator('.bulk-action-bar').getByRole('button', { name: 'Delete', exact: true }).click(); await settle(300);
+  await confirmDialog().getByRole('button', { name: /^Delete 2 songs$/ }).click(); await settle(900);
   await gotoLibrary();
   songs = await storageAgrees('after deleting everything + reload');
   check('empty library message after deleting all', songs.length === 0 && (await text(page)).includes('Upload MIDI or MSCZ to start your setlist.'), '');

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LibraryScreen } from './LibraryScreen';
 
@@ -206,6 +206,7 @@ describe('LibraryScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     fireEvent.click(screen.getByRole('button', { name: 'Edit Metadata' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete Song' }));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete 1 song' }));
 
     await waitFor(() => {
       expect(bulkDeleteSongs).toHaveBeenCalledWith(['song-1']);
@@ -267,6 +268,7 @@ describe('LibraryScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     fireEvent.click(screen.getByRole('button', { name: 'Edit Metadata' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete Song' }));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete 1 song' }));
 
     expect(await screen.findByText(`Delete failed. ${unchanged}`)).toBeInTheDocument();
     expect(screen.queryByText(/Error invoking remote method/)).not.toBeInTheDocument();
@@ -552,6 +554,151 @@ describe('LibraryScreen', () => {
       expect(await screen.findByRole('button', { name: 'Current Preset' })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Legacy Preset' })).not.toBeInTheDocument();
       expect(localStorage.getItem('pianohero-filter-presets')).toBe(presetJson('Legacy Preset'));
+    });
+  });
+  describe('delete confirmation', () => {
+    const makeSong = (id: string, title: string) => ({
+      id,
+      title,
+      artist: 'Composer',
+      genre: 'Classical',
+      difficulty: 4,
+      durationSec: 120,
+      bpm: 120,
+      noteCount: 240,
+      filePath: `/tmp/${id}.mid`,
+      dateAdded: '2026-04-18T00:00:00.000Z',
+      lastPlayed: null,
+      timesPlayed: 0,
+      isFavorite: false,
+      folderId: null,
+      tags: [],
+      trackAssignments: {},
+    });
+
+    const renderLibrary = async (bulkDeleteSongs: ReturnType<typeof vi.fn>) => {
+      const songs = [makeSong('song-1', 'Etude'), makeSong('song-2', 'Waltz'), makeSong('song-3', 'March')];
+      const getAllSongs = vi.fn().mockResolvedValue(songs);
+      window.appBridge = {
+        getAllSongs,
+        getAllFolders: vi.fn().mockResolvedValue([]),
+        getAllPlaylists: vi.fn().mockResolvedValue([]),
+        getRecommendations: vi.fn().mockResolvedValue(null),
+        getUserStats: vi.fn().mockResolvedValue(null),
+        getSetting: vi.fn().mockResolvedValue(null),
+        bulkDeleteSongs,
+      } as unknown as typeof window.appBridge;
+      render(
+        <LibraryScreen
+          audioEngine={createAudioEngineStub() as unknown as import('../../lib/audio/audioEngine').AudioEngine}
+          onStartSession={vi.fn()}
+          onStartPlaylistQueue={vi.fn()}
+          onStartTheoryPractice={vi.fn()}
+        />,
+      );
+      await screen.findByText('3 songs ready to play.');
+      return { getAllSongs };
+    };
+
+    const selectSongs = (...titles: string[]) => {
+      for (const title of titles) {
+        const card = screen.getByRole('heading', { name: title }).closest('article') as HTMLElement;
+        fireEvent.click(within(card).getByRole('checkbox'));
+      }
+    };
+
+    it('asks before the bulk bar deletes, names the count and the history that goes, and focuses Cancel', async () => {
+      const bulkDeleteSongs = vi.fn().mockResolvedValue(undefined);
+      await renderLibrary(bulkDeleteSongs);
+      selectSongs('Etude', 'Waltz');
+
+      fireEvent.click(within(document.querySelector('.bulk-action-bar') as HTMLElement).getByRole('button', { name: 'Delete' }));
+
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByRole('heading', { name: 'Delete 2 songs?' })).toBeInTheDocument();
+      expect(dialog.textContent).toContain('results');
+      expect(dialog.textContent).toContain('practice history');
+      expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus();
+      expect(bulkDeleteSongs).not.toHaveBeenCalled();
+    });
+
+    it('keeps everything and makes no bridge call when the bulk prompt is cancelled', async () => {
+      const bulkDeleteSongs = vi.fn().mockResolvedValue(undefined);
+      const { getAllSongs } = await renderLibrary(bulkDeleteSongs);
+      selectSongs('Etude', 'Waltz');
+      fireEvent.click(within(document.querySelector('.bulk-action-bar') as HTMLElement).getByRole('button', { name: 'Delete' }));
+      const callsBefore = getAllSongs.mock.calls.length;
+
+      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(bulkDeleteSongs).not.toHaveBeenCalled();
+      expect(getAllSongs.mock.calls.length).toBe(callsBefore);
+      expect(screen.getByRole('heading', { name: 'Etude' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: '2 selected' })).toBeInTheDocument();
+      expect(screen.queryByText(/Deleted \d+ song/)).not.toBeInTheDocument();
+    });
+
+    it('cancels the prompt on Escape without deleting', async () => {
+      const bulkDeleteSongs = vi.fn().mockResolvedValue(undefined);
+      await renderLibrary(bulkDeleteSongs);
+      selectSongs('Etude');
+      fireEvent.click(within(document.querySelector('.bulk-action-bar') as HTMLElement).getByRole('button', { name: 'Delete' }));
+      await screen.findByRole('dialog');
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(bulkDeleteSongs).not.toHaveBeenCalled();
+    });
+
+    it('deletes only the selected songs, once, when the bulk prompt is confirmed', async () => {
+      const bulkDeleteSongs = vi.fn().mockResolvedValue(undefined);
+      await renderLibrary(bulkDeleteSongs);
+      selectSongs('Etude', 'Waltz');
+      fireEvent.click(within(document.querySelector('.bulk-action-bar') as HTMLElement).getByRole('button', { name: 'Delete' }));
+
+      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete 2 songs' }));
+
+      await waitFor(() => expect(bulkDeleteSongs).toHaveBeenCalledTimes(1));
+      expect(bulkDeleteSongs).toHaveBeenCalledWith(['song-1', 'song-2']);
+      expect(await screen.findByText('Deleted 2 songs from the library.')).toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('shows the delete error in the status line when a confirmed bulk delete fails', async () => {
+      const restart = 'LumaKeys needs a restart before it can delete songs. Restart the app, then try again.';
+      const bulkDeleteSongs = vi.fn().mockRejectedValue(new Error(restart));
+      await renderLibrary(bulkDeleteSongs);
+      selectSongs('Etude');
+      fireEvent.click(within(document.querySelector('.bulk-action-bar') as HTMLElement).getByRole('button', { name: 'Delete' }));
+
+      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete 1 song' }));
+
+      expect(await screen.findByText(/Delete failed\./)).toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Etude' })).toBeInTheDocument();
+    });
+
+    it('asks before the metadata editor deletes a song, and Cancel leaves the editor open', async () => {
+      const bulkDeleteSongs = vi.fn().mockResolvedValue(undefined);
+      await renderLibrary(bulkDeleteSongs);
+      const card = screen.getByRole('heading', { name: 'Etude' }).closest('article') as HTMLElement;
+      fireEvent.click(within(card).getByRole('button', { name: 'More' }));
+      fireEvent.click(within(card).getByRole('button', { name: 'Edit Metadata' }));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Song' }));
+
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByRole('heading', { name: 'Delete 1 song?' })).toBeInTheDocument();
+      expect(dialog.textContent).toContain('practice history');
+      expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus();
+
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(bulkDeleteSongs).not.toHaveBeenCalled();
+      expect(screen.getByText('Metadata Review')).toBeInTheDocument();
     });
   });
 });
