@@ -165,6 +165,24 @@ describe('LatencyWizard keyboard operation', () => {
     expect(screen.getByText(/Measuring — 6 taps to go/)).toBeInTheDocument();
   });
 
+  it('ignores auto-repeated keydowns from a held Space or Enter on the Tap button', async () => {
+    const { user } = await openWizard();
+    await user.click(screen.getByRole('button', { name: 'Start' }));
+    const tap = screen.getByRole('button', { name: 'Tap' });
+
+    fireEvent.keyDown(tap, { key: ' ', code: 'Space' });
+    for (let i = 0; i < 5; i += 1) {
+      fireEvent.keyDown(tap, { key: ' ', code: 'Space', repeat: true });
+      fireEvent.keyDown(tap, { key: 'Enter', code: 'Enter', repeat: true });
+    }
+
+    // Only the first press counted: two more real presses make three taps.
+    expect(screen.getByText(/Warming up/)).toBeInTheDocument();
+    fireEvent.keyDown(tap, { key: ' ', code: 'Space' });
+    fireEvent.keyDown(tap, { key: ' ', code: 'Space' });
+    expect(screen.getByText(/Measuring — 7 taps to go/)).toBeInTheDocument();
+  });
+
   it('does not apply when Space or Enter is pressed again after the last tap', async () => {
     const onApply = vi.fn();
     const { user } = await openWizard(onApply);

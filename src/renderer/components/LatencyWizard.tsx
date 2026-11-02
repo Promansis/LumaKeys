@@ -126,6 +126,8 @@ export function LatencyWizard({ audioEngine, currentMs, onApply, onClose }: Late
       // preventDefault below stops the browser's own click so it is not counted twice.
       if (e.target instanceof Element && e.target.closest('button') && !e.target.closest('.latency-tap-btn')) return;
       e.preventDefault();
+      // A held key auto-repeats; only the first press is a tap.
+      if (e.repeat) return;
       if (phase === 'intro') handleStart();
       else if (phase === 'tapping') handleTap();
     };
