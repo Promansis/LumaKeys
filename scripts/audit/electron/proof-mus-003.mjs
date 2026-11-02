@@ -2,16 +2,19 @@
 // hand filter, the loop and the track assignment vary, then survive a backup round trip.
 // Part 1  (profile PROFILE): import "Two Hand Study", record every note's finger, then
 //   T0  ignore the Accompaniment track and save a finger on a melody note (ignored-track view),
-//   T1  put the track back (the app clears every saved fingering on an assignment change; the
-//       row count before and after is recorded),
+//   T1  put the track back (PH-MUS-017: an assignment change must keep every saved fingering;
+//       the T0 row must still be stored and still show on its note),
 //   S1  Right Hand only view, S2 Left Hand only view, S3 loop of measure 2 with both hands,
 //   S4 loop of measure 2 with Left Hand only, S5 full view: save one finger in each view,
 //   then check the rows by note id, re-open the song from the library and read every note's
 //   finger in the full, right-only, left-only and loop views.
 //   Then Export Library through the save-dialog stub.
+//   The set of saved fingers is therefore six (T0 plus S1-S5).
 // Part 2  (profile PROFILE2, fresh): Import Library through the open-dialog stub, check the rows
-//   and read every note's finger again, in the full view and in a loop view.
-// Env: PROFILE and PROFILE2 (empty dirs under $TMPDIR), LK_SQLITE_MODULE (Electron-ABI
+//   and read every note's finger again, in the full view and in a loop view. Then the explicit
+//   Reset to Auto must still clear every row and every shown finger (R1).
+// Env: LUMAKEYS_REPO (optional; checkout whose build to launch, default the main checkout),
+//   PROFILE and PROFILE2 (empty dirs under $TMPDIR), LK_SQLITE_MODULE (Electron-ABI
 //   better-sqlite3), FIX_TWO (Two Hand Study.mid from ../browser/midi-fixtures.mjs
 //   writeTwoTrackFixture). Run from $TMPDIR/pw next to the Playwright install.
 // The note positions are computed by GameSession (on the song filtered by hand, as GameScreen
@@ -173,8 +176,12 @@ await withElectron(profile, async (h) => {
   await assignment(page, 'Accompaniment', 'Left Hand');
   const t1rows = rowsOf(h.userData);
   console.log('T1 rows after Accompaniment back to Left Hand', JSON.stringify(summ(t1rows)), 'assignments', await assignState(page));
-  console.log('T1 cleared by an assignment change:', t0rows.length > 0 && t1rows.length === 0);
-  await resume(page);
+  WANT[MEL(1)] = t0.r.finger === undefined ? undefined : pickDifferent(FIRST[MEL(1)]);
+  check('T1: assignment change keeps the saved fingering in the store', t0rows.length === 1 && summ(t1rows) === summ(t0rows), `${summ(t0rows)} -> ${summ(t1rows)}`);
+  await resume(page); await overlay(page); await editOn(page); await resume(page);
+  const t1show = await clickNote(page, 'full', MEL(1));
+  await closePopup(page);
+  check('T1: the saved fingering still shows on its note after the assignment change', t1show.finger === WANT[MEL(1)], JSON.stringify(t1show));
 
   // S1..S5
   const plan = [
@@ -197,7 +204,7 @@ await withElectron(profile, async (h) => {
     const row = rows.find((x) => x.noteId === id);
     check(`${name}: row stored by note id, not view index`, !!row && row.finger === f && row.noteIndex === -1, JSON.stringify(row));
   }
-  check('rows after S1-S5: five rows, one per saved note', rowsOf(h.userData).length === 5, summ(rowsOf(h.userData)));
+  check('rows after S1-S5: six rows (T0 kept plus one per S1-S5 note)', rowsOf(h.userData).length === 6, summ(rowsOf(h.userData)));
   console.log('rows', summ(rowsOf(h.userData)));
 
   // re-open from the library and read every view
@@ -225,7 +232,7 @@ await withElectron(profile, async (h) => {
   await page.getByRole('button', { name: 'Export Library' }).click(); await page.waitForTimeout(1500);
   const backup = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
   console.log('EXPORT keys', Object.keys(backup).join(','), 'fingerings', JSON.stringify(backup.fingerings));
-  check('export holds the five fingerings with note ids', backup.fingerings?.length === 5 && backup.fingerings.every((f) => f.noteId), summ(backup.fingerings ?? []));
+  check('export holds the six fingerings with note ids', backup.fingerings?.length === 6 && backup.fingerings.every((f) => f.noteId), summ(backup.fingerings ?? []));
   fs.writeFileSync(path.join(profile, 'summary.json'), JSON.stringify({ FIRST, WANT, songId: song.id }));
   console.log('ERRORS', JSON.stringify(h.errors.filter((e) => !/Insecure Content-Security-Policy|polyphony/.test(e)).slice(0, 10)));
 });
@@ -244,7 +251,7 @@ await withElectron(profile2, async (h) => {
   console.log('PART2 restored songs', JSON.stringify(songs.map((s) => [s.id.slice(0, 12), s.title])));
   check('restore: song comes back with the same id', songs.some((s) => s.id === songId), '');
   const rows2 = rowsOf(h.userData);
-  check('restore: fingering rows equal the source profile rows (note id, hand, finger)', summ(rows2) === summ(rows1) && rows2.length === 5, `${summ(rows2)} vs ${summ(rows1)}`);
+  check('restore: fingering rows equal the source profile rows (note id, hand, finger)', summ(rows2) === summ(rows1) && rows2.length === 6, `${summ(rows2)} vs ${summ(rows1)}`);
   await bridge(page, 'setSetting', ['gameplay', 'leadInBeats', '0']);
   await toLibrary(page); await learn(page); await overlay(page); await editOn(page); await resume(page);
   const reFull = await readView(page, 'full');
@@ -257,6 +264,16 @@ await withElectron(profile2, async (h) => {
   const lg = await readView(page, 'loop2');
   const bad = Object.keys(lg).filter((id) => id in WANT && lg[id] !== WANT[id]);
   check('restore: loop of measure 2 shows the saved finger on its notes', bad.length === 0, JSON.stringify(lg));
+  // R1: the explicit reset still clears (excluded from PH-MUS-017)
+  await overlay(page);
+  await page.getByRole('button', { name: 'Reset to Auto', exact: true }).click(); await page.waitForTimeout(800);
+  check('R1: explicit Reset to Auto clears every stored fingering', rowsOf(h.userData).length === 0, summ(rowsOf(h.userData)));
+  await resume(page); await overlay(page); await editOn(page); await resume(page);
+  const afterReset = await readView(page, 'loop2'); // the session is still in the measure 2 loop
+  const inView = Object.keys(afterReset).filter((id) => id in WANT);
+  const stillShown = inView.filter((id) => afterReset[id] === WANT[id]);
+  const misclick = Object.keys(afterReset).filter((id) => String(afterReset[id]).startsWith('MISCLICK'));
+  check('R1: after the reset the saved fingers in view no longer show', inView.length > 0 && misclick.length === 0 && stillShown.length === 0, JSON.stringify(afterReset));
   console.log('ERRORS', JSON.stringify(h.errors.filter((e) => !/Insecure Content-Security-Policy|polyphony/.test(e)).slice(0, 10)));
 });
 console.log(fails === 0 ? 'ALL CHECKS PASSED' : `${fails} CHECK(S) FAILED`);

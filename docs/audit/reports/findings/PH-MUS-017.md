@@ -113,18 +113,17 @@ ask first and name the fingerings in the prompt. `src/renderer/components/GameSc
   assigns Accompaniment to Ignore and back to Left Hand and checks the visible finger on the
   melody note, the fake persisted store and the bridge calls. `still clears fingerings on
   the explicit reset` passes before and after and guards the excluded path.
-- Driver result: `scripts/audit/electron/proof-mus-003.mjs`, run headless against this
-  worktree's build (copy of the harness with `REPO` pointed at the worktree, `$TMPDIR`
-  profiles). T0 saved a finger on a melody note with Accompaniment ignored (row count 1);
-  after Accompaniment back to Left Hand the row count stayed 1 ("T1 cleared by an
-  assignment change: false", was true at `d208ee2`). 18 checks pass. 5 later checks fail
-  only because the driver still assumes the old wipe: it expects exactly five rows after
-  S1-S5 and the original finger on the T0 note, and the T0 row now correctly survives.
-  The driver needs updating for the new behavior; that is outside this slice. Not run: the
+- Driver result: `scripts/audit/electron/proof-mus-003.mjs`, updated to assert the fixed
+  behaviour, run headless under `flock` against this worktree's build
+  (`LUMAKEYS_REPO=<worktree>`, an env override added to `electron-harness.mjs`, default
+  unchanged; `$TMPDIR` profiles). 27 of 27 checks pass. New checks: T1 (Accompaniment Ignore
+  then Left Hand keeps the T0 row in the store, `track-0-note-1:r5` before and after, and the
+  finger still shows on its note), the S1-S5, export and restore row counts now six (T0
+  kept plus five), and R1 (explicit Reset to Auto clears every stored row and the shown
+  fingers). Before the fix the same sequence took the row count from 1 to 0. Not run: the
   web-bridge variant (same handler, shared renderer code).
-- Proof owed (agent-runnable): update the driver's S1-S5/export/restore expectations to
-  include the retained T0 row, and the web-bridge Ignore then Left Hand sequence in
-  headless Chromium. Human-only: none.
+- Proof owed (agent-runnable): the web-bridge Ignore then Left Hand sequence in headless
+  Chromium. Human-only: none.
 - Residual risk: with the Editor open, the effect that refreshes `fingeringEditorState`
   (`GameScreen.tsx`, depends on `fingeringEditorState` and sets a new object each run) loops
   in a jsdom test; seen while writing the test, not changed here (left for the lead to triage).
