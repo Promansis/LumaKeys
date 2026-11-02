@@ -3,7 +3,7 @@
 - Lane: PAR
 - Severity: P2
 - Confidence: high
-- Status: open
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting)
 - Verifier: TBD
@@ -81,7 +81,7 @@ change the server response shape, which already matches `ReattachMidiResult` in
 ## Resolution
 
 - Accepted/rejected rationale: reproduced by test and driver (2026-11-02), not yet independently reviewed.
-- Fix branch/commit/issue: `remediation/p11-s24-reattach`, slice 24, implemented 2026-11-02, awaiting independent review; not merged. Base `2d6593d`. Fix commit `cb28cf6`.
+- Fix branch/commit/issue: `remediation/p11-s24-reattach`, slice 24, implemented and independently reviewed 2026-11-02; merged to `main` in `5336959`; `fixed`, not `verified`: the lead's web reattach driver run, including the Library refresh after reattach, is owed. Base `2d6593d`. Fix commit `cb28cf6`.
 - What changed: `uploadMidiFiles` in `src/renderer/webBridge.ts` takes a `songsKey` (`'songs'` by default, `'reattached'` for reattach) and reads that field from the response. `reattachMidiFile` passes `'reattached'`. Progress events, the upload path, the server and Electron are unchanged.
 - Tests (`src/renderer/webBridge.test.ts`, source identity `2d6593d`): `returns the reattached song from the reattach route response (PH-PAR-008)` failed before the fix (result was `reattached: []` with an error `batch.songs is not iterable (cannot read property undefined)`) and passes after; it also asserts the encoded reattach URL and the progress event. `reports reattach route errors without reattached songs (PH-PAR-008)` failed before with the same error text in place of "The file is empty." and passes after. The other 22 tests in the file pass before and after. `npm run verify` passes (654 passed, 1 skipped).
 - Driver result: run. Web build of the slice worktree, headless Chromium, `$TMPDIR/s24/data`, port 39421. At `2d6593d` the status reads "1 failed (ode-to-joy: g.songs is not iterable (cannot read property undefined))." although the file is stored and served (200). With the fix it reads "Reattached 1 MIDI file." and the file is served (200). The Library refresh was not separately captured. Server stopped afterwards.

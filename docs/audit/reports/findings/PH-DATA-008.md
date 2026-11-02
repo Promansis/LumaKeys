@@ -3,7 +3,7 @@
 - Lane: DATA
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-20
 - Verifier: TBD
@@ -76,7 +76,7 @@ missing key. Add a parser test for both.
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 - Fix branch/commit/issue: `remediation/p11-s14-settings`, slice 14, commit `b66e7b6`;
-  implemented 2026-11-02, awaiting independent review; not merged.
+  implemented and independently reviewed 2026-11-02; merged to `main` in `05dd7aa`; `fixed`, not `verified`: the lead's web `keyboard-remap-persistence.mjs` rerun on `main` is owed.
 - What changed: `parseKeyboardMapping` in `src/lib/input/settings.ts` now reads an
   explicit `null` as unbound. A missing entry, a non-string, a blank string or an
   unsupported code still gets the default. Every caller was checked: `App.tsx` startup and

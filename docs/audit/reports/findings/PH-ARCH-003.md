@@ -3,7 +3,7 @@
 - Lane: ARCH
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -56,7 +56,7 @@ legacy `"off"` to `0`.
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
 
 - Fix branch/commit/issue: `remediation/p11-s14-settings`, slice 14, commit `7f4a28c`;
-  implemented 2026-11-02, awaiting independent review; not merged.
+  implemented and independently reviewed 2026-11-02; merged to `main` in `05dd7aa`; `fixed`, not `verified`: the lead's Electron `workflows.mjs` rerun on `main` (the settings "off" case) is owed.
 - What changed: `persistSetupState` in `src/renderer/App.tsx` writes
   `String(postureReminderMinutes ?? 0)`, so reminders off store `'0'`. `SettingsScreen.tsx`
   maps a stored `"off"` for `practice.postureReminderMinutes` to `'0'` when it loads. The

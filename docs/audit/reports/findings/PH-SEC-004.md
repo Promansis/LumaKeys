@@ -3,7 +3,7 @@
 - Lane: SEC
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -80,7 +80,7 @@ reporting already propagates messages.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: `remediation/p11-s13-import`, slice 13, commit `e4cfbfa`; implemented 2026-11-02, awaiting independent review; not merged. The finding stays `accepted` until the lead merges.
+- Fix branch/commit/issue: `remediation/p11-s13-import`, slice 13, commit `e4cfbfa`; implemented and independently reviewed 2026-11-02; merged to `main` in `5e1e67f`; `fixed`, not `verified`: the lead's `mscz-upload-no-musescore.mjs` rerun on `main` and the owner's parallel `.mscz` upload in the Docker image (sitting 0 item 2) are owed.
 - What changed: `src/server/museScore.ts` replaces the `converting` flag with a one-slot promise queue. Conversions run one at a time, in arrival order; `MUSESCORE_QUEUE_LIMIT = 4` caps pending conversions (running plus waiting). A request beyond the cap fails with "Too many scores are waiting for the MuseScore converter. Please try again in a moment.", distinct from the bad-file message. The 45 s timeout and `prlimit` are unchanged and a failed conversion does not block the next.
 - Tests (`museScore.test.ts`, "conversion queue", a shell-script stub converter through the real `prlimit` path, never real MuseScore): "converts two concurrent scores one after another, in order" failed before the fix ("Another MuseScore score is being converted. Please try again in a moment.") and passes after. "fails a request beyond the queue cap with a queue message, and recovers" failed before (`expected [] to deeply equal [ 'fulfilled' ]`; the cap did not exist) and passes after. "keeps converting after a failed conversion" is a guard: it passes before the fix when run alone, but fails on the base when run with the whole file ("Another MuseScore score is being converted"), because the old busy flag carries over from the previous test; it passes after either way. Source identity for the reproduction: product code equal to `cc40b63`.
 - Driver result: `mscz-upload-no-musescore.mjs` ran with no MuseScore, an unavailable converter, an oversized output and a failing converter; each failure text is unchanged and no upload leaves files behind. The two-parallel-upload case needs the real image.

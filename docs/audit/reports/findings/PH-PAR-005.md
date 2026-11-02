@@ -3,7 +3,7 @@
 - Lane: PAR
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-19
 - Verifier: TBD
@@ -88,7 +88,7 @@ offer a browser download for the MIDI take.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge. Owner decision 15 (2026-11-02) puts slice 17 in wave 3.
-- Fix branch/commit: `remediation/p11-s17-small`, commit `db7115f`; implemented 2026-11-02, awaiting independent review; not merged.
+- Fix branch/commit: `remediation/p11-s17-small`, commit `db7115f`; implemented and independently reviewed 2026-11-02; merged to `main` in `750bb42`; `fixed`, not `verified`: no agent or owner proof is owed beyond review.
 - What changed: in `src/renderer/components/FreePlayScreen.tsx`, under `IS_WEB`, the stop-recording status reads "Recording captured. You can replay it now, but it is not saved: exporting to a file is only available in the desktop app." and the empty Backing Track panel reads "Loading a backing track from a file is only available in the desktop app." The desktop wording is unchanged. No export or load capability was added, and no stored data changes.
 - Tests (`src/renderer/components/FreePlayScreen.test.tsx`, `FreePlayScreen runtime-aware recording copy`): the web case failed before the fix (`Unable to find an element with the text: /Recording captured\. You can replay it now, but it is not saved…/`) and passes after it; the desktop case passes before and after and guards the desktop wording. Both also check that the Export MIDI and Load Track buttons are absent on web and present on desktop. Source identity for the reproduction: product code equal to `cc40b63`.
 - Driver result: `freeplay-recording-export.mjs` (web build of this branch, throwaway data directory) showed the new stop status and Backing Track panel copy, no Export MIDI, Export WAV or Load Track control, Play Recording disabled before a take, 8 of 8 notes captured and replayed in order within 43 ms of the played gaps, no download offered, a held key closed out at Stop, and a new recording clearing the previous one.

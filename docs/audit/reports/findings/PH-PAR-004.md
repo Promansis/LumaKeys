@@ -3,7 +3,7 @@
 - Lane: PAR
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), second pass 2026-10-19
 - Verifier: TBD
@@ -59,7 +59,7 @@ all three import catch blocks.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: `remediation/p11-s13-import`, slice 13, commit `aa35f24`; implemented 2026-11-02, awaiting independent review; not merged. The finding stays `accepted` until the lead merges.
+- Fix branch/commit/issue: `remediation/p11-s13-import`, slice 13, commit `aa35f24`; implemented and independently reviewed 2026-11-02; merged to `main` in `5e1e67f`; `fixed`, not `verified`: the lead's `workflows.mjs` WF-004 rerun on `main` is owed.
 - What changed: `readMidi` in `src/lib/midi/midiFileParser.ts` wraps the `@tonejs/midi` constructor and rethrows a thrown string as `new Error(String(thrown))`; `extractMidiMeta` and `parseMidiFile` use it. The existing `(err as Error).message` catch blocks in `src/main/index.ts`, `src/server/midiRouter.ts` and `importSong.ts` are unchanged and now read the parser's reason. The desktop empty and `.txt` cases are fixed by the same wrap. A valid-header, broken-body file throws a real `TypeError` ("Cannot read properties of undefined (reading 'forEach')"), which is left as it is.
 - Tests: `midiFileParser.test.ts` "corrupt MIDI bytes" (2 tests) failed before the fix (`expected 'Bad MIDI file.  Expected 'MHdr', go...' to be an instance of Error`) and pass after. `midiRouter.test.ts` "names the parser reason for a corrupt .mid upload (PH-PAR-004)" failed before (`expected 'undefined' to be 'string'`) and passes after. Source identity for the reproduction: product code equal to `cc40b63`.
 - Driver result: `scripts/audit/electron/workflows.mjs` WF-004 ran on a throwaway profile: the empty and `.txt` files now show "Bad MIDI file. Expected 'MHdr', got: ''" and "...got: 'hell'" instead of "undefined"; the corrupt file shows the TypeError text above. The web driver `mscz-upload-no-musescore.mjs` ran (not the corrupt-`.mid` case; the router test covers it).

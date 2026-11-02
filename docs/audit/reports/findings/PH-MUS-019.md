@@ -3,7 +3,7 @@
 - Lane: MUS
 - Severity: P2
 - Confidence: high
-- Status: open
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), wave 3 investigation, 2026-11-02
 - Verifier: TBD
@@ -116,7 +116,7 @@ label (quarter-note BPM) and stored rows alone.
 
 ## Resolution
 
-- Accepted/rejected rationale: implemented and independently reviewed 2026-11-02 (PASS WITH NOTES); the review notes are addressed on the branch (see Review follow-up); not merged.
+- Accepted/rejected rationale: implemented and independently reviewed 2026-11-02 (PASS WITH NOTES); the review notes are addressed on the branch (see Review follow-up); merged to `main` in `c170bc3`; `fixed`, not `verified`: the owner ear check of the count-in on a fast song and a 6/8 song is owed.
 - Fix branch/commit/issue: `remediation/p11-s22-bpm` (base `30165ff`; product code equals `cc40b63`); commits `b600ad0` (dominant tempo), `ded52ba` (same-tick tempos), `ac5ef11` (count-in), `be9ab9b` (rounding, malformed tempo, SMPTE), plus the docs commit and the review follow-up commits. `b29a1a2` (lane lead time from the tempo map) was reverted after review.
 - What changed:
   - `src/lib/midi/dominantTempo.ts` (new): `getDominantTempo(tempoMap, spanStartSec, spanEndSec)` weights each tempo by seconds in force within the notes' span, merges entries equal to 2 decimals, breaks ties toward the earlier tempo. `parseMidiFile` stores it, rounded to 2 decimals. The `tempoMap` keeps the raw values.

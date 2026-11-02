@@ -3,7 +3,7 @@
 - Lane: UI/accessibility
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), computed styles and pixel sample
 - Verifier: independent verifier recommended
@@ -73,7 +73,7 @@ Use theme-aware grade colours (mix with white in dark themes). Owning module: `s
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: `remediation/p11-s16-colour`, slice 16, implemented 2026-11-02, awaiting independent review; not merged. Status is left for the lead.
+- Fix branch/commit/issue: `remediation/p11-s16-colour`, slice 16, implemented and independently reviewed 2026-11-02; merged to `main` in `2d6593d`; `fixed`, not `verified`: the lead's Electron results-screen screenshot (sitting 1) is owed.
 - What changed: `src/renderer/styles.css` gains `--grade-ink-mix` (`black` in `:root`, which `warm` and `light` inherit; `white` in `[data-theme="dark"]` and `[data-theme="neon"]`). The four grade rules (`.grade-S`, `.grade-A`, `.grade-B/.grade-C`, `.grade-D/.grade-F`) mix their state colour with `var(--grade-ink-mix)` instead of a fixed `black`. The light themes render exactly as before. Themes found: `warm`, `light` (no block of its own, uses `:root`), `dark` (the default) and `neon`, the four values `applyTheme` accepts in `src/renderer/App.tsx`.
 - Driver: `scripts/audit/browser/grade-badge-contrast.mjs` now loops over all four themes, mounts each badge in a real `.results-screen > .panel.results-hero` inside the running app, screenshots it and measures the rendered glyph pixel against the rendered background pixel (the computed colours are also printed). The unmodified dark-theme figures match the finding (2.67, 2.99, 2.41, 1.69 there; 2.73, 3.01, 2.45, 1.71 here).
 - Measured contrast, rendered, large bold text, before then after the fix:

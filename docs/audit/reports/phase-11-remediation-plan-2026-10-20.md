@@ -151,6 +151,13 @@ in `64a8160` (ADR 0002, `CONTEXT.md`, and the audit's citations):
   | `c1a1fbf` | Slice 8, delete confirmation (merged 2026-11-02) | PH-UI-006, PH-DATA-010 | `fixed`; independently reviewed. The `library-one-hand.mjs` A2/A3 rerun after its `toLibrary` change (lead) and the owner keyboard-only and screen-reader read of the delete prompt and the new Delete User Data wording owed |
   | `1b95e9a` | Slice 11, navigation focus and HUD zoom (merged 2026-11-02) | PH-UI-011, PH-UI-012, PH-UI-014 | `fixed`; independently reviewed. The Electron `keyboard-walk.mjs` parts (a) and (d) (lead), owner approval of the boxed top-bar look, owner real-zoom sittings 1 and 3 in Edge and Firefox, and a screen-reader pass owed |
   | `e1a3bf0` | Slice 10, dialogs and Escape (merged 2026-11-02) | PH-UI-010, PH-UI-013, PH-UI-017, PH-UI-020 | `fixed`; independently reviewed. The Electron `keyboard-walk.mjs` parts (b), (c) and (e) (lead) and owner sitting 3 item 3 in Edge and Firefox owed |
+  | `fde3104` | Slice 23, lockfile and npm audit triage (merged 2026-11-02) | none | done; owner decision 16 |
+  | `05dd7aa` | Slice 14, settings and key remap (merged 2026-11-02) | PH-DATA-008, PH-ARCH-003 | `fixed`; independently reviewed. The lead's web `keyboard-remap-persistence.mjs` and Electron `workflows.mjs` (settings "off") reruns owed |
+  | `2d6593d` | Slice 16, colour states (merged 2026-11-02) | PH-UI-015, PH-UI-016 | `fixed`; independently reviewed. The lead's `color-state-evidence.mjs` rerun with the `short-4-notes` fixture and the owner colour-vision sitting (sitting 1 item 10) owed |
+  | `5e1e67f` | Slice 13, import and restore (merged 2026-11-02) | PH-PAR-004, PH-UI-009, PH-ARCH-004, PH-SEC-004; follow-up to PH-DATA-003 | `fixed`; independently reviewed. The lead's `mscz-upload-no-musescore.mjs` and WF-004 reruns, and from the owner a parallel `.mscz` upload in Docker and the tampered-backup restore message in the UI, owed |
+  | `5336959` | Slice 24, web reattach (merged 2026-11-02) | PH-PAR-008 (new) | `fixed`; independently reviewed. The lead's web reattach driver run, including the Library refresh after reattach, owed |
+  | `750bb42` | Slice 17, library small fixes (merged 2026-11-02) | PH-UI-005, PH-UI-007, PH-UI-008, PH-MUS-009, PH-PAR-005 | `fixed`; independently reviewed. The lead's web `library-date-filter-timezone.mjs` and `library-organize-bulk.mjs` reruns, and from the owner a PH-UI-008 keyboard and screen-reader pass and a PH-UI-005 desktop trouble spot, owed |
+  | `c170bc3` | Slice 22, beats per minute (merged 2026-11-02) | PH-MUS-019 (new); PH-MUS-008 doc follow-up | `fixed`; independently reviewed. The owner ear check of the count-in on a fast song and a 6/8 song owed |
 
 - The owner ran `npm ci` in the main checkout on 2026-10-21, so its `node_modules` now holds
   Electron 44.9.2 and better-sqlite3 13.0.3 (user tests G1, pass). Since better-sqlite3 13,
@@ -1582,7 +1589,7 @@ Docker sets `/data`, which is absolute. Rollback: code revert.
 
 ## Proof Owed By Fixed Findings
 
-These 45 findings are `fixed`, not `verified`. None needs new product code unless noted.
+These 60 findings are `fixed`, not `verified`. None needs new product code unless noted.
 The owner sittings run by the agent on 2026-10-20
 ([report](phase-11-owner-sittings-2026-10-20.md)) moved PH-PAR-002, PH-UI-001, PH-UI-002
 and PH-UI-004 to `verified`. The [agent proofs](phase-11-agent-proofs-2026-10-21.md) of
@@ -1597,7 +1604,7 @@ PH-SEC-002, PH-SEC-003, PH-OPS-005, PH-MUS-014), so they joined it. On the same 
 PH-DATA-007, PH-OPS-003, PH-SEC-005); PH-DATA-007 then passed its headless Electron run, moved
 to `verified` and left this table. The follow-ups merged at `93ac583` fixed three more:
 PH-SEC-006 and PH-UI-021 joined, and PH-MUS-018 passed its desktop and web runs and went
-straight to `verified`. On 2026-11-02 wave 2 slices 6, 4 and 9 merged (`c7216e2`, `ea89f3e`, `6f327c9`) and moved nine more from `accepted` to `fixed`: PH-PAR-006, PH-MUS-007, PH-MUS-015, PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019, PH-MUS-006, PH-MUS-008. Then slices 5, 20, 19 and 7 merged (`ccc68c2`, `c03f220`, `c8f9b1a`, `8fc933f`) and moved five more to `fixed`: PH-MUS-010, PH-MUS-011, PH-MUS-017, PH-DATA-001, PH-PAR-007. Then slices 21, 12 and 8 merged (`cb8926e`, `571571b`, `c1a1fbf`; slice 21 has no finding rows) and moved five more to `fixed`: PH-MUS-013, PH-UI-018, PH-DATA-009, PH-UI-006, PH-DATA-010. Then slices 11 and 10 merged (`1b95e9a`, `e1a3bf0`) and moved seven more to `fixed`: PH-UI-011, PH-UI-012, PH-UI-014, PH-UI-010, PH-UI-013, PH-UI-017, PH-UI-020. The proof each of the 45 still owes follows. The
+straight to `verified`. On 2026-11-02 wave 2 slices 6, 4 and 9 merged (`c7216e2`, `ea89f3e`, `6f327c9`) and moved nine more from `accepted` to `fixed`: PH-PAR-006, PH-MUS-007, PH-MUS-015, PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019, PH-MUS-006, PH-MUS-008. Then slices 5, 20, 19 and 7 merged (`ccc68c2`, `c03f220`, `c8f9b1a`, `8fc933f`) and moved five more to `fixed`: PH-MUS-010, PH-MUS-011, PH-MUS-017, PH-DATA-001, PH-PAR-007. Then slices 21, 12 and 8 merged (`cb8926e`, `571571b`, `c1a1fbf`; slice 21 has no finding rows) and moved five more to `fixed`: PH-MUS-013, PH-UI-018, PH-DATA-009, PH-UI-006, PH-DATA-010. Then slices 11 and 10 merged (`1b95e9a`, `e1a3bf0`) and moved seven more to `fixed`: PH-UI-011, PH-UI-012, PH-UI-014, PH-UI-010, PH-UI-013, PH-UI-017, PH-UI-020. Then slices 23, 14, 16, 13, 24, 17 and 22 merged (`fde3104`, `05dd7aa`, `2d6593d`, `5e1e67f`, `5336959`, `750bb42`, `c170bc3`; slice 23, the lockfile, has no finding rows) and moved thirteen more from `accepted` to `fixed` and added two new findings already `fixed`: PH-DATA-008, PH-ARCH-003, PH-UI-015, PH-UI-016, PH-PAR-004, PH-UI-009, PH-ARCH-004, PH-SEC-004, PH-UI-005, PH-UI-007, PH-UI-008, PH-MUS-009, PH-PAR-005, PH-PAR-008, PH-MUS-019. The proof each of the 60 still owes follows. The
 packaged runs "with the real lock" cannot run in the agent sandbox (the single-instance
 lock needs a Unix socket); they run outside it, if the owner allows that through
 `/sandbox`, or the real-display checks cover them:
@@ -1649,6 +1656,21 @@ lock needs a Unix socket); they run outside it, if the owner allows that through
 | PH-UI-013 | P3 | The owner keyboard pass in Edge and Firefox (sitting 3 item 3). Slice 10 merged in `e1a3bf0`; Electron `keyboard-walk.mjs` parts (b), (c) and (e) passed on a main build | owner sitting 3 |
 | PH-UI-017 | P3 | The owner pass in Edge and Firefox (sitting 3 item 3). Slice 10 merged in `e1a3bf0`; Electron `keyboard-walk.mjs` parts (b), (c) and (e) passed on a main build | owner sitting 3 |
 | PH-UI-020 | P3 | The owner pass in Edge and Firefox (sitting 3 item 3) and a screen-reader read of the error panel. The web recovery driver passed on the main build (83 of 83); the `keyboard-walk.mjs` parts once listed here never applied to this finding. Slice 10 merged in `e1a3bf0` | owner sitting 3 |
+| PH-DATA-008 | P3 | The lead's web `keyboard-remap-persistence.mjs` rerun on a main build. Slice 14 merged in `05dd7aa` | lead |
+| PH-ARCH-003 | P3 | The lead's Electron `workflows.mjs` rerun on a main build, confirming the settings row holds `'0'` after Skip for now. Slice 14 merged in `05dd7aa` | lead |
+| PH-UI-015 | P3 | The lead's `color-state-evidence.mjs` rerun with the original `short-4-notes` fixture, then the owner colour-vision play of a short song in both palettes (sitting 1 item 10, B5). Slice 16 merged in `2d6593d` | lead; owner sitting 1 |
+| PH-UI-016 | P3 | An Electron results-screen screenshot (sitting 1, under the Electron lock); the colour-vision sitting (B5) covers the grade letter too. Slice 16 merged in `2d6593d` | lead; owner sitting 1 |
+| PH-PAR-004 | P3 | The lead's Electron `workflows.mjs` WF-004 rerun on a main build. Slice 13 merged in `5e1e67f` | lead |
+| PH-UI-009 | P3 | The lead's `mscz-upload-no-musescore.mjs` rerun on a main build, then an owner glance at the status line in the real window. Slice 13 merged in `5e1e67f` | lead; owner |
+| PH-ARCH-004 | P3 | The lead's `mscz-upload-no-musescore.mjs` rerun on a main build (the "HTTP mixed" response). Slice 13 merged in `5e1e67f` | lead |
+| PH-SEC-004 | P3 | The lead's `mscz-upload-no-musescore.mjs` rerun on a main build, then two parallel `.mscz` uploads in the Docker image (sitting 0 item 2); both should convert, the second after the first. Slice 13 merged in `5e1e67f` | lead; owner sitting 0 |
+| PH-UI-005 | P3 | A real trouble spot compared across Results and Progress in the desktop app. Slice 17 merged in `750bb42` | owner |
+| PH-UI-007 | P3 | The lead's web `library-date-filter-timezone.mjs` rerun on a main build. Slice 17 merged in `750bb42` | lead |
+| PH-UI-008 | P3 | The lead's web `library-organize-bulk.mjs` rerun on a main build, then the owner keyboard-only pass and a screen reader listening to the move announcement. Slice 17 merged in `750bb42` | lead; owner |
+| PH-MUS-009 | P3 | None beyond review; the unit tests cover it. Slice 17 merged in `750bb42` | none |
+| PH-PAR-005 | P3 | None beyond review; a browser MIDI download is outside this finding. Slice 17 merged in `750bb42` | none |
+| PH-PAR-008 | P2 | The lead's web reattach driver run on a main build, including the Library refresh after reattach (not separately captured in the slice run). Slice 24 merged in `5336959` | lead |
+| PH-MUS-019 | P2 | The owner listens to the count-in on a fast song and a 6/8 song. Slice 22 merged in `c170bc3` | owner |
 
 Agent-runnable proofs run on a main build at `d393474` on 2026-11-02; results in each finding's Resolution. The `keyboard-walk.mjs` run did not cover PH-UI-012; PH-UI-020's real driver, the web `proof-ph-arch-001-recovery.mjs`, passed 83 of 83 on the same build, and the PulseAudio item 6 for PH-PAR-006, PH-MUS-007 and PH-MUS-015 did not run (no PulseAudio server on this host).
 

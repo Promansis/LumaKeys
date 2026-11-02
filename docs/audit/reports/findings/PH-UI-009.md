@@ -3,7 +3,7 @@
 - Lane: UI
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-19
 - Verifier: TBD
@@ -81,7 +81,7 @@ file, or set LUMAKEYS_MUSESCORE_PATH on the server").
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: `remediation/p11-s13-import`, slice 13, commit `08ae3e5`; implemented 2026-11-02, awaiting independent review; not merged. The finding stays `accepted` until the lead merges.
+- Fix branch/commit/issue: `remediation/p11-s13-import`, slice 13, commit `08ae3e5`; implemented and independently reviewed 2026-11-02; merged to `main` in `5e1e67f`; `fixed`, not `verified`: the lead's `mscz-upload-no-musescore.mjs` rerun on `main` and the owner glance at the status line in the real window are owed.
 - What changed: `formatMidiImportResult` in `src/renderer/services/libraryService.ts` appends " Review the metadata before playing." only when `songs.length > 0`; a failure-only or skipped-only result ends with ".". The optional next-step wording for a missing MuseScore was not added, to leave driver-visible text alone.
 - Tests: `libraryService.test.ts` "does not ask for a metadata review when nothing was imported (PH-UI-009)" failed before the fix (the hint was present) and passes after. The existing imported-song assertions still pass and guard against over-correcting. Source identity for the reproduction: product code equal to `cc40b63`.
 - Driver result: `scripts/audit/browser/mscz-upload-no-musescore.mjs` ran against the worktree's `dist/` build: every failure-only status line ("1 failed (minimal: ...)") has no review hint and no metadata editor opens; zero "Review the metadata" matches in the output. Electron WF-004 keeps the hint only on the "Imported 2 songs" line.
