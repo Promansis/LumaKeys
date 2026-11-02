@@ -16,6 +16,8 @@ import { buildDeveloperUnlockedProgress } from '../lib/learning/developerUnlocks
 import { buildLessonDrill, buildRhythmClappingDrill } from '../lib/learning/drillGenerator';
 import {
   EMPTY_LEARNING_PROGRESS,
+  getCapstoneRunSetup,
+  isCapstoneRunSetupIntact,
   loadLearningProgress,
   markLessonCompleted,
   markLessonStepCompleted,
@@ -43,7 +45,7 @@ import type { TheorySuggestion } from '../lib/theory/songAnalysis';
 import type { SongRow, UserStatsRow } from '../shared/dbTypes';
 import type { InstrumentSamplePackStatus, ResolvedInstrumentSampleSource } from '../shared/ipc';
 import { AchievementToast } from './components/AchievementToast';
-import { ToastHost } from './components/Toast';
+import { ToastHost, toastBus } from './components/Toast';
 import { FreePlayScreen } from './components/FreePlayScreen';
 import { GameScreen, type GameScreenSource } from './components/GameScreen';
 import type { ImmersiveHudDestination, ImmersiveHudNavigationItem } from './components/ImmersiveHud';
@@ -64,6 +66,8 @@ import { TheoryQuizScreen } from './components/TheoryQuizScreen';
 import { saveSetting } from './saveSetting';
 
 type LessonReturnTarget = { lessonId: string; stepIndex: number };
+/** The last try at a step that missed its pass mark, shown when the lesson reopens on that step. */
+type LessonAttempt = { stepIndex: number; accuracy: number; target: number };
 type KeyboardSetupReturnTarget =
   | 'setup'
   | 'library'
@@ -78,7 +82,7 @@ type AppScreen =
   | { screen: 'main-menu' }
   | { screen: 'library' }
   | { screen: 'learn-hub' }
-  | { screen: 'lesson'; lessonId: string; stepIndex?: number }
+  | { screen: 'lesson'; lessonId: string; stepIndex?: number; lastAttempt?: LessonAttempt }
   | { screen: 'free-play' }
   | { screen: 'soundboard' }
   | { screen: 'theory-hub' }
@@ -319,7 +323,14 @@ export function App() {
   const [customSamplePackPath, setCustomSamplePackPath] = useState('');
   const [postureReminderMinutes, setPostureReminderMinutes] = useState<number | null>(null);
   const [breakReminderMinutes, setBreakReminderMinutes] = useState<number | null>(null);
-  const [learningProgress, setLearningProgress] = useState<LearningProgress>(EMPTY_LEARNING_PROGRESS);
+  const [learningProgress, setLearningProgressState] = useState<LearningProgress>(EMPTY_LEARNING_PROGRESS);
+  // The newest progress, readable before React re-renders, so a save never waits on a state updater.
+  const learningProgressRef = useRef<LearningProgress>(EMPTY_LEARNING_PROGRESS);
+  const learningSaveChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  const setLearningProgress = (next: LearningProgress) => {
+    learningProgressRef.current = next;
+    setLearningProgressState(next);
+  };
 
   const getInstalledPackInstrumentIds = (statuses: Record<string, InstrumentSamplePackStatus>) =>
     Object.values(statuses)
@@ -1031,24 +1042,49 @@ export function App() {
     window.setTimeout(() => setShowSongGoalToast(false), 5000);
   };
 
-  const updateLearningProgressState = (updater: (current: LearningProgress) => LearningProgress) => {
-    setLearningProgress((current) => {
-      const next = updater(current);
-      void saveLearningProgress(window.appBridge, next);
-      return next;
-    });
+  const updateLearningProgressState = async (updater: (current: LearningProgress) => LearningProgress) => {
+    const next = updater(learningProgressRef.current);
+    setLearningProgress(next);
+    // Writes go out in order, so a slow earlier save cannot overwrite a newer one.
+    const save = learningSaveChainRef.current.then(() => saveLearningProgress(window.appBridge, next));
+    learningSaveChainRef.current = save.catch(() => undefined);
+    try {
+      await save;
+    } catch (error) {
+      console.error('Failed to save lesson progress:', error);
+      setStartupError('Lesson progress is active for this session only. Save failed; try again.');
+      toastBus.push({
+        variant: 'error',
+        title: 'Lesson progress not saved',
+        message: 'The change is active for this session, but could not be written to storage.',
+      });
+    }
   };
 
-  const navigateToLesson = (lessonId: string, stepIndex?: number) => {
-    setCurrentScreen({ screen: 'lesson', lessonId, stepIndex });
+  const navigateToLesson = (lessonId: string, stepIndex?: number, lastAttempt?: LessonAttempt) => {
+    setCurrentScreen({ screen: 'lesson', lessonId, stepIndex, lastAttempt });
+  };
+
+  const handleCapstoneFinished = (tierId: string, accuracy: number, sessionConfig: SessionConfig) => {
+    const capstone = CURRICULUM.find((tier) => tier.id === tierId)?.capstone;
+    if (capstone && isCapstoneRunSetupIntact(capstone, sessionConfig)) {
+      void updateLearningProgressState((current) => recordCapstoneResult(current, tierId as LearningTierId, accuracy));
+    } else {
+      toastBus.push({
+        variant: 'warn',
+        title: 'Capstone result not saved',
+        message: 'The mode, hand, loop or tempo changed during the run, so it does not count toward the gate.',
+      });
+    }
+    setCurrentScreen({ screen: 'learn-hub' });
   };
 
   const handleCompleteLessonStep = (lessonId: string, stepIndex: number) => {
-    updateLearningProgressState((current) => markLessonStepCompleted(current, lessonId, stepIndex));
+    void updateLearningProgressState((current) => markLessonStepCompleted(current, lessonId, stepIndex));
   };
 
   const handleCompleteLesson = (lessonId: string) => {
-    updateLearningProgressState((current) => markLessonCompleted(current, lessonId));
+    void updateLearningProgressState((current) => markLessonCompleted(current, lessonId));
   };
 
   const handleLearningSessionResult = (lessonId: string, stepIndex: number, accuracy: number) => {
@@ -1062,12 +1098,14 @@ export function App() {
     const passAccuracy = step.kind === 'tip' ? 100 : step.passAccuracy ?? 70;
     const passed = accuracy >= passAccuracy;
     if (passed) {
-      updateLearningProgressState((current) => markLessonStepCompleted(current, lessonId, stepIndex));
+      void updateLearningProgressState((current) => markLessonStepCompleted(current, lessonId, stepIndex));
     }
 
     navigateToLesson(
       lessonId,
       passed ? Math.min(stepIndex + 1, Math.max(0, lesson.steps.length - 1)) : stepIndex,
+      // Floor, so "79% of 80%" never rounds up to a pass mark it did not reach.
+      passed ? undefined : { stepIndex, accuracy: Math.floor(accuracy), target: passAccuracy },
     );
   };
 
@@ -1108,10 +1146,9 @@ export function App() {
         screen: 'capstone',
         tierId,
         parsedSong,
-        sessionConfig: buildSessionConfig('learning', false, metronomeDefault, pitchBendEnabled, latencyCompMs, hitWindowMs, beatsVisible, leadInBeats, {
+        sessionConfig: buildSessionConfig('luma-keys', false, metronomeDefault, pitchBendEnabled, latencyCompMs, hitWindowMs, beatsVisible, leadInBeats, {
           handSize,
-          tempoMultiplier: capstone.tempoPercent / 100,
-          handFilter: capstone.handFilter,
+          ...getCapstoneRunSetup(capstone),
         }),
       });
     } catch (err) {
@@ -1314,6 +1351,7 @@ export function App() {
           lessonId: `capstone-${currentScreen.tierId}`,
           stepIndex: 0,
           parsedSong: currentScreen.parsedSong,
+          isCapstone: true,
         };
       default:
         return null;
@@ -1472,7 +1510,7 @@ export function App() {
           tiers={CURRICULUM}
           progress={learningProgress}
           onOpenLesson={(lessonId) => navigateToLesson(lessonId)}
-          onToggleGating={(enabled) => updateLearningProgressState((current) => setLearningGating(current, enabled))}
+          onToggleGating={(enabled) => void updateLearningProgressState((current) => setLearningGating(current, enabled))}
           onStartCapstone={(tierId) => void startCapstone(tierId)}
         />
       );
@@ -1488,6 +1526,7 @@ export function App() {
           curriculum={CURRICULUM}
           progress={learningProgress}
           initialStepIndex={currentScreen.stepIndex}
+          lastAttempt={currentScreen.lastAttempt}
           onBack={() => setCurrentScreen({ screen: 'learn-hub' })}
           onOpenLesson={(lessonId) => navigateToLesson(lessonId)}
           onStartDrill={startLessonDrill}
@@ -1761,12 +1800,8 @@ export function App() {
           onExit={() => setCurrentScreen({ screen: 'learn-hub' })}
           exitLabel="Back to Learn Hub"
           onGameFinished={handleGameFinished}
-          onLessonDrillFinished={(payload) => {
-            updateLearningProgressState((current) =>
-              recordCapstoneResult(current, capstoneTierId as LearningTierId, payload.result.accuracy),
-            );
-            setCurrentScreen({ screen: 'learn-hub' });
-          }}
+          onLessonDrillFinished={(payload) =>
+            handleCapstoneFinished(capstoneTierId, payload.result.accuracy, payload.sessionConfig)}
           onOpenKeyboardSetup={() => setCurrentScreen({ screen: 'keyboard-setup', returnTo: 'learn-hub' })}
           hudNavigationItems={buildImmersiveHudNavigation()}
           hudCurrentDestination="learn-hub"

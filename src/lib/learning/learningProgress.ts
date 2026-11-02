@@ -1,5 +1,6 @@
 import type { AppBridge } from '../../shared/ipc';
-import type { Lesson, LearningProgress, LearningTier, LearningTierId } from './types';
+import type { SessionConfig } from '../game/types';
+import type { Lesson, LearningProgress, LearningTier, LearningTierId, TierCapstone } from './types';
 
 export const LEARNING_SETTINGS_CATEGORY = 'learning';
 export const COMPLETED_LESSONS_KEY = 'completedLessons';
@@ -134,6 +135,36 @@ export function recordCapstoneResult(
     ...progress,
     capstoneResults: { ...progress.capstoneResults, [tierId]: accuracy },
   };
+}
+
+export type CapstoneRunSetup = Pick<
+  SessionConfig,
+  'mode' | 'waitForInput' | 'tempoMultiplier' | 'handFilter' | 'loopRange'
+>;
+
+/**
+ * The session a capstone is judged in. It runs in Play mode against the moving clock, so the
+ * accuracy gate measures timing: wait-for-input would stand still until the right key arrived
+ * and score late or wrong presses as hits.
+ */
+export function getCapstoneRunSetup(capstone: TierCapstone): CapstoneRunSetup {
+  return {
+    mode: 'luma-keys',
+    waitForInput: false,
+    tempoMultiplier: capstone.tempoPercent / 100,
+    handFilter: capstone.handFilter,
+    loopRange: null,
+  };
+}
+
+/** True when a finished run still has the setup the capstone gate was defined for. */
+export function isCapstoneRunSetupIntact(capstone: TierCapstone, config: CapstoneRunSetup): boolean {
+  const expected = getCapstoneRunSetup(capstone);
+  return config.mode === expected.mode
+    && config.waitForInput === expected.waitForInput
+    && Math.abs(config.tempoMultiplier - expected.tempoMultiplier) < 1e-9
+    && config.handFilter === expected.handFilter
+    && config.loopRange === null;
 }
 
 export function isLessonUnlocked(curriculum: LearningTier[], progress: LearningProgress, lesson: Lesson): boolean {

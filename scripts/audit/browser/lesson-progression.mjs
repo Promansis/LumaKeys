@@ -13,6 +13,13 @@ const learnState = () => ({ lessons: dbRow('learning', 'completedLessons'), step
 const openHub = async (page) => { await page.getByRole('button', { name: /^Guided Lessons/ }).click(); await page.waitForTimeout(800); };
 const summary = async (page) => (await text(page)).match(/(\d+ \/ \d+)\nLESSONS COMPLETED/i)?.[1];
 const lesson1 = (page) => page.getByRole('button', { name: /^(Open|Done|Lock)\s*Lesson 1\b/i }).first();
+// Wall-clock time (Date.now) at which the 3-2-1 count-in ends and the clock starts; a press before it is judged against a paused clock.
+const watchPlay = (page) => page.evaluate(() => { const w = (window.__cap = { counting: false, tPlay: null }); new MutationObserver(() => { const c = Boolean(document.querySelector('.countdown-overlay')); if (c) w.counting = true; else if (w.counting && w.tPlay === null) w.tPlay = Date.now(); }).observe(document.body, { subtree: true, childList: true }); });
+const resetPlay = (page) => page.evaluate(() => { Object.assign(window.__cap, { counting: false, tPlay: null }); });
+const waitPlay = async (page) => { for (let i = 0; i < 500; i++) { const t = await page.evaluate(() => window.__cap.tPlay); if (t) return t; await page.waitForTimeout(10); } throw new Error('session never started'); };
+const pressAt = async (page, key, at) => { const wait = at - Date.now(); if (wait > 0) await new Promise((r) => setTimeout(r, wait)); await page.keyboard.down(key); await page.waitForTimeout(25); await page.keyboard.up(key); };
+// Lesson 1 step 3 (72 BPM quarter notes on middle C): note starts from buildLessonDrill, in seconds.
+const DRILL = [0, 0.833, 1.667, 2.5, 3.333, 4.167, 5, 5.833];
 const stepBadge = async (page) => ((await text(page)).match(/STEP \d of \d\n[^\n]+\n(COMPLETED|IN PROGRESS)/i)?.[1]) ?? '?';
 
 await withServer(data, async ({ page, base, errors, restart }) => {
@@ -33,13 +40,11 @@ await withServer(data, async ({ page, base, errors, restart }) => {
   await page.getByRole('button', { name: 'Start Drill' }).click(); await page.waitForTimeout(1200);
   await page.evaluate(() => document.activeElement?.blur());
   out('drill screen: HUD', await hud(page), '| status text', JSON.stringify((await text(page)).match(/Loaded[^\n]*/)?.[0]));
-  await page.keyboard.press('Space');
-  const t0 = Date.now(); let back = false; let presses = 0;
-  for (let i = 0; i < 160 && !back; i++) {
-    await page.keyboard.down('Comma'); await page.waitForTimeout(40); await page.keyboard.up('Comma'); presses++;
-    await page.waitForTimeout(90);
-    if (i % 5 === 0) back = /Lesson Steps/i.test(await text(page));
-  }
+  await watchPlay(page); await page.keyboard.press('Space');
+  const tDrill = await waitPlay(page);
+  const t0 = Date.now(); let back = false; const presses = DRILL.length;
+  for (const startSec of DRILL) await pressAt(page, 'Comma', tDrill + startSec * 1000);
+  for (let i = 0; i < 40 && !back; i++) { back = /Lesson Steps/i.test(await text(page)); if (!back) await page.waitForTimeout(250); }
   out(`drill finished: back on lesson screen = ${back} after ${Date.now() - t0} ms, ${presses} presses`);
   await page.waitForTimeout(500);
   const afterDrill = await text(page);
@@ -86,7 +91,7 @@ await withServer(data, async ({ page, base, errors, restart }) => {
   const errBefore = errors.length;
   await page.route('**/api/bridge/setSetting', (r) => r.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'disk full (audit)' }) }));
   await page.getByRole('button', { name: /Complete Tip/ }).click(); await page.waitForTimeout(800);
-  out('save failing: after Complete Tip step badge', JSON.stringify((await text(page)).match(/(COMPLETED|IN PROGRESS)/i)?.[0]), '| toast/alert', JSON.stringify(await page.locator('.toast, [role="alert"]').allInnerTexts()), '| console', JSON.stringify(errors.slice(errBefore).map((e) => e.slice(0, 120))));
+  out('save failing: after Complete Tip step badge', JSON.stringify((await text(page)).match(/(COMPLETED|IN PROGRESS)/i)?.[0]), '| toast/alert', JSON.stringify(await page.locator('.toast-item, [role="alert"], .achievement-toast').allInnerTexts()), '| console', JSON.stringify(errors.slice(errBefore).map((e) => e.slice(0, 120))));
   await page.unroute('**/api/bridge/setSetting');
   await page.goto(base + '/', { waitUntil: 'networkidle' }); await openHub(page);
   out('after reload lesson 3 progress:', JSON.stringify(await page.getByRole('button', { name: /Lesson 3\b/ }).first().innerText().then((t) => t.replace(/\n+/g, ' | ').slice(0, 120))));
@@ -99,12 +104,13 @@ await withServer(data, async ({ page, base, errors, restart }) => {
   const cap = page.locator('.learn-capstone-card').first();
   out('capstone after seeding all 6 tier-1 lessons: Attempt disabled =', await cap.locator('button').isDisabled(), '| card', JSON.stringify((await cap.innerText()).replace(/\n+/g, ' | ')), '| hub', await summary(page));
   const midi = new Midi(fs.readFileSync('/media/storage/LumaKeys/public/curriculum-midis/ode-to-joy.mid'));
-  const KEY = { 60: 'Comma', 62: 'Period', 64: 'Slash', 65: 'KeyQ', 67: 'KeyW' };
-  const notes = midi.tracks[0].notes.filter((n) => n.midi >= 60).map((n) => ({ key: KEY[n.midi], t: n.time / 0.9 }));
+  const KEY = { 55: 'KeyB', 60: 'Comma', 62: 'Period', 64: 'Slash', 65: 'KeyQ', 67: 'KeyW' };
+  // The capstone runs in Play mode at tempo 0.9 (no waiting), so each note has a time on the moving clock.
+  const notes = midi.tracks[0].notes.map((n) => ({ key: KEY[n.midi], t: n.time / 0.9 }));
   out('right-hand notes to play:', notes.length, '| pitches', JSON.stringify([...new Set(notes.map((n) => n.key))]));
   const onHub = async () => /Progressive piano curriculum/i.test(await text(page));
   const cardText = async () => (await page.locator('.learn-capstone-card').first().innerText().catch(() => '?')).replace(/\n+/g, ' | ');
-  // attempt 1: no input. The capstone session waits at the first note, so abandon it through the pause overlay.
+  // attempt 1: no input. The clock keeps moving in Play mode; abandon the run early through the pause overlay.
   await cap.locator('button').click(); await page.waitForTimeout(1500);
   await page.evaluate(() => document.activeElement?.blur()); await page.keyboard.press('Space'); await page.waitForTimeout(20000);
   out('capstone attempt 1 (no input) after 20 s: still in game =', !(await onHub()), '| HUD', await hud(page));
@@ -112,19 +118,14 @@ await withServer(data, async ({ page, base, errors, restart }) => {
   out('  overlay buttons:', JSON.stringify(await page.$$eval('.immersive-overlay button', (b) => b.map((x) => x.innerText.trim()).slice(0, 4))));
   await page.getByRole('button', { name: /Back to Learn Hub/ }).first().click(); await page.waitForTimeout(600);
   out('  after Back to Learn Hub: on hub =', await onHub(), '| capstone card', await cardText(), '| stored', dbRow('learning', 'capstoneResults'));
-  // attempt 2: play every right-hand note in order (the session waits for each note)
+  // attempt 2: press every note at its scheduled time on the moving clock (the run does not wait)
   await page.locator('.learn-capstone-card button').first().click(); await page.waitForTimeout(1500);
-  await page.evaluate(() => document.activeElement?.blur()); await page.keyboard.press('Space');
-  const keySeq = notes.map((n) => n.key); let missed = 0; const tCap = Date.now();
-  for (const key of keySeq) {
-    let ok = false; const before = await hud(page);
-    for (let i = 0; i < 60 && !ok; i++) {
-      if (await onHub()) { ok = true; break; }
-      await page.keyboard.down(key); await page.waitForTimeout(130); await page.keyboard.up(key); await page.waitForTimeout(110);
-      ok = (await hud(page)) !== before;
-    }
-    if (!ok) missed++;
-    if (await onHub()) break;
+  await page.evaluate(() => document.activeElement?.blur());
+  await watchPlay(page); await page.keyboard.press('Space');
+  const tPlay = await waitPlay(page);
+  const keySeq = notes.map((n) => n.key); const missed = 0; const tCap = Date.now();
+  for (const note of notes) {
+    await pressAt(page, note.key, tPlay + note.t * 1000 + Number(process.env.CAPSTONE_LEAD_MS ?? 0));
   }
   await page.waitForTimeout(1500);
   out(`capstone attempt 2 (all ${keySeq.length} notes in order): elapsed ${Date.now() - tCap} ms, notes not registered ${missed} | back on hub =`, await onHub(), '| card', await cardText(), '| stored', dbRow('learning', 'capstoneResults'));

@@ -6,7 +6,10 @@
 //   (inside the agent sandbox: node --import tsx scripts/audit/capstone-accuracy-probe.ts)
 //
 // Builds the session the way App.startCapstone and GameScreen do: ode-to-joy.mid parsed,
-// filtered to the right hand, learning mode with wait-for-input, 90 % tempo, 100 ms window.
+// filtered to the right hand, and the run setup from getCapstoneRunSetup (Play mode, no
+// wait-for-input, the capstone's tempo and hand), 100 ms window. Before PH-MUS-013 the capstone
+// ran in Learning mode with wait-for-input; the L-scenarios below keep that setup as `legacy`
+// so the two can be compared.
 // Each scenario drives GameSession with explicit timestamps and polls getSnapshot every
 // millisecond, as the render loop does once per frame.
 import fs from 'node:fs';
@@ -14,6 +17,7 @@ import { GameSession } from '../../src/lib/game/GameSession';
 import { parseMidiFile } from '../../src/lib/midi/midiFileParser';
 import { filterSongByHand } from '../../src/lib/game/songUtils';
 import { TIERS_BY_ID } from '../../src/lib/learning/curriculum';
+import { getCapstoneRunSetup } from '../../src/lib/learning/learningProgress';
 import type { SessionConfig } from '../../src/lib/game/types';
 
 const capstone = TIERS_BY_ID.get('novice')!.capstone!;
@@ -21,11 +25,7 @@ const bytes = fs.readFileSync(`public/curriculum-midis/${capstone.songFileName}`
 const parsed = parseMidiFile(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), { songId: 'capstone-novice', title: capstone.displayTitle } as any);
 const song = filterSongByHand(parsed, capstone.handFilter);
 const base: SessionConfig = {
-  mode: 'learning',
-  tempoMultiplier: capstone.tempoPercent / 100,
-  handFilter: capstone.handFilter,
-  loopRange: null,
-  waitForInput: true,
+  ...getCapstoneRunSetup(capstone),
   metronomeEnabled: false,
   handSize: 'medium',
   fingeringDisplayMode: 'never',
@@ -59,10 +59,12 @@ const play = (config: SessionConfig, offsetMs: number, wrongBefore: number) => {
   return `accuracy=${r.accuracy} perfect=${r.perfectHits} good=${r.goodHits} ok=${r.okHits} miss=${r.misses} wall=${(ms / 1000).toFixed(1)}s`;
 };
 
+const legacy: SessionConfig = { ...base, mode: 'learning', waitForInput: true };
+
 console.log(`capstone ${capstone.songFileName}: ${song.notes.length} notes, threshold ${capstone.accuracyThreshold} %, tempo ${capstone.tempoPercent} %, hand ${capstone.handFilter}`);
-console.log('L1 learning, each note on time                          ', play(base, 0, 0));
-console.log('L2 learning, each note 2 s late, 3 wrong keys before it ', play(base, 2000, 3));
-console.log('L3 learning, each note 40 ms early                      ', play(base, -40, 0));
-console.log('L4 learning, each note 80 ms early                      ', play(base, -80, 0));
-const playMode = { ...base, mode: 'luma-keys' as const, waitForInput: false };
-console.log('P1 control, Play mode, each note 2 s late               ', play(playMode, 2000, 0));
+console.log(`run setup: mode=${base.mode} waitForInput=${base.waitForInput}`);
+console.log('L1 capstone, each note on time                          ', play(base, 0, 0));
+console.log('L2 capstone, each note 2 s late, 3 wrong keys before it ', play(base, 2000, 3));
+console.log('L3 capstone, each note 40 ms early                      ', play(base, -40, 0));
+console.log('L4 capstone, each note 80 ms early                      ', play(base, -80, 0));
+console.log('legacy Learning + wait, each note 2 s late, 3 wrong keys', play(legacy, 2000, 3));

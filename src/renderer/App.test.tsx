@@ -91,9 +91,20 @@ vi.mock('./components/LearnHubScreen', () => ({
 }));
 
 vi.mock('./components/LessonScreen', () => ({
-  LessonScreen: ({ onStartDrill }: { onStartDrill: (lessonId: string, stepIndex: number) => void }) => (
+  LessonScreen: ({
+    onStartDrill,
+    lastAttempt,
+  }: {
+    onStartDrill: (lessonId: string, stepIndex: number) => void;
+    lastAttempt?: { stepIndex: number; accuracy: number; target: number } | null;
+  }) => (
     <>
       <div>Lesson</div>
+      {lastAttempt ? (
+        <div data-testid="lesson-last-attempt">
+          {`${lastAttempt.accuracy}% of ${lastAttempt.target}% needed on step ${lastAttempt.stepIndex}`}
+        </div>
+      ) : null}
       <button onClick={() => onStartDrill('novice-02-finger-numbers', 3)}>Start Drill</button>
     </>
   ),
@@ -130,13 +141,22 @@ vi.mock('./components/LibraryScreen', () => ({
 vi.mock('./components/GameScreen', () => ({
   GameScreen: ({
     onOpenKeyboardSetup,
+    onLessonDrillFinished,
     initialSessionConfig,
     source,
   }: {
     onOpenKeyboardSetup: () => void;
-    initialSessionConfig: { mode: string; waitForInput: boolean; leadInBeats?: number };
-    source: { kind: string };
+    onLessonDrillFinished: (payload: unknown) => void;
+    initialSessionConfig: { mode: string; waitForInput: boolean; leadInBeats?: number; tempoMultiplier: number };
+    source: { kind: string; lessonId?: string; stepIndex?: number };
   }) => {
+    const finish = (accuracy: number, sessionConfig: unknown) =>
+      onLessonDrillFinished({
+        lessonId: source.lessonId,
+        stepIndex: source.stepIndex,
+        result: { accuracy },
+        sessionConfig,
+      });
     // Mirrors GameScreen: its song-load effect re-runs whenever `source` changes identity.
     useEffect(() => {
       gameSourceChangeSpy(source.kind);
@@ -146,9 +166,15 @@ vi.mock('./components/GameScreen', () => ({
       <div>Game</div>
       <div data-testid="game-session-mode">{initialSessionConfig.mode}</div>
       <div data-testid="game-session-wait">{String(initialSessionConfig.waitForInput)}</div>
+      <div data-testid="game-session-tempo">{String(initialSessionConfig.tempoMultiplier)}</div>
       <div data-testid="game-session-lead-in">{String(initialSessionConfig.leadInBeats)}</div>
       <div data-testid="game-source-kind">{source.kind}</div>
       <button onClick={onOpenKeyboardSetup}>Open Keyboard Setup</button>
+      <button onClick={() => finish(50, initialSessionConfig)}>Finish at 50</button>
+      <button onClick={() => finish(92, initialSessionConfig)}>Finish at 92</button>
+      <button onClick={() => finish(92, { ...initialSessionConfig, tempoMultiplier: 1 })}>
+        Finish at 92 with changed tempo
+      </button>
     </>
     );
   },
@@ -489,6 +515,98 @@ describe('App', () => {
     expect(screen.getByTestId('game-source-kind')).toHaveTextContent('lesson-drill');
     expect(screen.getByTestId('game-session-mode')).toHaveTextContent('luma-keys');
     expect(screen.getByTestId('game-session-wait')).toHaveTextContent('false');
+  });
+
+  it('launches the capstone in Play mode at its own tempo, without waiting for input', async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByText('Open Learn'));
+    fireEvent.click(await screen.findByText('Start Capstone'));
+
+    expect(await screen.findByTestId('game-source-kind')).toHaveTextContent('lesson-drill');
+    expect(screen.getByTestId('game-session-mode')).toHaveTextContent('luma-keys');
+    expect(screen.getByTestId('game-session-wait')).toHaveTextContent('false');
+    expect(screen.getByTestId('game-session-tempo')).toHaveTextContent('0.9');
+  });
+
+  describe('capstone result', () => {
+    const capstoneWrites = () =>
+      setSettingSpy.mock.calls.filter(([category, key]) => category === 'learning' && key === 'capstoneResults');
+
+    async function startCapstone() {
+      render(<App />);
+      fireEvent.click(await screen.findByText('Open Learn'));
+      fireEvent.click(await screen.findByText('Start Capstone'));
+      await screen.findByTestId('game-source-kind');
+    }
+
+    it('stores the accuracy of a run that kept the capstone setup', async () => {
+      await startCapstone();
+      fireEvent.click(screen.getByText('Finish at 92'));
+
+      await waitFor(() => expect(capstoneWrites()).toHaveLength(1));
+      expect(capstoneWrites()[0][2]).toBe(JSON.stringify({ novice: 92 }));
+    });
+
+    it('does not store a run whose tempo was changed away from the capstone setup', async () => {
+      await startCapstone();
+      fireEvent.click(screen.getByText('Finish at 92 with changed tempo'));
+
+      await screen.findByText('Start Capstone');
+      expect(capstoneWrites()).toHaveLength(0);
+    });
+  });
+
+  describe('lesson drill result', () => {
+    async function startDrill() {
+      render(<App />);
+      fireEvent.click(await screen.findByText('Open Learn'));
+      fireEvent.click(await screen.findByText('Open Lesson'));
+      fireEvent.click(await screen.findByText('Start Drill'));
+      await screen.findByTestId('game-source-kind');
+    }
+
+    it('shows the accuracy and the target after a drill that missed its pass mark', async () => {
+      await startDrill();
+      fireEvent.click(screen.getByText('Finish at 50'));
+
+      expect(await screen.findByTestId('lesson-last-attempt')).toHaveTextContent(
+        '50% of 70% needed on step 3',
+      );
+    });
+
+    it('shows no failed-attempt message after a drill that passed', async () => {
+      await startDrill();
+      fireEvent.click(screen.getByText('Finish at 92'));
+
+      await screen.findByText('Lesson');
+      expect(screen.queryByTestId('lesson-last-attempt')).not.toBeInTheDocument();
+    });
+
+    it('tells the player when progress could not be saved, without an unhandled rejection', async () => {
+      const unhandled = vi.fn();
+      process.on('unhandledRejection', unhandled);
+      try {
+        setSettingSpy.mockImplementation(async (category: string) => {
+          if (category === 'learning') {
+            throw new Error('disk full');
+          }
+        });
+        await startDrill();
+        fireEvent.click(screen.getByText('Finish at 92'));
+
+        expect(await screen.findByText('Lesson progress not saved')).toBeInTheDocument();
+        expect(
+          screen.getByText(/Lesson progress is active for this session only\. Save failed; try again\./),
+        ).toBeInTheDocument();
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        });
+        expect(unhandled).not.toHaveBeenCalled();
+      } finally {
+        process.off('unhandledRejection', unhandled);
+      }
+    });
   });
 
   it('keeps retrying audio unlock on later user gestures', async () => {
