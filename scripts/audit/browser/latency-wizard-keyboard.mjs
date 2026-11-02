@@ -29,6 +29,17 @@ await withServer(process.env.DATA, async ({ ctx, base, errors }) => {
   await p.getByRole('button', { name: '✕' }).focus(); await p.keyboard.press('Space'); await p.waitForTimeout(500);
   console.log('3b Space on focused close button ->', j(await info(p)), '(oracle: dialog closes)');
   await p.close();
+  // 4a: Escape in the done phase persists nothing. Runs before any Apply so the data is still fresh.
+  const saved = (pg) => pg.evaluate(async () => { const r = await fetch('/api/bridge/getSetting', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ args: ['audio', 'latencyCompMs'] }) }); return JSON.stringify(await r.json()); });
+  p = await newPage(); await p.getByRole('button', { name: /Calibrate/ }).first().click(); await p.waitForTimeout(500);
+  console.log('4a saved latencyComp before the measurement =', await saved(p));
+  await p.getByRole('button', { name: 'Start', exact: true }).click(); await p.waitForTimeout(700);
+  for (let i = 0; i < 10; i++) { await p.keyboard.press('Space'); await p.waitForTimeout(300); }
+  await p.waitForTimeout(500);
+  console.log('4a measured value shown before Escape =', j(await p.evaluate(() => document.querySelector('.latency-wizard-result strong')?.textContent ?? null)), j(await info(p)));
+  await p.keyboard.press('Escape'); await p.waitForTimeout(500);
+  console.log('4a Escape in done phase ->', j(await info(p)), 'saved latencyComp after =', await saved(p), '(oracle: unchanged, nothing applied)');
+  await p.close();
   // 4: reach the done phase, then try to activate Apply / Redo with Enter and Space
   // After the fix Apply closes the dialog, so Apply and Try Again are each driven from a fresh measurement.
   for (const key of ['Enter', 'Space']) for (const target of ['apply', 'redo']) {
@@ -47,13 +58,6 @@ await withServer(process.env.DATA, async ({ ctx, base, errors }) => {
     await p.screenshot({ path: `${process.env.SHOTS}/E-latency-wizard-done-${key}-${target}.png` });
     await p.close();
   }
-  // 4c: Escape in the done phase persists nothing
-  p = await newPage(); await p.getByRole('button', { name: /Calibrate/ }).first().click(); await p.waitForTimeout(500);
-  await p.getByRole('button', { name: 'Start', exact: true }).click(); await p.waitForTimeout(700);
-  for (let i = 0; i < 10; i++) { await p.keyboard.press('Space'); await p.waitForTimeout(300); }
-  await p.keyboard.press('Escape'); await p.waitForTimeout(500);
-  console.log('4c Escape in done phase ->', j(await info(p)), 'saved latencyComp =', await p.evaluate(async () => { const r = await fetch('/api/bridge/getSetting', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ args: ['audio', 'latencyCompMs'] }) }); return JSON.stringify(await r.json()); }));
-  await p.close();
   // 5: control, mouse on Apply and Try Again in the done phase (rules out a generally broken button)
   p = await newPage(); await p.getByRole('button', { name: /Calibrate/ }).first().click(); await p.waitForTimeout(500);
   await p.getByRole('button', { name: 'Start', exact: true }).click(); await p.waitForTimeout(700);

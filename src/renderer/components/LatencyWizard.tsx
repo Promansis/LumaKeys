@@ -105,17 +105,26 @@ export function LatencyWizard({ audioEngine, currentMs, onApply, onClose }: Late
     startClicks();
   }, [startClicks]);
 
-  // Each phase swaps its controls, so move focus to the phase's main action; otherwise it
-  // would fall to the page behind the dialog when the focused button unmounts.
+  // Each phase swaps its controls, so move focus into the dialog; otherwise it would fall to
+  // the page behind when the focused button unmounts. Start and Tap take focus. After the
+  // last tap focus goes to the dialog itself, so a stray extra Space or Enter cannot press Apply.
   useEffect(() => {
-    dialogRef.current?.querySelector<HTMLElement>('.latency-wizard-body .primary-button')?.focus();
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (phase === 'done') {
+      dialog.focus();
+      return;
+    }
+    dialog.querySelector<HTMLElement>('.latency-wizard-body .primary-button')?.focus();
   }, [phase]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== ' ' && e.key !== 'Enter') return;
-      // A focused button keeps its native Space/Enter activation (close, Tap, Try Again, Apply).
-      if (e.target instanceof Element && e.target.closest('button')) return;
+      // A focused button keeps its native Space/Enter activation (close, Start, Try Again, Apply).
+      // The Tap button is the exception: a tap is timed on key press, as before, and
+      // preventDefault below stops the browser's own click so it is not counted twice.
+      if (e.target instanceof Element && e.target.closest('button') && !e.target.closest('.latency-tap-btn')) return;
       e.preventDefault();
       if (phase === 'intro') handleStart();
       else if (phase === 'tapping') handleTap();

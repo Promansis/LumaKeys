@@ -197,6 +197,7 @@ try {
     await page.screenshot({ path: path.join(SHOTS, `${sc}-panel.png`) });
     const focus0 = await focusInfo();
     console.log('focus when panel first shown', JSON.stringify(focus0));
+    check(sc, 'focus is on Retry when the panel first shows, before any Tab', /^retry$/i.test(focus0?.text ?? ''), focus0);
 
     // 2. no mutation call while the preflight failed
     const names = [...new Set(calls.map((c) => c.method))];

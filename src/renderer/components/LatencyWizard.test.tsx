@@ -120,4 +120,68 @@ describe('LatencyWizard keyboard operation', () => {
     await user.keyboard('{Escape}');
     expect(onApply).not.toHaveBeenCalled();
   });
+
+  async function finishMeasurement(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('button', { name: 'Start' }));
+    for (let i = 0; i < 10; i += 1) {
+      fireEvent.click(screen.getByRole('button', { name: 'Tap' }));
+    }
+    expect(screen.getByText('Measurement complete.')).toBeInTheDocument();
+  }
+
+  it('persists nothing when Escape closes the dialog after a measurement', async () => {
+    const { user, onApply } = await openWizard();
+    await finishMeasurement(user);
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(onApply).not.toHaveBeenCalled();
+  });
+
+  it('counts a tap when Space goes down on the Tap button, before the key is released', async () => {
+    const { user } = await openWizard();
+    await user.click(screen.getByRole('button', { name: 'Start' }));
+    expect(screen.getByRole('button', { name: 'Tap' })).toHaveFocus();
+    expect(screen.getByText(/Warming up/)).toBeInTheDocument();
+
+    // Hold Space on the focused Tap button without releasing it; three more would finish warm-up.
+    await user.keyboard('[Space>]');
+    await user.keyboard('[Space>]');
+    await user.keyboard('[Space>]');
+    expect(screen.getByText(/Measuring — 7 taps to go/)).toBeInTheDocument();
+  });
+
+  it('counts a keyboard tap on the Tap button once, not again on release', async () => {
+    const { user } = await openWizard();
+    await user.click(screen.getByRole('button', { name: 'Start' }));
+
+    await user.keyboard('{Enter}');
+    await user.keyboard(' ');
+    await user.keyboard('{Enter}');
+    await user.keyboard(' ');
+
+    // Four presses: two warm-up taps and two measured taps, none counted twice.
+    expect(screen.getByText(/Measuring — 6 taps to go/)).toBeInTheDocument();
+  });
+
+  it('does not apply when Space or Enter is pressed again after the last tap', async () => {
+    const onApply = vi.fn();
+    const { user } = await openWizard(onApply);
+    await user.click(screen.getByRole('button', { name: 'Start' }));
+    for (let i = 0; i < 9; i += 1) {
+      await user.keyboard(' ');
+    }
+    // The tenth press finishes the measurement.
+    await user.keyboard(' ');
+    expect(screen.getByText('Measurement complete.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Apply \d+ ms$/ })).not.toHaveFocus();
+
+    await user.keyboard(' ');
+    await user.keyboard('{Enter}');
+
+    expect(onApply).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Measurement complete.')).toBeInTheDocument();
+  });
 });
