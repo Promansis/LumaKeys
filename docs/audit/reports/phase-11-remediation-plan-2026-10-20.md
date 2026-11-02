@@ -1537,6 +1537,44 @@ Docker sets `/data`, which is absolute. Rollback: code revert.
 - Narrow: `npx vitest run src/server src/persistence src/main`
 - Required: `npm run verify`
 
+### Resolution
+
+- Fix branch/commit: `remediation/p11-s21-legacy-window`, `c2a6d16`, implemented
+  2026-11-02, awaiting independent review; not merged. Branch base `c8f9b1a`.
+- What changed: `resolveDataDir` moved to `src/server/dataDir.ts` (so it is testable without
+  starting the server) and returns the directory with the legacy names that picked it.
+  `LUMAKEYS_DATA_DIR` is trimmed, blank is unset, and a non-absolute value throws before
+  anything is created. Shared `dataLocationLine` and `legacyNamesWarning` in
+  `legacyBrandMigration.ts`. The web server logs `LumaKeys data directory: <dir> (legacy:
+  yes|no)` and one warning naming the legacy variables or directory in use, values never
+  printed; `resolveWebAccessPolicy` reports `legacyVariable` when the legacy token applied.
+  Electron main logs the same line (`desktopDataLocationLine`) after the profile lookup.
+  `ensure-native-module.cjs` trims both skip variables, names the one used, and warns for
+  the legacy name. `LUMAKEYS_MUSESCORE_PATH` is trimmed. Markers placed as listed above;
+  README gets "Upgrading From PianoHero".
+- Tests (source identity `1180731`), each failed on `c8f9b1a` and passes after:
+  `src/server/dataDir.test.ts` (V1, V2+V4, V3, V5, S5, S1/S2; module missing);
+  `src/server/index.test.ts` "web server data directory" (V3 started instead of exiting 1;
+  no `LumaKeys data directory:` line; no warning naming `PIANOHERO_WEB_ACCESS_TOKEN`);
+  `webSecurity.test.ts` legacy-token cases (no `legacyVariable`); `desktopStartup.test.ts`
+  `desktopDataLocationLine` (not a function); `museScore.test.ts` whitespace path (reached
+  the converter check); `scripts/ensureNativeModule.test.mjs` (whitespace `' 1 '` did not
+  skip). Base run: 6 files, 10 tests failed. `npm run verify` passes (586 tests).
+- Driver result: `legacy-brand-server-probe.mjs` (now records `startupLog`) against the
+  built server, `$TMPDIR` root: V3 exits 1 with the message and creates no data directory;
+  every other case keeps its data result (S7 still refuses, as before) and logs the line;
+  S1, S5, S8, V4, V6, V7, V8 log one warning naming the variable or directory; the token
+  value never appears in a log. `electron-userdata-probe.mjs --harness` (now records
+  `startupLine`) under `flock`: E1-E3, P1, P4 `legacy: yes`; E4, E5, P3 `legacy: no`;
+  E6 and P2 refuse before the line, as before.
+- Proof owed (agent-runnable): none beyond independent review. Human-only: none.
+- Residual risk: the desktop host prints no warning, because Electron main reads no
+  `PIANOHERO_*` variable or `.pianohero-data`; a carried-over profile is shown by `legacy:
+  yes` and the existing "Migrated legacy profile" message. A deployment with a relative
+  `LUMAKEYS_DATA_DIR` now refuses to start until it is set absolute.
+- Revisit trigger: the removal release (`0.3.0`, on or after 2027-01-31), which removes
+  every `legacy-brand: remove` site and adds the tombstone check (item 5).
+
 ## Proof Owed By Fixed Findings
 
 These 33 findings are `fixed`, not `verified`. None needs new product code unless noted.

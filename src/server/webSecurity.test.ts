@@ -201,15 +201,16 @@ describe('resolveWebAccessPolicy', () => {
     })).toThrow(/placeholder/);
   });
 
-  it('uses the configured token, with the legacy variable as a fallback', () => {
+  // ADR 0002 item 3: the policy names the legacy variable (never its value) for the startup warning.
+  it('uses the configured token, with the legacy variable as a named fallback', () => {
     expect(resolveWebAccessPolicy({ LUMAKEYS_WEB_ACCESS_TOKEN: ' secret-token ' })).toEqual({ mode: 'token', token: 'secret-token' });
-    expect(resolveWebAccessPolicy({ PIANOHERO_WEB_ACCESS_TOKEN: 'legacy-token' })).toEqual({ mode: 'token', token: 'legacy-token' });
+    expect(resolveWebAccessPolicy({ PIANOHERO_WEB_ACCESS_TOKEN: 'legacy-token' })).toEqual({ mode: 'token', token: 'legacy-token', legacyVariable: 'PIANOHERO_WEB_ACCESS_TOKEN' });
     expect(resolveWebAccessPolicy({ LUMAKEYS_WEB_ACCESS_TOKEN: 'secret-token', LUMAKEYS_TRUST_UPSTREAM_AUTH: '1' })).toEqual({ mode: 'token', token: 'secret-token' });
   });
 
   it('treats a blank token variable as unset, so the legacy token still applies', () => {
-    expect(resolveWebAccessPolicy({ LUMAKEYS_WEB_ACCESS_TOKEN: '', PIANOHERO_WEB_ACCESS_TOKEN: 'legacy-token' })).toEqual({ mode: 'token', token: 'legacy-token' });
-    expect(resolveWebAccessPolicy({ LUMAKEYS_WEB_ACCESS_TOKEN: '  ', PIANOHERO_WEB_ACCESS_TOKEN: ' legacy-token ' })).toEqual({ mode: 'token', token: 'legacy-token' });
+    expect(resolveWebAccessPolicy({ LUMAKEYS_WEB_ACCESS_TOKEN: '', PIANOHERO_WEB_ACCESS_TOKEN: 'legacy-token' })).toEqual({ mode: 'token', token: 'legacy-token', legacyVariable: 'PIANOHERO_WEB_ACCESS_TOKEN' });
+    expect(resolveWebAccessPolicy({ LUMAKEYS_WEB_ACCESS_TOKEN: '  ', PIANOHERO_WEB_ACCESS_TOKEN: ' legacy-token ' })).toEqual({ mode: 'token', token: 'legacy-token', legacyVariable: 'PIANOHERO_WEB_ACCESS_TOKEN' });
     expect(() => resolveWebAccessPolicy({ LUMAKEYS_WEB_ACCESS_TOKEN: ' ', PIANOHERO_WEB_ACCESS_TOKEN: 'change-this-long-random-token' })).toThrow(/placeholder/);
     expect(resolveWebAccessPolicy({ LUMAKEYS_WEB_ACCESS_TOKEN: '', LUMAKEYS_TRUST_UPSTREAM_AUTH: '1' })).toEqual({ mode: 'trust-upstream' });
   });

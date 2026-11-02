@@ -1,35 +1,16 @@
 import { serve } from '@hono/node-server';
 import { mkdirSync } from 'node:fs';
-import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { Hono } from 'hono';
 import { AppDatabase } from '../persistence/database';
-import { migrateLegacyBrand } from '../persistence/legacyBrandMigration';
+import { dataLocationLine, legacyNamesWarning, migrateLegacyBrand } from '../persistence/legacyBrandMigration';
 import { FileSystemMidiStorageAdapter } from '../storage/midiStorage';
 import { createBridgeRouter } from './bridgeRouter';
+import { resolveDataDir } from './dataDir';
 import { createLibraryRouter } from './libraryRouter';
 import { createMidiRouter } from './midiRouter';
 import { createStaticFileHandler } from './staticFiles';
 import { htmlSecurityHeaders, installWebAccess, resolveWebAccessPolicy } from './webSecurity';
-
-/** Legacy-first env precedence so a pre-rename deployment keeps its data during one release. */
-function resolveDataDir(): string {
-  const explicit = process.env.LUMAKEYS_DATA_DIR;
-  if (explicit && explicit.trim()) {
-    return resolve(explicit);
-  }
-  const legacyEnv = process.env.PIANOHERO_DATA_DIR;
-  if (legacyEnv && legacyEnv.trim()) {
-    return resolve(legacyEnv);
-  }
-  if (existsSync(join(process.cwd(), '.lumakeys-data'))) {
-    return resolve('.lumakeys-data');
-  }
-  if (existsSync(join(process.cwd(), '.pianohero-data'))) {
-    return resolve('.pianohero-data');
-  }
-  return resolve('.lumakeys-data');
-}
 
 async function startServer(): Promise<void> {
   // Checked before any data is touched: no gate and no upstream trust means no server.
@@ -39,12 +20,23 @@ async function startServer(): Promise<void> {
   }
 
   const port = Number(process.env.PORT ?? 3100);
-  const dataDir = resolveDataDir();
+  // Throws on a relative LUMAKEYS_DATA_DIR before anything is created.
+  const { dataDir, legacyNames } = resolveDataDir(process.env);
   const midiFilesDir = join(dataDir, 'midi-files');
   const dbPath = join(dataDir, 'lumakeys.db');
   const webRoot = resolve(process.cwd(), 'dist', 'web');
 
-  migrateLegacyBrand({ destinationDir: dataDir });
+  // legacy-brand: remove in 0.3.0 (ADR 0002). Carries a pre-rename data directory over.
+  const migration = migrateLegacyBrand({ destinationDir: dataDir });
+  console.log(dataLocationLine(dataDir, legacyNames.length > 0 || migration.migrated));
+  // Names only: the token variable's value never reaches the log.
+  const legacyWarning = legacyNamesWarning([
+    ...legacyNames,
+    ...(accessPolicy.mode === 'token' && accessPolicy.legacyVariable ? [accessPolicy.legacyVariable] : []),
+  ]);
+  if (legacyWarning) {
+    console.warn(legacyWarning);
+  }
 
   mkdirSync(dataDir, { recursive: true });
   mkdirSync(midiFilesDir, { recursive: true });

@@ -31,6 +31,7 @@ import {
   resolveDesktopInstrumentSampleSource,
 } from './instrumentSamplePackStore';
 import {
+  desktopDataLocationLine,
   desktopProfileDir,
   legacyLibraryChoiceFromResponse,
   legacyLibraryPrompt,
@@ -116,6 +117,7 @@ async function startDesktopApp(): Promise<void> {
   app.setAppUserModelId('com.lumakeys.app');
 
   const userDataPath = app.getPath('userData');
+  // legacy-brand: remove in 0.3.0 (ADR 0002). Carries an earlier profile into <appData>/lumakeys.
   const migration = migrateLegacyBrand({
     destinationDir: userDataPath,
     legacyDirs: legacyProfileDirs(app.getPath('appData')),
@@ -127,6 +129,7 @@ async function startDesktopApp(): Promise<void> {
     app.quit();
     return;
   }
+  console.log(desktopDataLocationLine(userDataPath, migration));
 
   const midiFilesDir = join(userDataPath, 'midi-files');
   mkdirSync(midiFilesDir, { recursive: true });

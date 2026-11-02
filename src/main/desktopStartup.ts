@@ -4,13 +4,23 @@
 
 import type { MessageBoxSyncOptions } from 'electron';
 import { join } from 'node:path';
-import type { LegacyLibraryChoice, LegacyLibraryConflict } from '../persistence/legacyBrandMigration';
+import {
+  dataLocationLine,
+  type LegacyBrandMigrationResult,
+  type LegacyLibraryChoice,
+  type LegacyLibraryConflict,
+} from '../persistence/legacyBrandMigration';
 
 export const STARTUP_ERROR_TITLE = 'LumaKeys could not start';
 
 /** The profile every build since the rename opens, whatever Electron derives from package.json. */
 export function desktopProfileDir(appDataDir: string): string {
   return join(appDataDir, 'lumakeys');
+}
+
+/** The startup line naming the profile; legacy is yes when an earlier profile was carried over this start. */
+export function desktopDataLocationLine(profileDir: string, migration: LegacyBrandMigrationResult): string {
+  return dataLocationLine(profileDir, migration.migrated);
 }
 
 export interface StartupFailureHandlers {

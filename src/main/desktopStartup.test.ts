@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { legacyProfileDirs, migrateLegacyBrand } from '../persistence/legacyBrandMigration';
 import {
   STARTUP_ERROR_TITLE,
+  desktopDataLocationLine,
   desktopProfileDir,
   legacyLibraryChoiceFromResponse,
   legacyLibraryPrompt,
@@ -33,6 +34,35 @@ function quietConsole() {
 describe('desktopProfileDir', () => {
   it('pins the profile to <appData>/lumakeys', () => {
     expect(desktopProfileDir('/home/u/.config')).toBe('/home/u/.config/lumakeys');
+  });
+});
+
+// ADR 0002 item 3: one startup line naming the profile and whether a legacy profile was carried over.
+describe('desktopDataLocationLine', () => {
+  function makeAppData(): string {
+    const appData = join(tmpdir(), `lumakeys-location-${Math.random().toString(36).slice(2)}`);
+    roots.push(appData);
+    return appData;
+  }
+
+  it('says legacy: yes after a legacy profile was carried over', () => {
+    const appData = makeAppData();
+    mkdirSync(join(appData, 'piano-hero'), { recursive: true });
+    new Database(join(appData, 'piano-hero', 'pianohero.db')).close();
+    const profile = desktopProfileDir(appData);
+
+    const migration = migrateLegacyBrand({ destinationDir: profile, legacyDirs: legacyProfileDirs(appData) });
+
+    expect(desktopDataLocationLine(profile, migration)).toBe(`LumaKeys data directory: ${profile} (legacy: yes)`);
+  });
+
+  it('says legacy: no when no legacy profile exists', () => {
+    const appData = makeAppData();
+    const profile = desktopProfileDir(appData);
+
+    const migration = migrateLegacyBrand({ destinationDir: profile, legacyDirs: legacyProfileDirs(appData) });
+
+    expect(desktopDataLocationLine(profile, migration)).toBe(`LumaKeys data directory: ${profile} (legacy: no)`);
   });
 });
 

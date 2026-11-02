@@ -109,14 +109,14 @@ async function partOne() {
   if (!sqlite) throw new Error('LK_SQLITE_MODULE must point at an Electron-ABI better-sqlite3 directory');
   const bundle = join(ROOT, 'startup.cjs');
   esbuild.buildSync({
-    stdin: { contents: "export { migrateLegacyBrand, legacyProfileDirs } from './src/persistence/legacyBrandMigration'; export { desktopProfileDir, runDesktopStartup } from './src/main/desktopStartup';", resolveDir: REPO, loader: 'ts' },
+    stdin: { contents: "export { migrateLegacyBrand, legacyProfileDirs } from './src/persistence/legacyBrandMigration'; export { desktopDataLocationLine, desktopProfileDir, runDesktopStartup } from './src/main/desktopStartup';", resolveDir: REPO, loader: 'ts' },
     bundle: true, platform: 'node', format: 'cjs', outfile: bundle, external: ['better-sqlite3', 'electron'], logLevel: 'silent',
   });
   writeFileSync(bundle, readFileSync(bundle, 'utf8').replaceAll('require("better-sqlite3")', `require(${JSON.stringify(resolve(sqlite))})`));
   const main = `
 const { app } = require('electron');
 const fs = require('node:fs');
-const { migrateLegacyBrand, legacyProfileDirs, desktopProfileDir } = require(${JSON.stringify(bundle)});
+const { migrateLegacyBrand, legacyProfileDirs, desktopProfileDir, desktopDataLocationLine } = require(${JSON.stringify(bundle)});
 const nameAtLoad = app.name;
 app.setPath('userData', desktopProfileDir(app.getPath('appData')));   // src/main/index.ts, module top level
 app.setName('LumaKeys');
@@ -129,6 +129,8 @@ app.whenReady().then(() => {
   out.legacyDirsChecked = legacyProfileDirs(app.getPath('appData'));
   try { out.migration = migrateLegacyBrand({ destinationDir: userData, legacyDirs: out.legacyDirsChecked }); }
   catch (e) { out.migration = { error: e.message }; }
+  // Slice 21 (ADR 0002 item 4): the startup line src/main/index.ts logs after the migration.
+  if (!out.migration.error) out.startupLine = desktopDataLocationLine(userData, out.migration);
   out.userDataAfter = fs.readdirSync(userData).sort();
   out.appDataAfter = fs.readdirSync(app.getPath('appData')).sort();
   out.wouldOpen = require('node:path').join(userData, 'lumakeys.db');
@@ -246,6 +248,9 @@ function shownError(out) {
   return line ? JSON.parse(line.slice(17)) : null;
 }
 
+/** Slice 21 (ADR 0002 item 4): the data-location line the built app logs, if any. */
+const startupLine = (out) => out.split('\n').find((l) => l.startsWith('LumaKeys data directory:')) ?? null;
+
 async function partTwo(launcher) {
   const { label, pkg, launch, skip } = launcher;
   if (skip) { console.log(`${label} skipped: ${skip}`); return; }
@@ -262,7 +267,7 @@ async function partTwo(launcher) {
     const newDb = join(env.XDG_CONFIG_HOME, 'lumakeys', 'lumakeys.db');
     const r = await launch(env, join(caseRoot, 'home'), { killAfterMs: 40000, until: () => existsSync(newDb) });
     console.log(`${label} ` + JSON.stringify({
-      case: 'P1', packageName: pkg.name, productName: pkg.productName ?? null, exit: r.code ?? r.signal,
+      case: 'P1', packageName: pkg.name, productName: pkg.productName ?? null, exit: r.code ?? r.signal, startupLine: startupLine(r.out),
       configDirs: readdirSync(env.XDG_CONFIG_HOME).sort(),
       newProfile: readdirSync(join(env.XDG_CONFIG_HOME, 'lumakeys')).sort(),
       newDb: inspectDb(newDb, caseRoot),
@@ -307,7 +312,7 @@ async function partTwo(launcher) {
     const r = await launch(env, join(caseRoot, 'home'), { killAfterMs: 40000, until: () => existsSync(join(profile, 'Local Storage')) });
     const backups = readdirSync(profile).filter((n) => n.startsWith('before-legacy-migration-'));
     console.log(`${label} ` + JSON.stringify({
-      case: 'P4', exit: r.code ?? r.signal, stillRunningWhenProbeSentSigterm: r.killedByProbe,
+      case: 'P4', exit: r.code ?? r.signal, stillRunningWhenProbeSentSigterm: r.killedByProbe, startupLine: startupLine(r.out),
       profileAfter: readdirSync(profile).sort(),
       newDb: inspectDb(newDb, caseRoot),
       backups: Object.fromEntries(backups.map((b) => [b, { entries: readdirSync(join(profile, b)).sort(), db: inspectDb(join(profile, b, 'lumakeys.db'), caseRoot) }])),
@@ -340,7 +345,7 @@ async function partTwo(launcher) {
     db.close();
     const stored = join(profile, 'midi-files', `${id}.mid`);
     console.log(`${label} ` + JSON.stringify({
-      case: 'P3', exit: r.code ?? r.signal, songTitle: row?.title ?? null,
+      case: 'P3', exit: r.code ?? r.signal, startupLine: startupLine(r.out), songTitle: row?.title ?? null,
       filePathIsAppOwned: row ? row.file_path === stored : null,
       storedBytesMatch: existsSync(stored) ? readFileSync(stored).equals(bytes) : false,
       profileAfter: readdirSync(profile).sort(),

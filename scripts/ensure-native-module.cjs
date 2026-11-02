@@ -22,18 +22,32 @@ function firstErrorLine(result) {
   return text.split('\n').find((line) => /error/i.test(line)) ?? text.split('\n')[0] ?? '';
 }
 
+// legacy-brand: remove in 0.3.0 (ADR 0002).
+const LEGACY_SKIP_VARIABLE = 'PIANOHERO_SKIP_ELECTRON_REBUILD';
+
+/** The variable that asks to skip the Electron probe (trimmed, set to 1), or null. */
+function electronSkipVariable(env) {
+  return ['LUMAKEYS_SKIP_ELECTRON_REBUILD', LEGACY_SKIP_VARIABLE].find((name) => env[name]?.trim() === '1') ?? null;
+}
+
 function ensureNativeModule(target) {
   if (target !== 'node' && target !== 'electron') {
     console.error(`Unknown native runtime target: ${target}`);
     return false;
   }
 
-  if (target === 'electron' && (process.env.LUMAKEYS_SKIP_ELECTRON_REBUILD === '1' || process.env.PIANOHERO_SKIP_ELECTRON_REBUILD === '1')) {
+  const skipVariable = target === 'electron' ? electronSkipVariable(process.env) : null;
+  if (skipVariable) {
     // The variable keeps its old name so CI, the Dockerfile and the docs need no change. It no
     // longer skips a rebuild (better-sqlite3 13 is N-API and is never rebuilt per Electron
     // version); it skips the Electron probe, which would fetch the Electron binary.
-    // ponytail: legacy var accepted for one release; drop PIANOHERO_SKIP_ELECTRON_REBUILD after migration.
-    console.log('Skipping the Electron native-module check because LUMAKEYS_SKIP_ELECTRON_REBUILD=1');
+    console.log(`Skipping the Electron native-module check because ${skipVariable}=1`);
+    if (skipVariable === LEGACY_SKIP_VARIABLE) {
+      console.warn(
+        `Legacy PianoHero names are in use: ${LEGACY_SKIP_VARIABLE}. Rename it to LUMAKEYS_SKIP_ELECTRON_REBUILD; `
+          + 'LumaKeys 0.3.0 stops reading it (ADR 0002).',
+      );
+    }
     return true;
   }
 

@@ -91,7 +91,8 @@ function isHand(value: unknown): value is 'left' | 'right' {
 }
 
 function isPersistedGameResultMode(value: unknown): value is PersistedGameResultMode {
-  // ponytail: 'piano-hero' is a one-release alias for old backups/requests; normalize below.
+  // legacy-brand: remove in 0.3.0 (ADR 0002). 'piano-hero' is an alias for old backups and
+  // requests; it is normalized below.
   return value === 'luma-keys' || value === 'piano-hero' || value === 'learning' || value === 'performance';
 }
 
@@ -386,6 +387,7 @@ export function createBridgeRouter(dependencies: ServerDependencies) {
         return c.json({ error: `Bridge method is not callable: ${method}` }, 500);
       }
 
+      // legacy-brand: remove in 0.3.0 (ADR 0002).
       if (method === 'saveGameResult' && (args[0] as { mode?: string }).mode === 'piano-hero') {
         (args[0] as { mode: string }).mode = 'luma-keys';
       }

@@ -19,8 +19,8 @@ import type { LibraryBackup, LibraryExportResult, LibraryImportResult } from '..
 
 const WEB_PACK_DB_NAME = 'lumakeys-instrument-sample-packs';
 // Pre-rename (PianoHero) database name, read only to carry packs over and to clear on reset.
-// Remove the carry-over no earlier than 2027-01-31 (owner decision 3), in the same release as the
-// Node-side legacy fallback in src/persistence/legacyBrandMigration.ts.
+// legacy-brand: remove in 0.3.0 (ADR 0002), with the Node-side fallback in
+// src/persistence/legacyBrandMigration.ts.
 const LEGACY_WEB_PACK_DB_NAME = 'pianohero-instrument-sample-packs';
 const WEB_PACK_DB_VERSION = 1;
 const WEB_PACK_OBJECT_STORE = 'packs';
