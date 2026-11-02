@@ -230,4 +230,34 @@ describe('parseMidiFile', () => {
       expect(parseTempoFile([[0, 96]], 8).bpm).toBe(96);
     });
   });
+  describe('several tempo events at the same tick (PH-MUS-019)', () => {
+    it('uses the later of a 120 then 90 BPM pair at tick 0 as the one tempo', () => {
+      const song = parseTempoFile([[0, 120], [0, 90]], 16);
+
+      expect(song.bpm).toBeCloseTo(90, 3);
+      expect(song.tempoMap).toHaveLength(1);
+      expect(song.tempoMap?.[0]).toMatchObject({ ticks: 0, timeSec: 0 });
+      expect(song.tempoMap?.[0].bpm).toBeCloseTo(90, 3);
+      // 16 quarter notes at 90 BPM: the song clock and the stored tempo agree.
+      expect(song.durationSec).toBeCloseTo(16 * (60 / 90), 3);
+    });
+
+    it('uses the later tempo when the order is reversed (90 then 120)', () => {
+      const song = parseTempoFile([[0, 90], [0, 120]], 16);
+
+      expect(song.bpm).toBeCloseTo(120, 3);
+      expect(song.tempoMap).toHaveLength(1);
+      expect(song.tempoMap?.[0]).toMatchObject({ ticks: 0, timeSec: 0 });
+      expect(song.tempoMap?.[0].bpm).toBeCloseTo(120, 3);
+      expect(song.durationSec).toBeCloseTo(8, 3);
+    });
+
+    it('collapses duplicates at a later tick and keeps the tempo map continuous', () => {
+      const song = parseTempoFile([[0, 100], [1920, 60], [1920, 120]], 16);
+
+      expect(song.tempoMap?.map((tempo) => tempo.ticks)).toEqual([0, 1920]);
+      expect(song.tempoMap?.[1].bpm).toBeCloseTo(120, 3);
+      expect(song.tempoMap?.[1].timeSec).toBeCloseTo(4 * (60 / 100), 3);
+    });
+  });
 });

@@ -89,6 +89,7 @@ export function extractMidiMeta(arrayBuffer: ArrayBuffer): MidiFileMeta {
 
 export function parseMidiFile(arrayBuffer: ArrayBuffer, meta: MidiSourceMeta): ParsedSong {
   const midi = new MidiCtor(arrayBuffer);
+  collapseSameTickTempos(midi);
   ensureTempoAtTickZero(midi);
   const tempoMap = buildTempoMap(midi);
 
@@ -138,6 +139,20 @@ export function parseMidiFile(arrayBuffer: ArrayBuffer, meta: MidiSourceMeta): P
     measureBoundaries: buildMeasureBoundaries(midi),
     tempoMap,
   };
+}
+
+// Exports often carry a default 120 BPM "setup" tempo beside the real one, or one in every track, so
+// several Set Tempo events can share a tick. The last one in file order is the tempo in force from that
+// tick (the clock reads the last entry at a tick), so the earlier ones are dropped and the stored BPM,
+// the tempo map, the beat clock and the metronome all see the same single tempo. The sort is stable, so
+// file order (track by track, event by event) survives among equal ticks.
+function collapseSameTickTempos(midi: MidiInstance) {
+  const sorted = [...midi.header.tempos].sort((left, right) => left.ticks - right.ticks);
+  const collapsed = sorted.filter((tempo, index) => sorted[index + 1]?.ticks !== tempo.ticks);
+  if (collapsed.length !== midi.header.tempos.length) {
+    midi.header.tempos.splice(0, midi.header.tempos.length, ...collapsed);
+    midi.header.update();
+  }
 }
 
 // SMF keeps 120 BPM until the first Set Tempo event. @tonejs/midi times that first event as if its
