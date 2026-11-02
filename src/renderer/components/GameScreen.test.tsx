@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { AudioEngine } from '../../lib/audio/audioEngine';
@@ -180,22 +181,24 @@ function renderGameScreen(options: {
   const midiInputService = options.midiInputService ?? new MockMidiInputService();
   const keyboardInputService = options.keyboardInputService ?? new MockKeyboardInputService();
 
-  render(
+  // One source object for the life of the screen, as App now provides.
+  const source: ComponentProps<typeof GameScreen>['source'] = options.librarySong
+    ? { kind: 'library-song', song: buildLibrarySong(), playlistQueue: null }
+    : {
+      kind: 'lesson-drill',
+      lessonId: 'lesson-1',
+      stepIndex: 0,
+      parsedSong: buildSong(),
+      isRhythmClapping: options.isRhythmClapping,
+    };
+  const buildScreen = () => (
     <GameScreen
       audioEngine={audioEngine}
       inputMode="both"
       keyboardInputService={keyboardInputService as unknown as ComputerKeyboardInputService}
       midiInputService={midiInputService as unknown as MidiInputService}
-      source={options.librarySong
-        ? { kind: 'library-song', song: buildLibrarySong(), playlistQueue: null }
-        : {
-          kind: 'lesson-drill',
-          lessonId: 'lesson-1',
-          stepIndex: 0,
-          parsedSong: buildSong(),
-          isRhythmClapping: options.isRhythmClapping,
-        }}
-      initialSessionConfig={options.sessionConfig ?? buildSessionConfig()}
+      source={source}
+      initialSessionConfig={initialSessionConfig}
       colorBlindMode={false}
       noteLabels="alphabetic"
       keyboardOverlaySize="medium"
@@ -207,10 +210,14 @@ function renderGameScreen(options: {
       onInstrumentChange={vi.fn()}
       onExit={options.onExit ?? vi.fn()}
       onOpenKeyboardSetup={vi.fn()}
-    />,
+    />
   );
+  const initialSessionConfig = options.sessionConfig ?? buildSessionConfig();
+  const { rerender } = render(buildScreen());
+  // Re-render with the same source and fresh callback props, as App does on every render.
+  const rerenderWithNewCallbacks = () => rerender(buildScreen());
 
-  return { audioEngine, midiInputService, keyboardInputService };
+  return { audioEngine, midiInputService, keyboardInputService, rerenderWithNewCallbacks };
 }
 
 describe('GameScreen', () => {
@@ -223,6 +230,28 @@ describe('GameScreen', () => {
 
   afterEach(() => {
     cleanup();
+  });
+
+  it('keeps the song audio and session when only the finish callbacks change', async () => {
+    const { audioEngine, rerenderWithNewCallbacks } = renderGameScreen();
+    const getSetting = window.appBridge?.getSetting as ReturnType<typeof vi.fn>;
+
+    await waitFor(() => {
+      expect(getSetting).toHaveBeenCalled();
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    const loadsBefore = getSetting.mock.calls.length;
+    const pauseCallsBefore = (audioEngine.pauseSong as ReturnType<typeof vi.fn>).mock.calls.length;
+
+    await act(async () => {
+      rerenderWithNewCallbacks();
+      rerenderWithNewCallbacks();
+    });
+
+    expect(audioEngine.pauseSong).toHaveBeenCalledTimes(pauseCallsBefore);
+    expect(getSetting.mock.calls.length).toBe(loadsBefore);
   });
 
   it('keeps live audio on until all input sources release the same note', async () => {
