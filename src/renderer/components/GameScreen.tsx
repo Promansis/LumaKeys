@@ -1029,16 +1029,14 @@ export function GameScreen({
     };
     currentSongRef.current = updatedSongRecord;
 
-    setCustomFingerings([]);
     setIsEditingFingering(false);
     setFingeringEditorState(null);
     setSelectedFingeringNoteId(null);
     audioEngine.pauseSong();
-    await mountSession(updatedSourceSong, sessionConfig, []);
+    await mountSession(updatedSourceSong, sessionConfig, customFingerings);
     setStatusMessage('Track assignments changed. This run restarted.');
 
     if (window.appBridge && canPersistCurrentSong) {
-      await window.appBridge.clearCustomFingerings(updatedSongRecord.id);
       await window.appBridge.updateSong(updatedSongRecord.id, {
         title: updatedSongRecord.title,
         trackAssignments: updatedSongRecord.trackAssignments,
