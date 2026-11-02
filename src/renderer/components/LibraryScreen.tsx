@@ -128,17 +128,36 @@ function hasAdvancedFilters(filters: LibraryAdvancedFilters): boolean {
   return Object.entries(filters).some(([key, value]) => key !== 'playedState' ? value !== '' : value !== 'all');
 }
 
-function withinDateRange(date: string, from: string, to: string): boolean {
-  const value = new Date(date).getTime();
-  if (from && value < new Date(from).getTime()) {
+// `songs.date_added` is SQLite `datetime('now')`: UTC, "YYYY-MM-DD HH:MM:SS", no zone marker.
+// Read it as UTC; a bare `new Date(value)` would read it as local time.
+function parseDateAddedUtc(value: string): number {
+  const iso = value.trim().replace(' ', 'T');
+  if (!iso.includes('T')) {
+    return new Date(`${iso}T00:00:00Z`).getTime();
+  }
+  const hasZone = /(?:Z|[+-]\d{2}(?::?\d{2})?)$/i.test(iso.slice(iso.indexOf('T')));
+  return new Date(hasZone ? iso : `${iso}Z`).getTime();
+}
+
+// A date input value ("YYYY-MM-DD") names a calendar day in the user's own zone. Build the bound
+// from local date parts: `new Date('YYYY-MM-DD')` would be UTC midnight instead.
+function localDayBound(dateInput: string, endOfDay: boolean): number {
+  const [year, month, day] = dateInput.split('-').map(Number);
+  if (!year || !month || !day) {
+    return Number.NaN;
+  }
+  return endOfDay
+    ? new Date(year, month - 1, day, 23, 59, 59, 999).getTime()
+    : new Date(year, month - 1, day).getTime();
+}
+
+export function withinDateRange(date: string, from: string, to: string): boolean {
+  const value = parseDateAddedUtc(date);
+  if (from && value < localDayBound(from, false)) {
     return false;
   }
-  if (to) {
-    const endOfDay = new Date(to);
-    endOfDay.setHours(23, 59, 59, 999);
-    if (value > endOfDay.getTime()) {
-      return false;
-    }
+  if (to && value > localDayBound(to, true)) {
+    return false;
   }
   return true;
 }

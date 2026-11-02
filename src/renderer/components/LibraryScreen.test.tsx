@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LibraryScreen } from './LibraryScreen';
+import { LibraryScreen, withinDateRange } from './LibraryScreen';
 
 function createAudioEngineStub() {
   return {
@@ -700,5 +700,38 @@ describe('LibraryScreen', () => {
       expect(bulkDeleteSongs).not.toHaveBeenCalled();
       expect(screen.getByText('Metadata Review')).toBeInTheDocument();
     });
+  });
+});
+
+describe('withinDateRange', () => {
+  // SQLite stores `datetime('now')`: UTC, "YYYY-MM-DD HH:MM:SS". Build the stored string from a
+  // local wall-clock time so the same cases hold under any TZ the suite runs in.
+  const stored = (year: number, month: number, day: number, hour: number, minute: number) =>
+    new Date(year, month - 1, day, hour, minute, 0).toISOString().slice(0, 19).replace('T', ' ');
+
+  it.each([
+    ['just after local midnight', 0, 30],
+    ['midday', 12, 0],
+    ['just before local midnight', 23, 30],
+  ])('includes a song added %s on the chosen local day', (_label, hour, minute) => {
+    const added = stored(2026, 10, 19, hour, minute);
+    expect(withinDateRange(added, '2026-10-19', '2026-10-19')).toBe(true);
+    expect(withinDateRange(added, '2026-10-19', '')).toBe(true);
+    expect(withinDateRange(added, '', '2026-10-19')).toBe(true);
+    expect(withinDateRange(added, '2026-10-20', '')).toBe(false);
+    expect(withinDateRange(added, '', '2026-10-18')).toBe(false);
+    expect(withinDateRange(added, '2026-10-18', '2026-10-18')).toBe(false);
+    expect(withinDateRange(added, '2026-10-20', '2026-10-20')).toBe(false);
+  });
+
+  it('reads the stored zone-less timestamp as UTC', () => {
+    const local = new Date(Date.UTC(2026, 9, 19, 14, 24, 46));
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const localDay = `${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}`;
+    expect(withinDateRange('2026-10-19 14:24:46', localDay, localDay)).toBe(true);
+  });
+
+  it('keeps everything when no bounds are set', () => {
+    expect(withinDateRange('2026-10-19 14:24:46', '', '')).toBe(true);
   });
 });
