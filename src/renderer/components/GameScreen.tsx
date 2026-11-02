@@ -79,7 +79,7 @@ interface LessonDrillFinishedPayload {
   sessionConfig: SessionConfig;
 }
 
-type GameScreenSource =
+export type GameScreenSource =
   | { kind: 'library-song'; song: SongRow; playlistQueue: { songs: SongRow[]; index: number } | null }
   | { kind: 'lesson-drill'; lessonId: string; stepIndex: number; parsedSong: ParsedSong; isRhythmClapping?: boolean };
 
@@ -381,6 +381,13 @@ export function GameScreen({
   const songEndedRef = useRef(false);
   const currentSongRef = useRef(initialSong);
   const baselineStatsRef = useRef<UserStatsRow | null>(null);
+  // App passes fresh callbacks on every render. Keep the latest in refs so the
+  // animation-loop effect (whose cleanup pauses the song) does not restart when
+  // only a callback identity changes, e.g. on a MIDI device change.
+  const onGameFinishedRef = useRef(onGameFinished);
+  const onLessonDrillFinishedRef = useRef(onLessonDrillFinished);
+  onGameFinishedRef.current = onGameFinished;
+  onLessonDrillFinishedRef.current = onLessonDrillFinished;
   const countdownCancelRef = useRef(false);
   const metronomeLastBeatRef = useRef<number | null>(null);
   const rhythmClapTimeoutsRef = useRef<number[]>([]);
@@ -530,14 +537,14 @@ export function GameScreen({
           songEndedRef.current = true;
           const result = game.getFinalResult();
           if (source.kind === 'lesson-drill') {
-            onLessonDrillFinished?.({
+            onLessonDrillFinishedRef.current?.({
               lessonId: source.lessonId,
               stepIndex: source.stepIndex,
               result,
               sessionConfig: game.getSessionConfig(),
             });
           } else {
-            onGameFinished({
+            onGameFinishedRef.current({
               result,
               song: activeSong,
               sessionConfig: game.getSessionConfig(),
@@ -562,7 +569,7 @@ export function GameScreen({
       }
       audioEngine.pauseSong();
     };
-  }, [audioEngine, onGameFinished, onLessonDrillFinished, playlistQueue, source]);
+  }, [audioEngine, playlistQueue, source]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {

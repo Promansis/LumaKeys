@@ -257,6 +257,67 @@ describe('SettingsScreen', () => {
     expect(window.appBridge?.setSetting).not.toHaveBeenCalledWith('input', 'mode', 'midi');
   });
 
+  describe('saved MIDI device that is not connected', () => {
+    const savedDeviceBridge = () => {
+      window.appBridge = {
+        ...window.appBridge!,
+        getSetting: vi.fn(async (category: string, key: string) =>
+          category === 'input' && key === 'midiDeviceId' ? 'gone-1' : null),
+      } as unknown as typeof window.appBridge;
+    };
+
+    it('names the missing device on the card and in the select instead of reading Any connected device', async () => {
+      savedDeviceBridge();
+      renderSettingsScreen({ midiDevices: [{ id: 'fake-2', name: 'Fake Second Keys' }] });
+
+      fireEvent.click(await screen.findByText('Input'));
+
+      expect(await screen.findByText('Saved device not connected: gone-1', { selector: 'strong' })).toBeInTheDocument();
+      expect(screen.queryByText('Any connected device', { selector: 'strong' })).not.toBeInTheDocument();
+      const select = screen.getByLabelText('MIDI Device') as HTMLSelectElement;
+      expect(select.value).toBe('gone-1');
+      expect(select.selectedOptions[0]).toHaveTextContent('Saved device not connected: gone-1');
+    });
+
+    it('switches to any connected device in one click and saves that choice', async () => {
+      savedDeviceBridge();
+      const onSettingChange = vi.fn();
+      renderSettingsScreen({ midiDevices: [{ id: 'fake-2', name: 'Fake Second Keys' }], onSettingChange });
+
+      fireEvent.click(await screen.findByText('Input'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Use any connected device' }));
+
+      expect(onSettingChange).toHaveBeenCalledWith('input', 'midiDeviceId', '');
+      await waitFor(() => {
+        expect(window.appBridge?.setSetting).toHaveBeenCalledWith('input', 'midiDeviceId', '');
+      });
+      expect(await screen.findByText('Any connected device', { selector: 'strong' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Use any connected device' })).not.toBeInTheDocument();
+    });
+
+    it('does not write the saved setting just by showing the missing device', async () => {
+      savedDeviceBridge();
+      const onSettingChange = vi.fn();
+      renderSettingsScreen({ midiDevices: [], onSettingChange });
+
+      fireEvent.click(await screen.findByText('Input'));
+      await screen.findByText('Saved device not connected: gone-1', { selector: 'strong' });
+
+      expect(onSettingChange).not.toHaveBeenCalledWith('input', 'midiDeviceId', expect.anything());
+      expect(window.appBridge?.setSetting).not.toHaveBeenCalledWith('input', 'midiDeviceId', expect.anything());
+    });
+
+    it('still names a connected saved device and shows no repair button', async () => {
+      savedDeviceBridge();
+      renderSettingsScreen({ midiDevices: [{ id: 'gone-1', name: 'Fake Piano 88' }] });
+
+      fireEvent.click(await screen.findByText('Input'));
+
+      expect(await screen.findByText('Fake Piano 88', { selector: 'strong' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Use any connected device' })).not.toBeInTheDocument();
+    });
+  });
+
   it('keeps settings usable when saved settings fail to load', async () => {
     window.appBridge = {
       ...window.appBridge!,

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AudioEngine } from '../lib/audio/audioEngine';
 import { ACHIEVEMENTS } from '../lib/achievements/achievementDefinitions';
 import {
@@ -45,7 +45,7 @@ import type { InstrumentSamplePackStatus, ResolvedInstrumentSampleSource } from 
 import { AchievementToast } from './components/AchievementToast';
 import { ToastHost } from './components/Toast';
 import { FreePlayScreen } from './components/FreePlayScreen';
-import { GameScreen } from './components/GameScreen';
+import { GameScreen, type GameScreenSource } from './components/GameScreen';
 import type { ImmersiveHudDestination, ImmersiveHudNavigationItem } from './components/ImmersiveHud';
 import { IntervalTrainerScreen } from './components/IntervalTrainerScreen';
 import { KeyboardSetupScreen } from './components/KeyboardSetupScreen';
@@ -1297,6 +1297,33 @@ export function App() {
     };
   }, [currentScreen]);
 
+  // GameScreen reloads its song whenever `source` changes identity, so build it once per
+  // screen state. Any other App state change (the MIDI device list, a setting) must not
+  // restart a running game.
+  const gameSource = useMemo<GameScreenSource | null>(() => {
+    switch (currentScreen.screen) {
+      case 'game':
+        return { kind: 'library-song', song: currentScreen.song, playlistQueue: currentScreen.playlistQueue };
+      case 'lesson-drill':
+        return {
+          kind: 'lesson-drill',
+          lessonId: currentScreen.lessonId,
+          stepIndex: currentScreen.stepIndex,
+          parsedSong: currentScreen.parsedSong,
+          isRhythmClapping: currentScreen.isRhythmClapping,
+        };
+      case 'capstone':
+        return {
+          kind: 'lesson-drill',
+          lessonId: `capstone-${currentScreen.tierId}`,
+          stepIndex: 0,
+          parsedSong: currentScreen.parsedSong,
+        };
+      default:
+        return null;
+    }
+  }, [currentScreen]);
+
   if (!midiReady || !midiServiceRef.current || !settingsReady) {
     return (
       <main className="app-shell">
@@ -1659,7 +1686,7 @@ export function App() {
           inputMode={inputMode}
           keyboardInputService={keyboardServiceRef.current}
           midiInputService={midiServiceRef.current}
-          source={{ kind: 'library-song', song: currentScreen.song, playlistQueue: currentScreen.playlistQueue }}
+          source={gameSource!}
           initialSessionConfig={currentScreen.sessionConfig}
           colorBlindMode={colorBlindMode}
           noteLabels={noteLabels}
@@ -1687,13 +1714,7 @@ export function App() {
           inputMode={inputMode}
           keyboardInputService={keyboardServiceRef.current}
           midiInputService={midiServiceRef.current}
-          source={{
-            kind: 'lesson-drill',
-            lessonId: currentScreen.lessonId,
-            stepIndex: currentScreen.stepIndex,
-            parsedSong: currentScreen.parsedSong,
-            isRhythmClapping: currentScreen.isRhythmClapping,
-          }}
+          source={gameSource!}
           initialSessionConfig={currentScreen.sessionConfig}
           colorBlindMode={colorBlindMode}
           noteLabels={noteLabels}
@@ -1729,12 +1750,7 @@ export function App() {
           inputMode={inputMode}
           keyboardInputService={keyboardServiceRef.current}
           midiInputService={midiServiceRef.current}
-          source={{
-            kind: 'lesson-drill',
-            lessonId: `capstone-${capstoneTierId}`,
-            stepIndex: 0,
-            parsedSong: currentScreen.parsedSong,
-          }}
+          source={gameSource!}
           initialSessionConfig={currentScreen.sessionConfig}
           colorBlindMode={colorBlindMode}
           noteLabels={noteLabels}
