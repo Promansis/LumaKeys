@@ -171,8 +171,11 @@ describe('web server data directory', () => {
   }, GIVE_UP_AFTER_MS + 5000);
 
   it('logs the data directory with legacy: no and no warning for current names', async () => {
-    const dataDir = join(await makeTempDir(), 'data');
-    const server = spawnServer({ LUMAKEYS_DATA_DIR: ` ${dataDir} `, LUMAKEYS_TRUST_UPSTREAM_AUTH: '1' });
+    // A temp cwd, so a regression that stops trimming the padded value can't create
+    // a stray directory in the checkout.
+    const cwd = await makeTempDir();
+    const dataDir = join(cwd, 'data');
+    const server = spawnServer({ LUMAKEYS_DATA_DIR: ` ${dataDir} `, LUMAKEYS_TRUST_UPSTREAM_AUTH: '1' }, cwd);
 
     try {
       const output = await waitForOutput(server, /LumaKeys data directory:/);
