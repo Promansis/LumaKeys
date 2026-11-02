@@ -278,8 +278,9 @@ The original proof below stays required.
   reset `prepared` path), and invalid JSON on the web Import Library still shows a raw
   error. While a failed rollback waits for a restart, a concurrent in-flight operation's own
   `prepared` row also blocks a new one (it is refused with the restart message instead of
-  running alongside); the bridge `addSong` row writes are not guarded, as they write no song
-  file. Faults by timing, a
+  running alongside). The bridge `addSong` handlers (`songs:add`, web `addSong`) are guarded
+  too, as a row added for a leftover restored copy would lose its file to the restart
+  rollback; `migrateFromJson` runs before startup recovery and is not guarded. Faults by timing, a
   real full disk, Windows and macOS were not covered.
 - Revisit trigger: independent review of slice 19, and before backup/restore or
   destructive-data release sign-off.

@@ -364,6 +364,7 @@ export function createBridgeRouter(dependencies: ServerDependencies) {
       }
 
       if (method === 'addSong') {
+        db.assertNoPendingRollback();
         const result = db.addSong(withAppOwnedFilePath(args[0], dependencies));
         return c.json({ result });
       }

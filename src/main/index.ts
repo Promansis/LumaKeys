@@ -164,12 +164,13 @@ async function startDesktopApp(): Promise<void> {
 
   ipcMain.handle('songs:get-all', () => db.getAllSongs());
   ipcMain.handle('songs:get', (_event, songId: string) => db.getSong(songId));
-  ipcMain.handle('songs:add', (_event, payload: BridgeAddSongPayload) =>
-    db.addSong({
+  ipcMain.handle('songs:add', (_event, payload: BridgeAddSongPayload) => {
+    db.assertNoPendingRollback();
+    return db.addSong({
       ...payload,
       filePath: midiStorage.getPathForSong(payload.id),
-    }),
-  );
+    });
+  });
   ipcMain.handle(
     'songs:update',
     (_event, songId: string, updates: BridgeUpdateSongPayload & { filePath?: unknown }) =>
