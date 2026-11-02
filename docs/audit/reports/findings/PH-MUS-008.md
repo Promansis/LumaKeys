@@ -83,7 +83,7 @@ the tempo in force at tick 0.
 
 ## Required Regression Proof
 
-- Deterministic unit/integration proof: `midiFileParser.test.ts` case with a file whose first tempo (60 BPM) is at tick 1920: note at tick 1920 starts at 2.0 s, note at tick 1440 lasts 0.5 s, boundaries [0, 2] and [2, 6] s, `bpm` 120
+- Deterministic unit/integration proof: `midiFileParser.test.ts` case with a file whose first tempo (60 BPM) is at tick 1920: note at tick 1920 starts at 2.0 s, note at tick 1440 lasts 0.5 s, boundaries [0, 2] and [2, 6] s, `bpm` 120 (since PH-MUS-019, 2026-11-02, the stored `bpm` is the dominant tempo, 60 for this file; see the follow-up below)
 - Electron proof: not needed (runtime-independent parser)
 - Web proof: not needed beyond the unit test; optionally upload the fixture and check the library BPM and length
 - Data/recovery proof: songs imported before the fix keep the stored BPM and duration until re-imported; the lead should decide whether metadata needs recomputing
@@ -106,7 +106,7 @@ the tempo in force at tick 0.
 - What changed: `parseMidiFile` (`src/lib/midi/midiFileParser.ts`) inserts `{ ticks: 0, bpm: 120 }`
   at the front of the tempo list when the first tempo event is after tick 0, and calls
   `header.update()` before any time is read. Note times, durations, barlines and the song length are
-  now continuous, and `bpm` is the tempo at tick 0. `ParsedSong` carries the resulting `tempoMap`
+  now continuous, and `bpm` was the tempo at tick 0 (PH-MUS-019 later changed it to the dominant tempo). `ParsedSong` carries the resulting `tempoMap`
   (`{ ticks, bpm, timeSec }` per entry; a single 120 BPM entry when the file has no tempo event),
   which the PH-MUS-006 metronome helper reads. Files with a tick-0 tempo parse exactly as before.
 - Tests (`src/lib/midi/midiFileParser.test.ts`, new fixture
@@ -128,3 +128,4 @@ the tempo in force at tick 0.
 - Residual risk: a file with several tempo events at tick 0 or unsorted events relies on
   `@tonejs/midi` ordering, as before.
 - Revisit trigger: reviewer verification; a decision on recomputing stored metadata.
+- 2026-11-02 follow-up (PH-MUS-019, Phase 11 slice 22): the stored `bpm` is now the tempo the song spends the most time at while notes play, not the tempo at tick 0. For `late-first-tempo.mid` (120 BPM placeholder for 2 s, then 60 BPM for 4 s) it is 60, so the test above (renamed `keeps 120 BPM until the first tempo event and times the notes continuously`) now expects `bpm` 60; the 120 BPM placeholder, the note times and the boundaries are unchanged. Same-tick tempo events are now collapsed to the last in file order before the tempo map is built, which removes the tick-0 ordering residual risk above for same-tick events. See [PH-MUS-019](PH-MUS-019.md).

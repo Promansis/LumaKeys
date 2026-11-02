@@ -14,6 +14,24 @@ function parseFixture(name: string) {
   return parseMidiFile(new Uint8Array(bytes).buffer, { songId: name, title: name });
 }
 
+// Builds a 480-ppq file with the given tempo events and `noteCount` quarter notes from tick 0.
+function buildTempoFile(tempos: Array<[ticks: number, bpm: number]>, noteCount: number): ArrayBuffer {
+  const midi = new Midi();
+  for (const [ticks, bpm] of tempos) {
+    midi.header.tempos.push({ ticks, bpm });
+  }
+  midi.header.update();
+  const track = midi.addTrack();
+  for (let index = 0; index < noteCount; index += 1) {
+    track.addNote({ midi: 60 + (index % 5), ticks: index * 480, durationTicks: 480, velocity: 0.8 });
+  }
+  return midi.toArray().slice().buffer;
+}
+
+function parseTempoFile(tempos: Array<[ticks: number, bpm: number]>, noteCount: number) {
+  return parseMidiFile(buildTempoFile(tempos, noteCount), { songId: 'tempo', title: 'Tempo' });
+}
+
 function boundaryTuples(song: ReturnType<typeof parseFixture>) {
   return (song.measureBoundaries ?? []).map((b) => [b.startTick, b.endTick, b.startSec, b.endSec]);
 }
@@ -138,11 +156,12 @@ describe('parseMidiFile', () => {
   describe('first tempo event after tick 0', () => {
     // late-first-tempo.mid: 4/4, no tempo at tick 0, 60 BPM at tick 1920, quarter notes from tick 0.
     // SMF keeps 120 BPM until the first Set Tempo event, so bar 1 is 2 s and bar 2 is 4 s (PH-MUS-008).
-    it('keeps 120 BPM until the first tempo event and reports the tick-0 tempo', () => {
+    it('keeps 120 BPM until the first tempo event and times the notes continuously', () => {
       const song = parseFixture('late-first-tempo');
       const noteAt = (ticks: number) => song.notes.find((note) => note.ticks === ticks);
 
-      expect(song.bpm).toBe(120);
+      // The song spends 2 s at 120 BPM and 4 s at 60 BPM, so 60 is its tempo (PH-MUS-019).
+      expect(song.bpm).toBe(60);
       expect(noteAt(1440)?.startSec).toBeCloseTo(1.5, 6);
       expect(noteAt(1440)?.durationSec).toBeCloseTo(0.5, 6);
       expect(noteAt(1920)?.startSec).toBeCloseTo(2, 6);
@@ -176,11 +195,142 @@ describe('parseMidiFile', () => {
     it('leaves a file with a tick-0 tempo unchanged', () => {
       const song = parseFixture('3-4-to-4-4-tempo');
 
-      expect(song.bpm).toBe(120);
+      // The tempo map is untouched; the song tempo is the longer-lasting 60 BPM (PH-MUS-019).
+      expect(song.bpm).toBe(60);
       expect(song.tempoMap).toEqual([
         { ticks: 0, bpm: 120, timeSec: 0 },
         { ticks: 3840, bpm: 60, timeSec: 4 },
       ]);
+    });
+  });
+  describe('song tempo (PH-MUS-019)', () => {
+    it('reports the dominant tempo of a slow intro and a longer fast body, not the first tempo', () => {
+      // 40 BPM for 4 beats (6 s), then 160 BPM for 20 beats (7.5 s).
+      const song = parseTempoFile([[0, 40], [1920, 160]], 24);
+
+      expect(song.tempoMap?.map((tempo) => tempo.bpm)).toEqual([40, 160]);
+      expect(song.bpm).toBe(160);
+    });
+
+    it('reports the longer slow body of a fast intro', () => {
+      const song = parseTempoFile([[0, 160], [1920, 60]], 24);
+
+      expect(song.bpm).toBe(60);
+    });
+
+    it('does not let the inserted 120 BPM placeholder win over a later first tempo that lasts', () => {
+      // 120 BPM until tick 1920 (2 s), then 90 BPM for the other 20 beats.
+      const song = parseTempoFile([[1920, 90]], 24);
+
+      expect(song.tempoMap?.[0]).toMatchObject({ ticks: 0, bpm: 120 });
+      expect(song.bpm).toBe(90);
+    });
+
+    it('keeps a constant tempo as is', () => {
+      expect(parseTempoFile([[0, 96]], 8).bpm).toBe(96);
+    });
+  });
+  describe('several tempo events at the same tick (PH-MUS-019)', () => {
+    it('uses the later of a 120 then 90 BPM pair at tick 0 as the one tempo', () => {
+      const song = parseTempoFile([[0, 120], [0, 90]], 16);
+
+      expect(song.bpm).toBe(90);
+      expect(song.tempoMap).toHaveLength(1);
+      expect(song.tempoMap?.[0]).toMatchObject({ ticks: 0, timeSec: 0 });
+      expect(song.tempoMap?.[0].bpm).toBeCloseTo(90, 3);
+      // 16 quarter notes at 90 BPM: the song clock and the stored tempo agree.
+      expect(song.durationSec).toBeCloseTo(16 * (60 / 90), 3);
+    });
+
+    it('uses the later tempo when the order is reversed (90 then 120)', () => {
+      const song = parseTempoFile([[0, 90], [0, 120]], 16);
+
+      expect(song.bpm).toBe(120);
+      expect(song.tempoMap).toHaveLength(1);
+      expect(song.tempoMap?.[0]).toMatchObject({ ticks: 0, timeSec: 0 });
+      expect(song.tempoMap?.[0].bpm).toBeCloseTo(120, 3);
+      expect(song.durationSec).toBeCloseTo(8, 3);
+    });
+
+    it('collapses duplicates at a later tick and keeps the tempo map continuous', () => {
+      const song = parseTempoFile([[0, 100], [1920, 60], [1920, 120]], 16);
+
+      expect(song.tempoMap?.map((tempo) => tempo.ticks)).toEqual([0, 1920]);
+      expect(song.tempoMap?.[1].bpm).toBeCloseTo(120, 3);
+      expect(song.tempoMap?.[1].timeSec).toBeCloseTo(4 * (60 / 100), 3);
+    });
+  });
+  describe('stored tempo precision (PH-MUS-019)', () => {
+    // A Set Tempo event stores whole microseconds per beat, so 90 BPM reads back as 89.99995... and
+    // 190 BPM as 190.00028... The stored tempo is rounded to 2 decimals; the map keeps the raw value.
+    it('rounds the float residue of 90 BPM to 90', () => {
+      const song = parseTempoFile([[0, 89.999955]], 8);
+
+      expect(song.bpm).toBe(90);
+    });
+
+    it('rounds the float residue of 190 BPM to 190', () => {
+      const song = parseTempoFile([[0, 190.000285]], 8);
+
+      expect(song.bpm).toBe(190);
+    });
+
+    it('keeps two decimals of a genuinely fractional tempo', () => {
+      expect(parseTempoFile([[0, 97.5]], 8).bpm).toBe(97.5);
+    });
+  });
+
+  describe('malformed tempo and time division (PH-MUS-019)', () => {
+    // Raw SMF bytes: tonejs/midi cannot write a 0 us/beat tempo or an SMPTE division.
+    function smfBytes(division: number[], tempoMicros: number | null, noteDeltaTicks: number[]): ArrayBuffer {
+      const track: number[] = [];
+      if (tempoMicros !== null) {
+        track.push(0x00, 0xff, 0x51, 0x03, (tempoMicros >> 16) & 0xff, (tempoMicros >> 8) & 0xff, tempoMicros & 0xff);
+      }
+      noteDeltaTicks.forEach((delta, index) => {
+        const pitch = 60 + (index % 5);
+        track.push(0x00, 0x90, pitch, 0x64);
+        // Delta as a variable-length quantity (7-bit groups).
+        const groups = [delta & 0x7f];
+        for (let rest = delta >> 7; rest > 0; rest >>= 7) groups.unshift((rest & 0x7f) | 0x80);
+        track.push(...groups, 0x80, pitch, 0x00);
+      });
+      track.push(0x00, 0xff, 0x2f, 0x00);
+      const header = [0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, ...division];
+      const length = track.length;
+      const body = [0x4d, 0x54, 0x72, 0x6b, (length >> 24) & 0xff, (length >> 16) & 0xff, (length >> 8) & 0xff, length & 0xff, ...track];
+      return new Uint8Array([...header, ...body]).buffer;
+    }
+
+    it('reads a 0 microsecond tempo as the 120 BPM default with finite times', () => {
+      const song = parseMidiFile(smfBytes([0x01, 0xe0], 0, [480, 480, 480, 480]), { songId: 'zero', title: 'Zero' });
+
+      expect(song.bpm).toBe(120);
+      expect(Number.isFinite(song.durationSec)).toBe(true);
+      expect(song.durationSec).toBeCloseTo(2, 3);
+      expect(song.tempoMap?.every((tempo) => Number.isFinite(tempo.bpm) && tempo.bpm > 0)).toBe(true);
+      expect(song.notes.every((note) => Number.isFinite(note.startSec))).toBe(true);
+    });
+
+    it('still reads a plain 120 BPM file after the tempo guard', () => {
+      const song = parseMidiFile(smfBytes([0x01, 0xe0], 500000, [480, 480]), { songId: 'ok', title: 'Ok' });
+
+      expect(song.bpm).toBe(120);
+      expect(song.durationSec).toBeCloseTo(1, 3);
+    });
+
+    it('rejects an SMPTE time division instead of returning a NaN duration', () => {
+      // 0xE728 = -25 frames per second, 40 ticks per frame.
+      const bytes = smfBytes([0xe7, 0x28], 500000, [40, 40, 40]);
+
+      expect(() => parseMidiFile(bytes, { songId: 'smpte', title: 'Smpte' })).toThrow(/SMPTE/i);
+    });
+
+    it('rejects a division of 0 ticks per quarter note without calling it SMPTE only', () => {
+      const bytes = smfBytes([0x00, 0x00], 500000, [0, 0]);
+
+      expect(() => parseMidiFile(bytes, { songId: 'zero-ppq', title: 'Zero ppq' }))
+        .toThrow(/Unsupported MIDI time division.*0 ticks per quarter note/);
     });
   });
 });

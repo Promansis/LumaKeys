@@ -70,6 +70,30 @@ export function getPulseTicks(ppq: number, numerator: number, denominator: numbe
   return compound ? unit * 3 : unit;
 }
 
+/**
+ * Seconds of song time between two metronome pulses at `songTimeSec`: the pulse unit of the measure
+ * holding that time (`getPulseTicks`) at the tempo in force there. The in-play metronome clicks at
+ * this spacing, so the count-in uses it too and 6/8 or 2/2 count in on the felt pulse. Divide by the
+ * practice tempo multiplier for the wall-clock gap.
+ */
+export function getPulseDurationSec(song: BeatClockSong, songTimeSec: number): number {
+  const ppq = song.ppq > 0 ? song.ppq : 480;
+  const tick = Math.max(0, songTimeToTick(song, songTimeSec));
+  const measures = song.measureBoundaries;
+  const measure = measures?.length ? measures[findMeasureIndex(measures, tick)] : undefined;
+  const pulseTicks = measure?.pulseTicks && measure.pulseTicks > 0 ? measure.pulseTicks : ppq;
+  return (pulseTicks / ppq) * (60 / getBpmAtSongTime(song, songTimeSec));
+}
+
+/**
+ * The quarter-note tempo in force at `songTimeSec`, read from the tempo map (the song's one `bpm`
+ * when it has no map, as the learning drills). A non-positive tempo reads as the 120 BPM default.
+ */
+export function getBpmAtSongTime(song: BeatClockSong, songTimeSec: number): number {
+  const bpm = findTempoSegment(song, songTimeSec).bpm;
+  return bpm > 0 ? bpm : 120;
+}
+
 export interface MetronomeStep {
   lastBeatIndex: number;
   click: { accent: boolean } | null;
@@ -105,14 +129,19 @@ function findMeasureIndex(measures: Array<{ startTick: number }>, tick: number):
   return low;
 }
 
-function songTimeToTick(song: BeatClockSong, songTimeSec: number): number {
-  const ppq = song.ppq > 0 ? song.ppq : 480;
+function findTempoSegment(song: BeatClockSong, songTimeSec: number) {
   const tempoMap = song.tempoMap?.length ? song.tempoMap : [{ ticks: 0, bpm: song.bpm, timeSec: 0 }];
   let segment = tempoMap[0];
   for (const change of tempoMap) {
     if (change.timeSec <= songTimeSec) segment = change;
     else break;
   }
+  return segment;
+}
+
+function songTimeToTick(song: BeatClockSong, songTimeSec: number): number {
+  const ppq = song.ppq > 0 ? song.ppq : 480;
+  const segment = findTempoSegment(song, songTimeSec);
   const bpm = segment.bpm > 0 ? segment.bpm : 120;
   const tick = segment.ticks + ((songTimeSec - segment.timeSec) * bpm * ppq) / 60;
   // Snap a tick that is within float error of a whole tick so a beat or barline is not missed by a hair.

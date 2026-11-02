@@ -32,10 +32,17 @@ vi.mock('./PianoKeyboard', () => ({
 }));
 
 vi.mock('./ControlBar', () => ({
-  ControlBar: ({ tempoLocked, onSeek }: { tempoLocked?: boolean; onSeek?: (progress: number) => void }) => (
+  ControlBar: ({ tempoLocked, onSeek, onRestart }: {
+    tempoLocked?: boolean;
+    onSeek?: (progress: number) => void;
+    onRestart?: () => void;
+  }) => (
     <div data-testid="control-bar" data-tempo-locked={String(Boolean(tempoLocked))}>
       <button type="button" onClick={() => onSeek?.(0.5)}>
         Seek to half
+      </button>
+      <button type="button" onClick={() => onRestart?.()}>
+        Restart
       </button>
     </div>
   ),
@@ -197,6 +204,7 @@ function renderGameScreen(options: {
   isCapstone?: boolean;
   sessionConfig?: SessionConfig;
   librarySong?: boolean;
+  song?: ParsedSong;
   onExit?: () => void;
 } = {}) {
   const audioEngine = options.audioEngine ?? buildAudioEngineStub();
@@ -210,7 +218,7 @@ function renderGameScreen(options: {
       kind: 'lesson-drill',
       lessonId: 'lesson-1',
       stepIndex: 0,
-      parsedSong: buildSong(),
+      parsedSong: options.song ?? buildSong(),
       isRhythmClapping: options.isRhythmClapping,
       isCapstone: options.isCapstone,
     };
@@ -236,11 +244,11 @@ function renderGameScreen(options: {
     />
   );
   const initialSessionConfig = options.sessionConfig ?? buildSessionConfig();
-  const { rerender } = render(buildScreen());
+  const { rerender, unmount } = render(buildScreen());
   // Re-render with the same source and fresh callback props, as App does on every render.
   const rerenderWithNewCallbacks = () => rerender(buildScreen());
 
-  return { audioEngine, midiInputService, keyboardInputService, rerenderWithNewCallbacks };
+  return { audioEngine, midiInputService, keyboardInputService, rerenderWithNewCallbacks, unmount };
 }
 
 describe('GameScreen', () => {
@@ -571,6 +579,225 @@ describe('GameScreen', () => {
       expect(audioReadyAt).toBeGreaterThan(0);
       expect(play).toHaveBeenCalledTimes(1);
       expect(play.mock.calls[0][0]).toBeGreaterThanOrEqual(audioReadyAt);
+    });
+
+    describe('count-in clicks (PH-MUS-019)', () => {
+      // Every click of the 3-2-1 and of the lead-in beats lands one pulse of the song apart, at the
+      // tempo in force where the song starts and at the practice tempo, as the in-play metronome does.
+      async function countInClickTimes(song: ParsedSong, sessionConfig: SessionConfig) {
+        const audioEngine = buildAudioEngineStub();
+        const clickTimes: number[] = [];
+        (audioEngine.playMetronomeClick as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+          clickTimes.push(performance.now());
+        });
+        renderGameScreen({ audioEngine, song, sessionConfig });
+        await waitFor(() => expect(window.appBridge?.getSetting).toHaveBeenCalled());
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        });
+
+        vi.useFakeTimers({
+          toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'],
+        });
+        await act(async () => {
+          window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true }));
+          await vi.advanceTimersByTimeAsync(10_000);
+        });
+        return clickTimes.map((time) => time - clickTimes[0]);
+      }
+
+      function songAt(tempoMap: ParsedSong['tempoMap'], pulseTicks?: number): ParsedSong {
+        return {
+          ...buildSong(),
+          bpm: tempoMap?.[0].bpm ?? 120,
+          tempoMap,
+          measureBoundaries: pulseTicks
+            ? [{ startTick: 0, endTick: 1440, startSec: 0, endSec: 2, pulseTicks }]
+            : undefined,
+        };
+      }
+
+      it('spaces all five clicks (3-2-1 and two lead-in beats) one beat apart at 190 BPM', async () => {
+        const times = await countInClickTimes(
+          songAt([{ ticks: 0, bpm: 190, timeSec: 0 }]),
+          buildSessionConfig({ leadInBeats: 2 }),
+        );
+
+        const beatMs = 60_000 / 190;
+        expect(times).toHaveLength(5);
+        // Fake timers round each wait to a whole millisecond, so allow up to 1 ms per step.
+        times.forEach((time, index) => expect(Math.abs(time - index * beatMs)).toBeLessThanOrEqual(index));
+      });
+
+      it('scales the beat by the practice tempo', async () => {
+        const times = await countInClickTimes(
+          songAt([{ ticks: 0, bpm: 120, timeSec: 0 }]),
+          buildSessionConfig({ leadInBeats: 2, tempoMultiplier: 0.5 }),
+        );
+
+        expect(times).toHaveLength(5);
+        times.forEach((time, index) => expect(time).toBeCloseTo(index * 1000, 0));
+      });
+
+      it('counts in at the tempo in force where the song starts, not a later one', async () => {
+        const times = await countInClickTimes(
+          songAt([
+            { ticks: 0, bpm: 40, timeSec: 0 },
+            { ticks: 1920, bpm: 160, timeSec: 6 },
+          ]),
+          buildSessionConfig({ leadInBeats: 2 }),
+        );
+
+        expect(times).toHaveLength(5);
+        times.forEach((time, index) => expect(time).toBeCloseTo(index * 1500, 0));
+      });
+
+      it('counts in on the felt pulse of a compound meter (6/8 at 120 quarter BPM clicks every 750 ms)', async () => {
+        const times = await countInClickTimes(
+          songAt([{ ticks: 0, bpm: 120, timeSec: 0 }], 720),
+          buildSessionConfig({ leadInBeats: 2 }),
+        );
+
+        expect(times).toHaveLength(5);
+        times.forEach((time, index) => expect(time).toBeCloseTo(index * 750, 0));
+      });
+
+      it('runs one count-in when Play is pressed, cancelled and pressed again inside one beat', async () => {
+        const audioEngine = buildAudioEngineStub();
+        const clickTimes: number[] = [];
+        (audioEngine.playMetronomeClick as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+          clickTimes.push(performance.now());
+        });
+        const play = vi.spyOn(GameSession.prototype, 'play');
+        onTestFinished(() => play.mockRestore());
+        renderGameScreen({
+          audioEngine,
+          song: songAt([{ ticks: 0, bpm: 40, timeSec: 0 }]),
+          sessionConfig: buildSessionConfig({ leadInBeats: 2 }),
+        });
+        await waitFor(() => expect(window.appBridge?.getSetting).toHaveBeenCalled());
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        });
+
+        vi.useFakeTimers({
+          toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'],
+        });
+        const space = () => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true }));
+        // One act per press, so the screen re-renders between them and the second press sees the
+        // count-in on screen and cancels it, as a real key press would.
+        await act(async () => {
+          space(); // start: first click at 0, one beat is 1500 ms at 40 BPM
+          await vi.advanceTimersByTimeAsync(200);
+        });
+        await act(async () => {
+          space(); // cancel inside the first beat
+          await vi.advanceTimersByTimeAsync(200);
+        });
+        await act(async () => {
+          space(); // start again, still inside the first run's first beat
+          // Five beats of the new run (7500 ms) and a little more: the game starts. The cancelled
+          // run, had it survived the new run's reset of the cancel flag, would click at 1500 ms.
+          await vi.advanceTimersByTimeAsync(7_500 + 300);
+        });
+
+        // The first run clicks at 0 and is cancelled; the second starts at 400 ms, clicks one beat
+        // (1500 ms) apart, and starts the game once.
+        expect(clickTimes.map((t) => Math.round(t - clickTimes[0]))).toEqual([
+          0, 400, 1_900, 3_400, 4_900, 6_400,
+        ]);
+        expect(play).toHaveBeenCalledTimes(1);
+      });
+
+      it('does not start the game when Restart is pressed while the song audio loads after the count-in', async () => {
+        const audioEngine = buildAudioEngineStub();
+        // The sampler takes a second to load after the 3-2-1.
+        (audioEngine.playSong as ReturnType<typeof vi.fn>).mockImplementation(
+          () => new Promise<void>((resolve) => {
+            setTimeout(resolve, 1_000);
+          }),
+        );
+        const play = vi.spyOn(GameSession.prototype, 'play');
+        onTestFinished(() => play.mockRestore());
+        renderGameScreen({
+          audioEngine,
+          song: songAt([{ ticks: 0, bpm: 120, timeSec: 0 }]),
+          sessionConfig: buildSessionConfig({ leadInBeats: 0 }),
+        });
+        await waitFor(() => expect(window.appBridge?.getSetting).toHaveBeenCalled());
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        });
+
+        vi.useFakeTimers({
+          toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'],
+        });
+        await act(async () => {
+          window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true }));
+          // Three 500 ms beats, then 200 ms into the audio load.
+          await vi.advanceTimersByTimeAsync(1_500 + 200);
+        });
+        expect(audioEngine.playSong).toHaveBeenCalledTimes(1);
+        await act(async () => {
+          fireEvent.click(screen.getByRole('button', { name: 'Menu' }));
+        });
+        await act(async () => {
+          fireEvent.click(screen.getByRole('button', { name: 'Restart' }));
+          await vi.advanceTimersByTimeAsync(0);
+        });
+        const pausesAfterRestart = (audioEngine.pauseSong as ReturnType<typeof vi.fn>).mock.calls.length;
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(2_000);
+        });
+
+        // The stopped run neither starts the game nor leaves the sound it started playing.
+        expect(play).not.toHaveBeenCalled();
+        expect((audioEngine.pauseSong as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(pausesAfterRestart);
+      });
+
+      it('stops the count-in when the screen closes', async () => {
+        const audioEngine = buildAudioEngineStub();
+        let clicks = 0;
+        (audioEngine.playMetronomeClick as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+          clicks += 1;
+        });
+        const { unmount } = renderGameScreen({
+          audioEngine,
+          song: songAt([{ ticks: 0, bpm: 120, timeSec: 0 }]),
+          sessionConfig: buildSessionConfig({ leadInBeats: 2 }),
+        });
+        await waitFor(() => expect(window.appBridge?.getSetting).toHaveBeenCalled());
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        });
+
+        vi.useFakeTimers({
+          toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'],
+        });
+        await act(async () => {
+          window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true }));
+          await vi.advanceTimersByTimeAsync(200);
+        });
+        expect(clicks).toBe(1);
+        unmount();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(5_000);
+        });
+
+        // No click after the screen closed; the remaining four beats never sound.
+        expect(clicks).toBe(1);
+        expect(audioEngine.playSong).not.toHaveBeenCalled();
+      });
+
+      it('counts in on the half-note pulse of 2/2 (120 quarter BPM clicks every 1000 ms)', async () => {
+        const times = await countInClickTimes(
+          songAt([{ ticks: 0, bpm: 120, timeSec: 0 }], 960),
+          buildSessionConfig({ leadInBeats: 0 }),
+        );
+
+        expect(times).toHaveLength(3);
+        times.forEach((time, index) => expect(time).toBeCloseTo(index * 1000, 0));
+      });
     });
 
     it('holds the game clock at the seek target while the audio restarts', async () => {

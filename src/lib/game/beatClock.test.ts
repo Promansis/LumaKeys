@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { Midi } from '@tonejs/midi';
 import { describe, expect, it } from 'vitest';
 import { parseMidiFile } from '../midi/midiFileParser';
-import { advanceMetronome, getBeatAtSongTime } from './beatClock';
+import { advanceMetronome, getBeatAtSongTime, getBpmAtSongTime, getPulseDurationSec } from './beatClock';
 import { GameSession } from './GameSession';
 import type { ParsedSong, SessionConfig } from './types';
 
@@ -216,6 +216,37 @@ describe('getBeatAtSongTime', () => {
     expect(clicks.map((click) => click.timeSec)).toEqual([0.5, 1, 1.5, 2, 2.5, 3]);
     expect(getBeatAtSongTime(song, 3.25)).toEqual(getBeatAtSongTime(song, 3));
     expect(getBeatAtSongTime(song, 5)).toEqual(getBeatAtSongTime(song, 3));
+  });
+});
+
+describe('getBpmAtSongTime and getPulseDurationSec (PH-MUS-019)', () => {
+  const tempoMap = [
+    { ticks: 0, bpm: 40, timeSec: 0 },
+    { ticks: 1920, bpm: 160, timeSec: 6 },
+  ];
+  const song = { ppq: 480, bpm: 160, tempoMap, measureBoundaries: undefined };
+
+  it('reads the tempo in force at the song time', () => {
+    expect(getBpmAtSongTime(song, 0)).toBe(40);
+    expect(getBpmAtSongTime(song, 5.99)).toBe(40);
+    expect(getBpmAtSongTime(song, 6)).toBe(160);
+  });
+
+  it('falls back to the song bpm without a tempo map and to 120 for an unusable tempo', () => {
+    expect(getBpmAtSongTime({ ppq: 480, bpm: 96 }, 3)).toBe(96);
+    expect(getBpmAtSongTime({ ppq: 480, bpm: 0 }, 3)).toBe(120);
+  });
+
+  it('measures a quarter-note pulse at the tempo in force', () => {
+    expect(getPulseDurationSec(song, 0)).toBeCloseTo(1.5, 6);
+    expect(getPulseDurationSec(song, 7)).toBeCloseTo(0.375, 6);
+  });
+
+  it('measures the pulse of the measure holding the time: dotted quarter in 6/8, half note in 2/2', () => {
+    const measure = (pulseTicks: number) => [{ startTick: 0, endTick: 2880, startSec: 0, endSec: 3, pulseTicks }];
+    const at120 = [{ ticks: 0, bpm: 120, timeSec: 0 }];
+    expect(getPulseDurationSec({ ppq: 480, bpm: 120, tempoMap: at120, measureBoundaries: measure(720) }, 0)).toBeCloseTo(0.75, 6);
+    expect(getPulseDurationSec({ ppq: 480, bpm: 120, tempoMap: at120, measureBoundaries: measure(960) }, 0)).toBeCloseTo(1, 6);
   });
 });
 

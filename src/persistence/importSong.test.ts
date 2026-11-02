@@ -133,6 +133,26 @@ describe('importSongFromBuffer', () => {
     ]);
   });
 
+  it('rejects an SMPTE time-division file and leaves no row or final file (PH-MUS-019)', async () => {
+    const db = await makeDb();
+    const midiStorage = new FakeMidiStorageAdapter();
+    // Format 0, one track, division 0xE728 (-25 fps x 40 ticks), one note.
+    const track = [0x00, 0xff, 0x51, 0x03, 0x07, 0xa1, 0x20, 0x00, 0x90, 0x3c, 0x64, 0x28, 0x80, 0x3c, 0x00, 0x00, 0xff, 0x2f, 0x00];
+    const bytes = new Uint8Array([
+      0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 0xe7, 0x28,
+      0x4d, 0x54, 0x72, 0x6b, 0, 0, 0, track.length, ...track,
+    ]);
+    const songId = await createSongId(bytes);
+
+    await expect(importSongFromBuffer(bytes, 'Smpte', { db, midiStorage })).rejects.toThrow(/SMPTE/i);
+    const row = db.getSong(songId);
+    db.close();
+
+    expect(row).toBeNull();
+    expect(midiStorage.finalFiles.size).toBe(0);
+    expect(midiStorage.events).toContain(`discard:${songId}`);
+  });
+
   it('discards staging and leaves no final MIDI file when DB add fails', async () => {
     const db = await makeDb();
     const midiStorage = new FakeMidiStorageAdapter();
