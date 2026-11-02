@@ -64,6 +64,22 @@ describe('midiRouter', () => {
     expect(payload.errors[0].message).toMatch(/Only \.mid, \.midi, and \.mscz/);
   });
 
+  it('names the parser reason for a corrupt .mid upload (PH-PAR-004)', async () => {
+    const { app, db } = await makeServer();
+    const formData = new FormData();
+    formData.append('files', new File(['not a midi file at all'], 'corrupt.mid', { type: 'audio/midi' }));
+
+    const response = await app.request('/api/midi/upload', { method: 'POST', body: formData });
+    const payload = await response.json() as { songs: unknown[]; errors: Array<{ filename: string; message?: unknown }> };
+    db.close();
+
+    expect(response.status).toBe(200);
+    expect(payload.songs).toEqual([]);
+    expect(payload.errors).toHaveLength(1);
+    expect(typeof payload.errors[0].message).toBe('string');
+    expect(payload.errors[0].message).toMatch(/Bad MIDI file/);
+  });
+
   it('returns 400 when upload contains no files', async () => {
     const { app, db } = await makeServer();
     const formData = new FormData();
