@@ -223,7 +223,7 @@ export function LibraryScreen({
   });
   const [newPresetName, setNewPresetName] = useState('');
 
-  const refreshLibrary = async (options: { preserveStatus?: boolean } = {}) => {
+  const refreshLibrary = async (options: { preserveStatus?: boolean; keepVisible?: boolean } = {}) => {
     const requestId = refreshRequestRef.current + 1;
     refreshRequestRef.current = requestId;
     if (!window.appBridge) {
@@ -232,7 +232,10 @@ export function LibraryScreen({
       return;
     }
 
-    setIsLoading(true);
+    // keepVisible refreshes in place so the open view keeps its focus and live region.
+    if (!options.keepVisible) {
+      setIsLoading(true);
+    }
     setIsRecommendationsLoading(true);
     try {
       const bridge = window.appBridge;
@@ -1585,7 +1588,7 @@ export function LibraryScreen({
                     await window.appBridge.reorderPlaylistSong(activeView.id, songId, newOrder);
                     const nextPlaylistSongs = await window.appBridge.getPlaylistSongs(activeView.id);
                     setPlaylistSongs(nextPlaylistSongs);
-                    await refreshLibrary({ preserveStatus: true });
+                    await refreshLibrary({ preserveStatus: true, keepVisible: true });
                   } catch (error) {
                     setStatusMessage(`Unable to reorder playlist: ${(error as Error).message}`);
                   }

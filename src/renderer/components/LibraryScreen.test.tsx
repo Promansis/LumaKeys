@@ -735,3 +735,76 @@ describe('withinDateRange', () => {
     expect(withinDateRange('2026-10-19 14:24:46', '', '')).toBe(true);
   });
 });
+
+describe('LibraryScreen playlist reorder', () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    localStorage.clear();
+    Reflect.deleteProperty(window, 'matchMedia');
+  });
+
+  it('keeps the playlist view mounted through a reorder so focus and the announcement survive', async () => {
+    vi.stubGlobal('IS_WEB', true);
+    mockMatchMedia(false);
+    const makeSong = (id: string, title: string) => ({
+      id,
+      title,
+      artist: 'Composer',
+      genre: 'Classical',
+      difficulty: 4,
+      durationSec: 120,
+      bpm: 120,
+      noteCount: 240,
+      filePath: `/tmp/${id}.mid`,
+      dateAdded: '2026-04-18T00:00:00.000Z',
+      lastPlayed: null,
+      timesPlayed: 0,
+      isFavorite: false,
+      folderId: null,
+      tags: [],
+      trackAssignments: {},
+    });
+    const alpha = makeSong('song-1', 'Alpha Waltz');
+    const beta = makeSong('song-2', 'Beta March');
+    const gamma = makeSong('song-3', 'Gamma Etude');
+    let order = [alpha, beta, gamma];
+    const reorderPlaylistSong = vi.fn().mockImplementation(async (_playlistId: string, songId: string, newOrder: number) => {
+      const moving = order.find((song) => song.id === songId)!;
+      const rest = order.filter((song) => song.id !== songId);
+      rest.splice(newOrder, 0, moving);
+      order = rest;
+    });
+    window.appBridge = {
+      getAllSongs: vi.fn().mockResolvedValue([alpha, beta, gamma]),
+      getAllFolders: vi.fn().mockResolvedValue([]),
+      getAllPlaylists: vi.fn().mockResolvedValue([
+        { id: 'pl-1', name: 'Warmups', description: '', createdAt: '', updatedAt: '', songCount: 3 },
+      ]),
+      getPlaylistSongs: vi.fn().mockImplementation(async () => order),
+      reorderPlaylistSong,
+      getRecommendations: vi.fn().mockResolvedValue(null),
+      getUserStats: vi.fn().mockResolvedValue(null),
+      getSetting: vi.fn().mockResolvedValue(null),
+    } as unknown as typeof window.appBridge;
+
+    render(
+      <LibraryScreen
+        audioEngine={createAudioEngineStub() as unknown as import('../../lib/audio/audioEngine').AudioEngine}
+        onStartSession={vi.fn()}
+        onStartPlaylistQueue={vi.fn()}
+        onStartTheoryPractice={vi.fn()}
+      />,
+    );
+    await screen.findByText('3 songs ready to play.');
+    fireEvent.click(await screen.findByRole('button', { name: /^Warmups/ }));
+    const moveDown = await screen.findByRole('button', { name: 'Move down: Alpha Waltz' });
+
+    fireEvent.click(moveDown);
+
+    await waitFor(() => expect(reorderPlaylistSong).toHaveBeenCalledWith('pl-1', 'song-1', 1));
+    expect(await screen.findByText('Moved Alpha Waltz to position 2 of 3.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Move down: Alpha Waltz' })).toHaveFocus();
+  });
+});
