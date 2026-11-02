@@ -495,7 +495,11 @@ export function FreePlayScreen({
     }
     setIsRecording(false);
     setRecordingStartedAt(null);
-    setStatusMessage('Recording captured. You can replay or export it now.');
+    setStatusMessage(
+      IS_WEB
+        ? 'Recording captured. You can replay it now, but it is not saved: exporting to a file is only available in the desktop app.'
+        : 'Recording captured. You can replay or export it now.',
+    );
   };
 
   const playRecording = async () => {
@@ -1109,7 +1113,9 @@ export function FreePlayScreen({
                 <p className="panel-copy">
                   {backingTrackName
                     ? 'Blend a groove underneath the keyboard while staying in the same visual scene.'
-                    : 'Load a backing track to turn open practice into a performance space.'}
+                    : IS_WEB
+                      ? 'Loading a backing track from a file is only available in the desktop app.'
+                      : 'Load a backing track to turn open practice into a performance space.'}
                 </p>
               </div>
               <div className="transport-buttons">

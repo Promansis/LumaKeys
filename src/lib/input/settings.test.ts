@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { createDefaultKeyboardMapping, KEYBOARD_NOTE_ACTIONS, KEYBOARD_NOTE_SLOT_COUNT, parseKeyboardMapping } from './settings';
+import {
+  createDefaultKeyboardMapping,
+  KEYBOARD_NOTE_ACTIONS,
+  KEYBOARD_NOTE_SLOT_COUNT,
+  parseKeyboardMapping,
+  stringifyKeyboardMapping,
+} from './settings';
 
 describe('input settings', () => {
   it('creates the full 34-note default piano-style mapping', () => {
@@ -63,5 +69,30 @@ describe('input settings', () => {
     expect(parsed['note-31']).toBe('KeyO');
     expect(parsed['note-32']).toBe('Digit0');
     expect(parsed['note-33']).toBe('KeyP');
+  });
+
+  it('reads an explicit null as an unbound note, not as the default key', () => {
+    const parsed = parseKeyboardMapping(JSON.stringify({ 'note-0': null }));
+
+    expect(parsed['note-0']).toBeNull();
+    expect(parsed['note-1']).toBe(createDefaultKeyboardMapping()['note-1']);
+  });
+
+  it('gives the default key to a note whose key is missing', () => {
+    expect(parseKeyboardMapping(JSON.stringify({}))).toEqual(createDefaultKeyboardMapping());
+  });
+
+  it('still falls back to the default for an unusable stored value', () => {
+    const defaults = createDefaultKeyboardMapping();
+    const parsed = parseKeyboardMapping(JSON.stringify({ 'note-0': 42, 'note-1': 'ShiftLeft' }));
+
+    expect(parsed['note-0']).toBe(defaults['note-0']);
+    expect(parsed['note-1']).toBe(defaults['note-1']);
+  });
+
+  it('round-trips an unbound note through stringify and parse', () => {
+    const mapping = { ...createDefaultKeyboardMapping(), 'note-0': null, 'note-12': 'KeyK' };
+
+    expect(parseKeyboardMapping(stringifyKeyboardMapping(mapping))).toEqual(mapping);
   });
 });

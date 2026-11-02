@@ -7,6 +7,13 @@ import { convertMuseScoreToMidi } from './museScore';
 
 const MAX_MIDI_UPLOAD_BYTES = MIDI_FILE_LIMIT_BYTES;
 
+// The web client reads only the song metadata. The IPC-only `fileData` (a
+// Uint8Array that JSON turns into one key per byte) and `destPath` (a server
+// filesystem path) stay on the server.
+function toWebImportedSong({ songId, title, durationSec, bpm, noteCount, difficulty }: ImportedSong): ImportedSong {
+  return { songId, title, durationSec, bpm, noteCount, difficulty };
+}
+
 function isMidiFilename(name: string): boolean {
   return /\.(mid|midi)$/i.test(name);
 }
@@ -18,8 +25,8 @@ export function createMidiRouter({ db, midiStorage }: ServerDependencies) {
     try {
       const formData = await c.req.formData();
       const files = formData.getAll('files');
-      const songs = [];
-      const errors = [];
+      const songs: ImportedSong[] = [];
+      const errors: ImportError[] = [];
       let skipped = 0;
 
       if (files.length === 0) {
@@ -55,10 +62,12 @@ export function createMidiRouter({ db, midiStorage }: ServerDependencies) {
             continue;
           }
           songs.push(
-            await importSongFromBuffer(bytes, title, {
-              db,
-              midiStorage,
-            }),
+            toWebImportedSong(
+              await importSongFromBuffer(bytes, title, {
+                db,
+                midiStorage,
+              }),
+            ),
           );
         } catch (err) {
           errors.push({ filename: title, message: (err as Error).message });
@@ -110,10 +119,12 @@ export function createMidiRouter({ db, midiStorage }: ServerDependencies) {
       } else {
         try {
           reattached.push(
-            await reattachSongFromBuffer(songId, new Uint8Array(await entry.arrayBuffer()), title, {
-              db,
-              midiStorage,
-            }),
+            toWebImportedSong(
+              await reattachSongFromBuffer(songId, new Uint8Array(await entry.arrayBuffer()), title, {
+                db,
+                midiStorage,
+              }),
+            ),
           );
         } catch (err) {
           errors.push({ filename: title, message: (err as Error).message });

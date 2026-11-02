@@ -128,17 +128,36 @@ function hasAdvancedFilters(filters: LibraryAdvancedFilters): boolean {
   return Object.entries(filters).some(([key, value]) => key !== 'playedState' ? value !== '' : value !== 'all');
 }
 
-function withinDateRange(date: string, from: string, to: string): boolean {
-  const value = new Date(date).getTime();
-  if (from && value < new Date(from).getTime()) {
+// `songs.date_added` is SQLite `datetime('now')`: UTC, "YYYY-MM-DD HH:MM:SS", no zone marker.
+// Read it as UTC; a bare `new Date(value)` would read it as local time.
+function parseDateAddedUtc(value: string): number {
+  const iso = value.trim().replace(' ', 'T');
+  if (!iso.includes('T')) {
+    return new Date(`${iso}T00:00:00Z`).getTime();
+  }
+  const hasZone = /(?:Z|[+-]\d{2}(?::?\d{2})?)$/i.test(iso.slice(iso.indexOf('T')));
+  return new Date(hasZone ? iso : `${iso}Z`).getTime();
+}
+
+// A date input value ("YYYY-MM-DD") names a calendar day in the user's own zone. Build the bound
+// from local date parts: `new Date('YYYY-MM-DD')` would be UTC midnight instead. `dayOffset` 1 gives
+// the start of the next local day, which is the exclusive end of the named day. A fixed 23:59:59.999
+// would be wrong where a DST change makes the day 23 or 25 hours long, or where midnight is skipped.
+function localDayStart(dateInput: string, dayOffset = 0): number {
+  const [year, month, day] = dateInput.split('-').map(Number);
+  if (!year || !month || !day) {
+    return Number.NaN;
+  }
+  return new Date(year, month - 1, day + dayOffset).getTime();
+}
+
+export function withinDateRange(date: string, from: string, to: string): boolean {
+  const value = parseDateAddedUtc(date);
+  if (from && value < localDayStart(from)) {
     return false;
   }
-  if (to) {
-    const endOfDay = new Date(to);
-    endOfDay.setHours(23, 59, 59, 999);
-    if (value > endOfDay.getTime()) {
-      return false;
-    }
+  if (to && value >= localDayStart(to, 1)) {
+    return false;
   }
   return true;
 }
@@ -204,7 +223,7 @@ export function LibraryScreen({
   });
   const [newPresetName, setNewPresetName] = useState('');
 
-  const refreshLibrary = async (options: { preserveStatus?: boolean } = {}) => {
+  const refreshLibrary = async (options: { preserveStatus?: boolean; keepVisible?: boolean } = {}) => {
     const requestId = refreshRequestRef.current + 1;
     refreshRequestRef.current = requestId;
     if (!window.appBridge) {
@@ -213,7 +232,10 @@ export function LibraryScreen({
       return;
     }
 
-    setIsLoading(true);
+    // keepVisible refreshes in place so the open view keeps its focus and live region.
+    if (!options.keepVisible) {
+      setIsLoading(true);
+    }
     setIsRecommendationsLoading(true);
     try {
       const bridge = window.appBridge;
@@ -1558,7 +1580,7 @@ export function LibraryScreen({
                 })()
               }
               onReorderSong={(songId, newOrder) =>
-                void (async () => {
+                (async () => {
                   if (!window.appBridge || activeView.type !== 'playlist') {
                     return;
                   }
@@ -1566,7 +1588,7 @@ export function LibraryScreen({
                     await window.appBridge.reorderPlaylistSong(activeView.id, songId, newOrder);
                     const nextPlaylistSongs = await window.appBridge.getPlaylistSongs(activeView.id);
                     setPlaylistSongs(nextPlaylistSongs);
-                    await refreshLibrary({ preserveStatus: true });
+                    await refreshLibrary({ preserveStatus: true, keepVisible: true });
                   } catch (error) {
                     setStatusMessage(`Unable to reorder playlist: ${(error as Error).message}`);
                   }

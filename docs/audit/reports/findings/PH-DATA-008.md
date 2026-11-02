@@ -75,7 +75,30 @@ missing key. Add a parser test for both.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue:
-- Verification evidence:
-- Residual risk:
-- Revisit trigger, if accepted-risk:
+- Fix branch/commit/issue: `remediation/p11-s14-settings`, slice 14, commit `b66e7b6`;
+  implemented 2026-11-02, awaiting independent review; not merged.
+- What changed: `parseKeyboardMapping` in `src/lib/input/settings.ts` now reads an
+  explicit `null` as unbound. A missing entry, a non-string, a blank string or an
+  unsupported code still gets the default. Every caller was checked: `App.tsx` startup and
+  `KeyboardSetupScreen` load the mapping through the same parser; `stringifyKeyboardMapping`
+  already wrote the `null`; `invertKeyboardMapping` already skips an unbound note. The only
+  automatic write is the existing first-run save when no mapping is stored at all, so no
+  stored mapping is rewritten. Both runtimes share the parser and the `getSetting`/`setSetting`
+  string, so the `null` round-trips unchanged through IPC and HTTP.
+- Tests (source identity `cc40b63` for the failures): `src/lib/input/settings.test.ts`
+  `reads an explicit null as an unbound note, not as the default key` failed before
+  (`expected 'KeyZ' to be null`) and `round-trips an unbound note through stringify and parse`
+  failed before (`note-0` came back `'KeyZ'`); both pass after. `gives the default key to a
+  note whose key is missing` and `still falls back to the default for an unusable stored
+  value` pass before and after (guards). `KeyboardSetupScreen.test.tsx` `keeps a note the
+  player unbound unbound after a reload` failed before (no `Bind C3 to Unbound` button) and
+  passes after; it also asserts nothing is written on load.
+- Driver result: web `keyboard-remap-persistence.mjs` run on this worktree's `dist/` with a
+  `$TMPDIR` data dir. Post-reload labels equal pre-reload labels: bind D4 to K gave
+  `C4=Unbound, D4=K` before and after reload; bind D4 to Z gave `C3=Unbound, D4=Z` before
+  and after, with Z lighting only D4; Clear E4 gave `Unbound` after reload. Electron: shared
+  parser, optional rerun not done (see PH-ARCH-003 for why Electron cannot run here).
+- Proof owed: none agent-runnable. Human-only: none required.
+- Residual risk: a user who already has a doubled key keeps it until they rebind; nothing is
+  rewritten. The first-run save still writes the full default mapping once.
+- Revisit trigger: reviewer verification.

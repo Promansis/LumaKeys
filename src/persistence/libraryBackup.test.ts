@@ -423,11 +423,27 @@ describe('library backups', () => {
       }],
     };
 
-    await expect(importLibraryBackup(targetDb, backup, new FileSystemMidiStorageAdapter(targetMidiDir))).rejects.toThrow(
-      /content does not match/,
-    );
+    // PH-DATA-003: the message names the song by title (and id) and says what to do next.
+    const failure = importLibraryBackup(targetDb, backup, new FileSystemMidiStorageAdapter(targetMidiDir));
+    await expect(failure).rejects.toThrow(/content does not match "Tampered" \(id [0-9a-f]{64}\)/);
+    await expect(failure).rejects.toThrow(/nothing was restored.*library is unchanged.*try the import again/i);
     expect(targetDb.getAllSongs()).toEqual([]);
     expect(existsSync(targetMidiDir)).toBe(false);
+
+    // A blank title falls back to the id alone.
+    backup.songs[0].title = '  ';
+    const untitled = importLibraryBackup(targetDb, backup, new FileSystemMidiStorageAdapter(targetMidiDir));
+    await expect(untitled).rejects.toThrow(new RegExp(`content does not match ${id}\\.`));
+
+    // A hand-edited backup with a non-string title still gets the message, naming the id.
+    (backup.songs[0] as { title: unknown }).title = 5;
+    const numericTitle = importLibraryBackup(targetDb, backup, new FileSystemMidiStorageAdapter(targetMidiDir));
+    await expect(numericTitle).rejects.toThrow(new RegExp(`content does not match ${id}\\.`));
+
+    // A very long title is shortened so the message stays readable.
+    backup.songs[0].title = 'x'.repeat(500);
+    const longTitle = importLibraryBackup(targetDb, backup, new FileSystemMidiStorageAdapter(targetMidiDir));
+    await expect(longTitle).rejects.toThrow(/content does not match "x{79}…" \(id /);
     targetDb.close();
   });
 

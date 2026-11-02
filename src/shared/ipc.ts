@@ -35,8 +35,10 @@ export interface PickedMidiFile {
 
 export interface ImportedSong {
   songId: string;
-  destPath: string;
-  fileData: Uint8Array;
+  /** Present on the Electron IPC path only; the web upload route omits it. */
+  destPath?: string;
+  /** Present on the Electron IPC path only; the web upload route omits it. */
+  fileData?: Uint8Array;
   title: string;
   durationSec: number;
   bpm: number;

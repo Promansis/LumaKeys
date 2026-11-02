@@ -7,8 +7,13 @@ import { promisify } from 'node:util';
 import { MIDI_FILE_LIMIT_BYTES } from './webSecurity';
 
 const run = promisify(execFile);
-// ponytail: one converter at a time; use a job queue if multi-user imports are needed.
-let converting = false;
+// One converter at a time. Conversions wait their turn in order; at most this
+// many (the running one plus those waiting) are accepted, so a loop of uploads
+// cannot queue work without bound. Each conversion keeps its own 45 s timeout.
+export const MUSESCORE_QUEUE_LIMIT = 4;
+
+let queued = 0;
+let queueTail: Promise<unknown> = Promise.resolve();
 
 export async function convertMuseScoreToMidi(bytes: Uint8Array): Promise<Uint8Array> {
   // A blank or whitespace path counts as unset, like the other LUMAKEYS_* variables.
@@ -19,11 +24,21 @@ export async function convertMuseScoreToMidi(bytes: Uint8Array): Promise<Uint8Ar
   if (bytes.length === 0 || bytes.length > MIDI_FILE_LIMIT_BYTES) {
     throw new Error('MuseScore files must be non-empty and no larger than 10 MB.');
   }
-  if (converting) {
-    throw new Error('Another MuseScore score is being converted. Please try again in a moment.');
+  if (queued >= MUSESCORE_QUEUE_LIMIT) {
+    throw new Error('Too many scores are waiting for the MuseScore converter. Please try again in a moment.');
   }
 
-  converting = true;
+  queued += 1;
+  const job = queueTail.then(() => runConverter(converterPath, bytes));
+  queueTail = job.catch(() => undefined);
+  try {
+    return await job;
+  } finally {
+    queued -= 1;
+  }
+}
+
+async function runConverter(converterPath: string, bytes: Uint8Array): Promise<Uint8Array> {
   let dir: string | undefined;
   try {
     await access(converterPath, constants.X_OK).catch(() => {
@@ -74,12 +89,8 @@ export async function convertMuseScoreToMidi(bytes: Uint8Array): Promise<Uint8Ar
     }
     return midi;
   } finally {
-    try {
-      if (dir) {
-        await rm(dir, { recursive: true, force: true });
-      }
-    } finally {
-      converting = false;
+    if (dir) {
+      await rm(dir, { recursive: true, force: true });
     }
   }
 }

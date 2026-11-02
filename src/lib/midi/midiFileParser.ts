@@ -57,6 +57,15 @@ function resolveMidiConstructor(): MidiConstructor {
 
 const MidiCtor = resolveMidiConstructor();
 
+// @tonejs/midi throws plain strings for a damaged header; callers read `.message`.
+function readMidi(arrayBuffer: ArrayBuffer): MidiInstance {
+  try {
+    return new MidiCtor(arrayBuffer);
+  } catch (thrown) {
+    throw thrown instanceof Error ? thrown : new Error(String(thrown));
+  }
+}
+
 export interface MidiSourceMeta {
   songId: string;
   title: string;
@@ -68,7 +77,7 @@ export interface MidiFileMeta {
 }
 
 export function extractMidiMeta(arrayBuffer: ArrayBuffer): MidiFileMeta {
-  const midi = new MidiCtor(arrayBuffer);
+  const midi = readMidi(arrayBuffer);
   const result: MidiFileMeta = {};
 
   const rawName = midi.header.name?.trim();
@@ -88,7 +97,7 @@ export function extractMidiMeta(arrayBuffer: ArrayBuffer): MidiFileMeta {
 }
 
 export function parseMidiFile(arrayBuffer: ArrayBuffer, meta: MidiSourceMeta): ParsedSong {
-  const midi = new MidiCtor(arrayBuffer);
+  const midi = readMidi(arrayBuffer);
   // SMPTE time division counts ticks per frame, not per quarter note, so tempo, barlines and the beat
   // clock have no meaning in it; a division of 0 ticks per quarter note has none either. Refuse both up
   // front: the import path reports the throw as an import error.

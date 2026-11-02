@@ -13,7 +13,7 @@ interface FallingNotesCanvasProps {
   noteLabelSize?: 'small' | 'medium' | 'large';
 }
 
-interface CanvasPalette {
+export interface CanvasPalette {
   perfect: string;
   good: string;
   ok: string;
@@ -71,14 +71,39 @@ function readCanvasPalette(): CanvasPalette {
   };
 }
 
-function noteFill(note: VisibleNote, colorBlindMode: boolean, palette: CanvasPalette): string {
+// Colour-blind mode: hand identity and judgement outcome must not share a colour. Pending notes keep
+// the two Tol hand colours (blue, pink). Judged notes use lightness steps well away from them
+// (near-white, light cyan, near-black) and are also outlined and marked, see judgementMark.
+const COLOR_BLIND_HAND_LEFT = '#4477AA';
+const COLOR_BLIND_HAND_RIGHT = '#EE6677';
+const COLOR_BLIND_GOOD = '#EEEEEE';
+const COLOR_BLIND_OK = '#66CCEE';
+const COLOR_BLIND_MISS = '#222222';
+
+export type JudgementMarkKind = 'star' | 'check' | 'ring' | 'cross';
+
+/** Shape drawn on a judged note in colour-blind mode so the outcome never relies on colour alone. */
+export function judgementMark(judgement: NoteJudgement, colorBlindMode: boolean): JudgementMarkKind | null {
+  if (!colorBlindMode) {
+    return null;
+  }
+  switch (judgement) {
+    case 'perfect': return 'star';
+    case 'good': return 'check';
+    case 'ok': return 'ring';
+    case 'miss': return 'cross';
+    default: return null;
+  }
+}
+
+export function noteFill(note: VisibleNote, colorBlindMode: boolean, palette: CanvasPalette): string {
   if (colorBlindMode) {
     switch (note.judgement) {
       case 'perfect': return palette.perfect;
-      case 'good': return '#4477AA';
-      case 'ok': return '#66CCEE';
-      case 'miss': return '#EE6677';
-      default: return note.hand === 'left' ? '#4477AA' : '#EE6677';
+      case 'good': return COLOR_BLIND_GOOD;
+      case 'ok': return COLOR_BLIND_OK;
+      case 'miss': return COLOR_BLIND_MISS;
+      default: return note.hand === 'left' ? COLOR_BLIND_HAND_LEFT : COLOR_BLIND_HAND_RIGHT;
     }
   }
   switch (note.judgement) {
@@ -93,6 +118,66 @@ function noteFill(note: VisibleNote, colorBlindMode: boolean, palette: CanvasPal
     default:
       return note.hand === 'left' ? palette.leftHand : palette.rightHand;
   }
+}
+
+function drawJudgementMark(
+  context: CanvasRenderingContext2D,
+  kind: JudgementMarkKind,
+  fill: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): void {
+  const size = Math.min(width - 8, height - 6, 12);
+  if (size < 6) {
+    return;
+  }
+  const cx = x + width / 2;
+  const cy = y + height - 3 - size / 2;
+  const half = size / 2;
+  context.save();
+  context.strokeStyle = fill === COLOR_BLIND_MISS ? '#ffffff' : '#111111';
+  context.fillStyle = context.strokeStyle;
+  context.lineWidth = 2;
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+  context.beginPath();
+  switch (kind) {
+    case 'cross':
+      context.moveTo(cx - half, cy - half);
+      context.lineTo(cx + half, cy + half);
+      context.moveTo(cx + half, cy - half);
+      context.lineTo(cx - half, cy + half);
+      context.stroke();
+      break;
+    case 'check':
+      context.moveTo(cx - half, cy);
+      context.lineTo(cx - half * 0.3, cy + half * 0.7);
+      context.lineTo(cx + half, cy - half * 0.7);
+      context.stroke();
+      break;
+    case 'ring':
+      context.arc(cx, cy, half * 0.8, 0, Math.PI * 2);
+      context.stroke();
+      break;
+    case 'star':
+      for (let point = 0; point < 10; point += 1) {
+        const radius = point % 2 === 0 ? half : half * 0.45;
+        const angle = -Math.PI / 2 + (point * Math.PI) / 5;
+        const px = cx + Math.cos(angle) * radius;
+        const py = cy + Math.sin(angle) * radius;
+        if (point === 0) {
+          context.moveTo(px, py);
+        } else {
+          context.lineTo(px, py);
+        }
+      }
+      context.closePath();
+      context.fill();
+      break;
+  }
+  context.restore();
 }
 
 export function FallingNotesCanvas({
@@ -276,8 +361,21 @@ function drawNotes(
     const y = note.topRatio * height;
     const noteHeight = Math.max(note.heightRatio * height, 14);
 
-    context.fillStyle = noteFill(note, colorBlindMode, palette);
+    const fill = noteFill(note, colorBlindMode, palette);
+    context.fillStyle = fill;
     context.fillRect(x + 2, y, noteWidth - 4, noteHeight);
+
+    const mark = judgementMark(note.judgement, colorBlindMode);
+    if (mark) {
+      // Dark outer and light inner outline read against both light and dark themes.
+      context.strokeStyle = '#111111';
+      context.lineWidth = 3;
+      context.strokeRect(x + 2, y, noteWidth - 4, noteHeight);
+      context.strokeStyle = '#ffffff';
+      context.lineWidth = 1.5;
+      context.strokeRect(x + 2, y, noteWidth - 4, noteHeight);
+      drawJudgementMark(context, mark, fill, x + 2, y, noteWidth - 4, noteHeight);
+    }
 
     if (selectedNoteId === note.id) {
       context.strokeStyle = palette.selected;

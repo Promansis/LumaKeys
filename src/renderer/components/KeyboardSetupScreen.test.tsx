@@ -152,6 +152,26 @@ describe('KeyboardSetupScreen', () => {
     await expect(getSetting(INPUT_SETTINGS_CATEGORY, 'keyboardMapping')).resolves.toBe('{"note-c3":"Z"}');
   });
 
+  it('keeps a note the player unbound unbound after a reload', async () => {
+    window.appBridge = {
+      getSetting: vi.fn().mockResolvedValue(JSON.stringify({ 'note-0': null, 'note-1': 'KeyS' })),
+      setSetting: vi.fn().mockResolvedValue(undefined),
+    } as unknown as typeof window.appBridge;
+    const service = new MockKeyboardInputService();
+
+    render(
+      <KeyboardSetupScreen
+        keyboardInputService={service as unknown as ComputerKeyboardInputService}
+        inputMode="both"
+        onInputModeChange={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByRole('button', { name: 'Bind C3 to Unbound' })).toBeInTheDocument();
+    expect(service.getMapping()['note-0']).toBeNull();
+    expect(window.appBridge?.setSetting).not.toHaveBeenCalled();
+  });
+
   it('catches rejected clear and reset writes', async () => {
     const setSetting = vi.fn().mockRejectedValue(new Error('write failed'));
     window.appBridge = {

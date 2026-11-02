@@ -1014,7 +1014,7 @@ export function App() {
 
     const results = await Promise.all([
       saveAppSetting('onboarding', 'setupComplete', setupComplete ? 'true' : 'false'),
-      saveAppSetting('practice', 'postureReminderMinutes', postureReminderMinutes !== null ? String(postureReminderMinutes) : 'off'),
+      saveAppSetting('practice', 'postureReminderMinutes', String(postureReminderMinutes ?? 0)),
       saveAppSetting('fingering', 'handSize', handSize),
     ]);
     return results.every(({ saved }) => saved);

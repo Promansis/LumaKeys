@@ -130,12 +130,39 @@ describe('ProgressDashboardScreen', () => {
     expect(screen.queryByText('Nothing to chart yet')).not.toBeInTheDocument();
     expect(screen.getAllByText('Etude').length).toBeGreaterThan(0);
     expect(screen.getByText(ACHIEVEMENTS[0].name)).toBeInTheDocument();
-    expect(screen.getByText('Measures 8–10')).toBeInTheDocument();
+    expect(screen.getByText('Measures 9–11')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Etude' }));
     fireEvent.click(screen.getByRole('button', { name: 'Practice' }));
 
     expect(onStartTopSong).toHaveBeenCalledWith('song-1');
     expect(onPracticeTroubleSpot).toHaveBeenCalledWith('song-1', { startMeasure: 8, endMeasure: 10 });
+  });
+
+  it('labels stored zero-based trouble-spot measures one-based, as Results does', async () => {
+    const onPracticeTroubleSpot = vi.fn();
+    window.appBridge = {
+      getProgressStats: vi.fn().mockResolvedValue(
+        createStats({ accuracyTrend: [{ date: '2026-04-21', avgAccuracy: 94 }] }),
+      ),
+      getPracticeStreak: vi.fn().mockResolvedValue({ currentStreak: 0, longestStreak: 0, streakFreezes: 0 }),
+      getAllAchievements: vi.fn().mockResolvedValue([]),
+      getSetting: vi.fn().mockResolvedValue(null),
+      getProgressTopSongs: vi.fn().mockResolvedValue([]),
+      getAllUnresolvedTroubleSpots: vi.fn().mockResolvedValue([
+        { id: 'spot-a', songId: 'song-1', songTitle: 'Etude', measureStart: 0, measureEnd: 0, struggleCount: 1, lowestAccuracy: 50, latestAccuracy: 100 },
+        { id: 'spot-b', songId: 'song-1', songTitle: 'Etude', measureStart: 1, measureEnd: 1, struggleCount: 1, lowestAccuracy: 50, latestAccuracy: 100 },
+      ]),
+    } as unknown as typeof window.appBridge;
+
+    render(<ProgressDashboardScreen onOpenLibrary={vi.fn()} onPracticeTroubleSpot={onPracticeTroubleSpot} />);
+
+    expect(await screen.findByText('Measures 1–1')).toBeInTheDocument();
+    expect(screen.getByText('Measures 2–2')).toBeInTheDocument();
+    expect(screen.queryByText('Measures 0–0')).not.toBeInTheDocument();
+
+    // The loop range handed to Practice stays zero-based.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Practice' })[0]);
+    expect(onPracticeTroubleSpot).toHaveBeenCalledWith('song-1', { startMeasure: 0, endMeasure: 0 });
   });
 });

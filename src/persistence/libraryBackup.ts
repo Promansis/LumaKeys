@@ -60,6 +60,22 @@ function decodeBase64(value: string, songId: string): Uint8Array {
   return new Uint8Array(bytes);
 }
 
+const MAX_MESSAGE_TITLE_LENGTH = 80;
+
+// Names the song the user can recognise; the id alone when the backup has no usable title.
+// A backup file can be hand-edited, so the title is not trusted to be a string.
+function describeBackupSong(songs: SongRow[], songId: string): string {
+  const rawTitle: unknown = songs.find((song) => song.id === songId)?.title;
+  const title = typeof rawTitle === 'string' ? rawTitle.trim() : '';
+  if (!title) {
+    return songId;
+  }
+  const shown = title.length > MAX_MESSAGE_TITLE_LENGTH
+    ? `${title.slice(0, MAX_MESSAGE_TITLE_LENGTH - 1)}…`
+    : title;
+  return `"${shown}" (id ${songId})`;
+}
+
 function assertBackupSongIdIsSafe(song: SongRow): void {
   if (!isSafeSongStorageId(song.id)) {
     throw new Error(`Unsafe backup song id: ${song.id}.`);
@@ -187,7 +203,11 @@ export async function importLibraryBackup(
         }
         const bytes = decodeBase64(midiFile.dataBase64, midiFile.songId);
         if (bytes.byteLength !== midiFile.byteLength || await createSongId(bytes) !== midiFile.songId) {
-          throw new Error(`MIDI backup content does not match ${midiFile.songId}.`);
+          throw new Error(
+            `MIDI backup content does not match ${describeBackupSong(backup.songs, midiFile.songId)}. `
+            + 'Nothing was restored, and your library is unchanged. The backup file may be damaged; '
+            + 'export a fresh backup from the original library, then try the import again.',
+          );
         }
         computeSongMetadata(bytes, midiFile.songId);
         midiFilesBySongId.set(midiFile.songId, bytes);

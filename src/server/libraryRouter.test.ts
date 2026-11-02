@@ -71,6 +71,48 @@ describe('libraryRouter', () => {
     expect(importPayload.result.midiFilesRestored).toBe(1);
   });
 
+  it('reports a tampered MIDI by song title, the same message the desktop import gives (PH-DATA-003)', async () => {
+    const { app, db } = await makeServer();
+    // The real server turns a thrown error into { error: message } (src/server/index.ts).
+    app.onError((error, c) => c.json({ error: error.message }, 500));
+    const original = new Midi();
+    original.addTrack().addNote({ midi: 60, time: 0, duration: 0.5, velocity: 0.8 });
+    const other = new Midi();
+    other.addTrack().addNote({ midi: 67, time: 0, duration: 0.5, velocity: 0.8 });
+    const id = await createSongId(original.toArray());
+    const substituted = other.toArray();
+    const backup = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      songs: [{
+        id, title: 'Tampered', artist: '', genre: '', filePath: '', difficulty: 1, durationSec: 1, bpm: 120,
+        noteCount: 1, dateAdded: new Date().toISOString(), timesPlayed: 0, tags: [], isFavorite: false,
+        folderId: null, trackAssignments: {},
+      }],
+      folders: [], playlists: [], fingerings: [], settings: [],
+      midiFiles: [{
+        songId: id,
+        filename: `${id}.mid`,
+        dataBase64: Buffer.from(substituted).toString('base64'),
+        byteLength: substituted.byteLength,
+      }],
+    };
+
+    const response = await app.request('/api/library/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(backup),
+    });
+    const payload = await response.json() as { error: string };
+    const songs = db.getAllSongs();
+    db.close();
+
+    expect(response.status).toBe(500);
+    expect(payload.error).toMatch(/content does not match "Tampered" \(id [0-9a-f]{64}\)/);
+    expect(payload.error).toMatch(/try the import again/i);
+    expect(songs).toEqual([]);
+  });
+
   it('rejects invalid library imports', async () => {
     const { app, db } = await makeServer();
 

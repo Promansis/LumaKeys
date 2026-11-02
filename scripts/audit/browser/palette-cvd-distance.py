@@ -19,7 +19,8 @@ def lab(rgb):
     return (116*f(Y)-16,500*(f(X)-f(Y)),200*(f(Y)-f(Z)))
 def de(a,b): return math.dist(lab(a),lab(b))
 pals={'default':{'perfect':'#f5c542','good':'#40b56a','ok':'#4a90d9','miss':'#bf5b44','pending-left':'#7c6aff','pending-right':'#ff6b9d'},
-'colour-blind mode':{'perfect':'#f5c542','good':'#4477AA','ok':'#66CCEE','miss':'#EE6677','pending-left':'#4477AA','pending-right':'#EE6677'}}
+'colour-blind mode (before PH-UI-015)':{'perfect':'#f5c542','good':'#4477AA','ok':'#66CCEE','miss':'#EE6677','pending-left':'#4477AA','pending-right':'#EE6677'},
+'colour-blind mode':{'perfect':'#f5c542','good':'#EEEEEE','ok':'#66CCEE','miss':'#222222','pending-left':'#4477AA','pending-right':'#EE6677'}}
 for pn,p in pals.items():
     print('==',pn)
     for k in ['normal','protan','deutan','tritan']:
