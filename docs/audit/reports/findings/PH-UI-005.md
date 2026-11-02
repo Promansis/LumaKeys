@@ -49,4 +49,11 @@ button's loop range unchanged.
 
 ## Resolution
 
-- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
+- Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge. Owner decision 15 (2026-11-02) puts slice 17 in wave 3.
+- Fix branch/commit: `remediation/p11-s17-small`, commit `3fbf97a`; implemented 2026-11-02, awaiting independent review; not merged.
+- What changed: `src/renderer/components/ProgressDashboardScreen.tsx` renders the stored zero-based trouble-spot range as `Measures {measureStart + 1}–{measureEnd + 1}`, the same one-based numbering Results uses. The Practice loop request still carries the stored zero-based `startMeasure` and `endMeasure`. No stored data changes.
+- Tests (`src/renderer/components/ProgressDashboardScreen.test.tsx`): `labels stored zero-based trouble-spot measures one-based, as Results does` failed before the fix (`Unable to find an element with the text: Measures 9–11` / `Measures 2–2`; the existing expectation was updated from `Measures 8–10` to `Measures 9–11`) and passes after it. It also asserts no `Measures 0–0` label and that `onPracticeTroubleSpot` still gets `startMeasure: 0, endMeasure: 0`. Source identity for the reproduction: product code equal to `cc40b63`.
+- Driver result: no dedicated driver named; `npm run verify` passed (83 test files, 656 tests).
+- Proof owed: agent-runnable, none beyond the unit test. Human-only: a real trouble spot compared across Results and Progress in the desktop app.
+- Residual risk: none expected. Other screens that print stored measure indexes were not audited here.
+- Revisit trigger: reviewer verification.

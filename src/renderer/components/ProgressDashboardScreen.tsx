@@ -363,7 +363,7 @@ export function ProgressDashboardScreen({
                       {spot.songTitle}
                     </strong>
                     <span className="trouble-spots-global-range">
-                      Measures {spot.measureStart}–{spot.measureEnd}
+                      Measures {spot.measureStart + 1}–{spot.measureEnd + 1}
                     </span>
                   </div>
                   <div className="trouble-spots-global-stats">

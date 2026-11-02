@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LibraryScreen } from './LibraryScreen';
+import { LibraryScreen, withinDateRange } from './LibraryScreen';
 
 function createAudioEngineStub() {
   return {
@@ -700,5 +700,136 @@ describe('LibraryScreen', () => {
       expect(bulkDeleteSongs).not.toHaveBeenCalled();
       expect(screen.getByText('Metadata Review')).toBeInTheDocument();
     });
+  });
+});
+
+describe('withinDateRange', () => {
+  // SQLite stores `datetime('now')`: UTC, "YYYY-MM-DD HH:MM:SS". Build the stored string from a
+  // local wall-clock time so the same cases hold under any TZ the suite runs in.
+  const stored = (year: number, month: number, day: number, hour: number, minute: number) =>
+    new Date(year, month - 1, day, hour, minute, 0).toISOString().slice(0, 19).replace('T', ' ');
+
+  it.each([
+    ['just after local midnight', 0, 30],
+    ['midday', 12, 0],
+    ['just before local midnight', 23, 30],
+  ])('includes a song added %s on the chosen local day', (_label, hour, minute) => {
+    const added = stored(2026, 10, 19, hour, minute);
+    expect(withinDateRange(added, '2026-10-19', '2026-10-19')).toBe(true);
+    expect(withinDateRange(added, '2026-10-19', '')).toBe(true);
+    expect(withinDateRange(added, '', '2026-10-19')).toBe(true);
+    expect(withinDateRange(added, '2026-10-20', '')).toBe(false);
+    expect(withinDateRange(added, '', '2026-10-18')).toBe(false);
+    expect(withinDateRange(added, '2026-10-18', '2026-10-18')).toBe(false);
+    expect(withinDateRange(added, '2026-10-20', '2026-10-20')).toBe(false);
+  });
+
+  it('reads the stored zone-less timestamp as UTC', () => {
+    const local = new Date(Date.UTC(2026, 9, 19, 14, 24, 46));
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const localDay = `${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}`;
+    expect(withinDateRange('2026-10-19 14:24:46', localDay, localDay)).toBe(true);
+  });
+
+  it('keeps everything when no bounds are set', () => {
+    expect(withinDateRange('2026-10-19 14:24:46', '', '')).toBe(true);
+  });
+
+  it('keeps the repeated last hour of a day when DST ends at local midnight', () => {
+    // America/Santiago, 2026-04-05: clocks go from 00:00 back to 23:00, so 4 April has 25 hours.
+    // "2026-04-05 03:30:00" UTC is the second 23:30 on 4 April. A fixed 23:59:59.999 end bound
+    // resolves to the first pass through that hour and dropped this song.
+    const previousTz = process.env.TZ;
+    process.env.TZ = 'America/Santiago';
+    try {
+      const added = '2026-04-05 03:30:00';
+      const instant = new Date(Date.UTC(2026, 3, 5, 3, 30));
+      expect([instant.getDate(), instant.getHours()]).toEqual([4, 23]);
+      expect(withinDateRange(added, '2026-04-04', '2026-04-04')).toBe(true);
+      expect(withinDateRange(added, '', '2026-04-04')).toBe(true);
+      expect(withinDateRange(added, '2026-04-05', '')).toBe(false);
+      // Local midnight of 5 April, the first instant of the next day, is outside 4 April.
+      expect(withinDateRange('2026-04-05 04:00:00', '', '2026-04-04')).toBe(false);
+      expect(withinDateRange('2026-04-05 04:00:00', '2026-04-05', '2026-04-05')).toBe(true);
+    } finally {
+      if (previousTz === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = previousTz;
+      }
+    }
+  });
+});
+
+describe('LibraryScreen playlist reorder', () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    localStorage.clear();
+    Reflect.deleteProperty(window, 'matchMedia');
+  });
+
+  it('keeps the playlist view mounted through a reorder so focus and the announcement survive', async () => {
+    vi.stubGlobal('IS_WEB', true);
+    mockMatchMedia(false);
+    const makeSong = (id: string, title: string) => ({
+      id,
+      title,
+      artist: 'Composer',
+      genre: 'Classical',
+      difficulty: 4,
+      durationSec: 120,
+      bpm: 120,
+      noteCount: 240,
+      filePath: `/tmp/${id}.mid`,
+      dateAdded: '2026-04-18T00:00:00.000Z',
+      lastPlayed: null,
+      timesPlayed: 0,
+      isFavorite: false,
+      folderId: null,
+      tags: [],
+      trackAssignments: {},
+    });
+    const alpha = makeSong('song-1', 'Alpha Waltz');
+    const beta = makeSong('song-2', 'Beta March');
+    const gamma = makeSong('song-3', 'Gamma Etude');
+    let order = [alpha, beta, gamma];
+    const reorderPlaylistSong = vi.fn().mockImplementation(async (_playlistId: string, songId: string, newOrder: number) => {
+      const moving = order.find((song) => song.id === songId)!;
+      const rest = order.filter((song) => song.id !== songId);
+      rest.splice(newOrder, 0, moving);
+      order = rest;
+    });
+    window.appBridge = {
+      getAllSongs: vi.fn().mockResolvedValue([alpha, beta, gamma]),
+      getAllFolders: vi.fn().mockResolvedValue([]),
+      getAllPlaylists: vi.fn().mockResolvedValue([
+        { id: 'pl-1', name: 'Warmups', description: '', createdAt: '', updatedAt: '', songCount: 3 },
+      ]),
+      getPlaylistSongs: vi.fn().mockImplementation(async () => order),
+      reorderPlaylistSong,
+      getRecommendations: vi.fn().mockResolvedValue(null),
+      getUserStats: vi.fn().mockResolvedValue(null),
+      getSetting: vi.fn().mockResolvedValue(null),
+    } as unknown as typeof window.appBridge;
+
+    render(
+      <LibraryScreen
+        audioEngine={createAudioEngineStub() as unknown as import('../../lib/audio/audioEngine').AudioEngine}
+        onStartSession={vi.fn()}
+        onStartPlaylistQueue={vi.fn()}
+        onStartTheoryPractice={vi.fn()}
+      />,
+    );
+    await screen.findByText('3 songs ready to play.');
+    fireEvent.click(await screen.findByRole('button', { name: /^Warmups/ }));
+    const moveDown = await screen.findByRole('button', { name: 'Move down: Alpha Waltz' });
+
+    fireEvent.click(moveDown);
+
+    await waitFor(() => expect(reorderPlaylistSong).toHaveBeenCalledWith('pl-1', 'song-1', 1));
+    expect(await screen.findByText('Moved Alpha Waltz to position 2 of 3.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Move down: Alpha Waltz' })).toHaveFocus();
   });
 });
