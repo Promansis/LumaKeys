@@ -158,3 +158,86 @@ The original proof below stays required.
     - Driver: `scripts/audit/browser/proof-data001-web.mjs` and `scripts/audit/electron/proof-data001-electron.mjs` (helpers `proof-data-common.mjs`, `proof-electron-harness.mjs`). Evidence: `/tmp/claude-1000/p11/PF/data/web001/` and `/tmp/claude-1000/p11/PF/data/el001/` (`run.out`, per-step JSON inventories, screenshots).
 - Residual risk: the three defects above are open. Harmless extra: a failed restore leaves a `restore-library:prepared` row in `durable_operations` until the next restart. Host-level failures by timing, Windows, macOS and a real full disk were not covered.
 - Revisit trigger: before backup/restore or destructive-data release sign-off.
+- Slice 19 fix branch/commit: `remediation/p11-s19-destructive-failures`, commit `aa49f9b`;
+  implemented 2026-11-02, awaiting independent review; not merged.
+- What changed (slice 19):
+  - `src/persistence/crossStoreMutations.ts`: a delete that fails before the database
+    commit rolls back and throws `LibraryOperationError` with "Nothing was deleted, and
+    your library is unchanged. Check that the LumaKeys data folder can be written to, then
+    try again."; the OS error is kept in `cause` and written to the host log. If the
+    rollback itself fails, the prepared row stays for startup recovery and the message says
+    to restart LumaKeys. `resetUserDataAcrossStores` first finishes any earlier reset left at
+    `db-committed` (the hidden `.midi-files-reset-<id>` directory and, on desktop, the
+    sample-pack backup through a new `recoverSecondaryReset` argument) and fails until those
+    files are gone. Choice for the plan's either/or: keep failing, not roll back, because
+    the rows were deleted in a committed transaction and restoring them needs a database
+    copy or a new journal, which the plan excludes and which would rewrite stored data.
+  - `src/persistence/libraryBackup.ts`: staging and file commits of a restore share one
+    rollback, so a staging failure no longer leaves a `restore-library:prepared` row. The
+    message is "Nothing was restored, and your library is unchanged. Check that the
+    LumaKeys data folder can be written to, then try the import again." A database import
+    failure keeps its existing message. New `readLibraryBackupFile` (used by the desktop
+    `library:import` handler) words an unreadable backup file the same way.
+  - `src/storage/midiStorage.ts`: a restore commit undoes only a move it made, so a
+    directory standing at the target reports the rename `EACCES` instead of `EISDIR`.
+  - `src/persistence/database.ts`: `recoverDurableOperations` keeps going past an operation
+    that cannot finish, logs it, keeps its row for the next start and returns the failures.
+    The host call sites in `src/server/index.ts` and the startup in `src/main/index.ts` are
+    unchanged; `src/main/index.ts` changes only in the reset and import handlers.
+  - `src/renderer/bridgeErrorMessage.ts` and `LibraryScreen.tsx`: delete and Import Library
+    errors show `Delete failed. <message>` / `Import failed. <message>` without Electron's
+    `Error invoking remote method` prefix. `SettingsScreen.tsx` is unchanged: its reset
+    message already names a retry.
+- Tests (source identity for the reproduction: product code equal to `1180731`). Failed
+  before, pass after:
+  - `crossStoreMutations.test.ts`: "keeps the database row and MIDI bytes when deletion
+    fails" (before: the raw `delete failed` error, no unchanged message); "says the library
+    is unchanged, without the OS error, when the song folder is read-only" (before:
+    `EACCES: permission denied, mkdir '<root>/midi/.delete-<id>'`); "keeps a prepared
+    delete for startup recovery when its rollback fails" (before: `stage failed after
+    moving`, and the row was completed); "keeps failing a reset retry until the hidden reset
+    directory is gone" (before: the retry resolved); "finishes a leftover secondary reset
+    before reporting a reset retry as done" (before: 2 operation rows instead of 1); "lets
+    startup recovery continue past a locked reset leftover and keeps it for the next start"
+    (before: recovery threw `EACCES: permission denied, unlink '.../.midi-files-reset-<id>/<song>.mid'`).
+  - `libraryBackup.test.ts`: "says the library is unchanged and clears its operation when
+    the song folder is read-only" (before: `EACCES: permission denied, mkdir
+    '.../.restore-<id>'`); "reports a failure on the second file without EISDIR and rolls
+    back the first file" (before: `Path is a directory: rm returned EISDIR`); "says the
+    library is unchanged, without the OS error, when the backup file cannot be read"
+    (before: no such reader; the Electron driver showed `Import failed. EACCES: permission
+    denied, open '<path>'`).
+  - `LibraryScreen.test.tsx`: "shows the unchanged-library retry message, without the IPC
+    or OS error, when a delete fails" (before: `Delete failed: Error invoking remote method
+    'bulk:delete-songs': ...`).
+  - `npm run verify` passes: 504 tests passed, 1 skipped (75 files), both type checks, both
+    builds and the Electron asset check.
+- Driver result, 2026-11-02, on this branch's `dist/` and `out/` builds, `chmod` faults only,
+  throwaway dirs under `$TMPDIR`:
+  - Web, `scripts/audit/browser/proof-data001-web.mjs` (Node v24.15.0, Chromium
+    141.0.7390.37): (a) single delete, bulk delete and both restore faults show the
+    unchanged-library message with no OS error and no `EISDIR`, rows and files unchanged and
+    no operation rows left; every retry with permissions back succeeds. (b) a reset retry
+    with `midi-files` still locked fails again with the hidden directory and its row kept.
+    (c) a restart with that directory locked comes up (`server restarted ok = true`), keeps
+    the row, and the next restart with permissions back clears it. `integrity_check` was
+    `ok` in all 31 inventories.
+  - Electron, `scripts/audit/electron/proof-data001-electron.mjs` under the shared flock
+    (Electron 44.9.2, headless ozone): the same (a) to (c), plus the unreadable backup file
+    and the locked sample-pack reset. A relaunch with the reset leftover locked opens the
+    window and logs the kept operation; the relaunch with permissions back clears it.
+    `integrity_check` was `ok` in all 40 inventories.
+  - Evidence: `/tmp/claude-1000/s19/web-evid/` and `/tmp/claude-1000/s19/eevid/` (`run.out`,
+    per-step JSON inventories, screenshots).
+- Proof owed: agent-runnable, none beyond the independent review. Human-only: user test of
+  the delete and import messages on a real profile whose data folder cannot be written to
+  (Windows and macOS were not covered).
+- Residual risk: failures after the database commit of a delete or restore still show the
+  raw error, and a delete retry does not look for a leftover `.delete-<id>` directory
+  (startup recovery clears it). If a restore commit and its rollback both fail, the
+  `.previous` copy can be removed with the operation directory. While a prepared reset
+  cannot be rolled back at startup, the app runs with song rows whose files are in the
+  hidden directory; the visible startup notice is PH-OPS-006 (slice 1). Faults by timing, a
+  real full disk, Windows and macOS were not covered.
+- Revisit trigger: independent review of slice 19, and before backup/restore or
+  destructive-data release sign-off.
