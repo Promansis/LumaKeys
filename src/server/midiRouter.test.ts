@@ -64,6 +64,49 @@ describe('midiRouter', () => {
     expect(payload.errors[0].message).toMatch(/Only \.mid, \.midi, and \.mscz/);
   });
 
+  it('names the parser reason for a corrupt .mid upload (PH-PAR-004)', async () => {
+    const { app, db } = await makeServer();
+    const formData = new FormData();
+    formData.append('files', new File(['not a midi file at all'], 'corrupt.mid', { type: 'audio/midi' }));
+
+    const response = await app.request('/api/midi/upload', { method: 'POST', body: formData });
+    const payload = await response.json() as { songs: unknown[]; errors: Array<{ filename: string; message?: unknown }> };
+    db.close();
+
+    expect(response.status).toBe(200);
+    expect(payload.songs).toEqual([]);
+    expect(payload.errors).toHaveLength(1);
+    expect(typeof payload.errors[0].message).toBe('string');
+    expect(payload.errors[0].message).toMatch(/Bad MIDI file/);
+  });
+
+  it('returns song metadata without the MIDI bytes or the server path (PH-ARCH-004)', async () => {
+    const { app, db } = await makeServer();
+    const midi = new Midi();
+    const track = midi.addTrack();
+    for (let i = 0; i < 2000; i += 1) {
+      track.addNote({ midi: 40 + (i % 40), time: i * 0.1, duration: 0.05, velocity: 0.8 });
+    }
+    const bytes = midi.toArray();
+    const formData = new FormData();
+    formData.append('files', new File([toBlob(bytes)], 'big.mid', { type: 'audio/midi' }));
+
+    const response = await app.request('/api/midi/upload', { method: 'POST', body: formData });
+    const text = await response.text();
+    const payload = JSON.parse(text) as { songs: Array<Record<string, unknown>>; errors: unknown[] };
+    db.close();
+
+    expect(response.status).toBe(200);
+    expect(payload.errors).toEqual([]);
+    expect(payload.songs).toHaveLength(1);
+    expect(Object.keys(payload.songs[0]).sort()).toEqual(
+      ['bpm', 'difficulty', 'durationSec', 'noteCount', 'songId', 'title'],
+    );
+    expect(text).not.toContain('midi-files');
+    expect(text.length).toBeLessThan(500);
+    expect(bytes.length).toBeGreaterThan(10_000);
+  });
+
   it('returns 400 when upload contains no files', async () => {
     const { app, db } = await makeServer();
     const formData = new FormData();
@@ -175,6 +218,8 @@ describe('midiRouter', () => {
 
     expect(response.status).toBe(200);
     expect(payload.reattached).toEqual([expect.objectContaining({ songId })]);
+    expect(payload.reattached[0]).not.toHaveProperty('fileData');
+    expect(payload.reattached[0]).not.toHaveProperty('destPath');
     expect(payload.errors).toEqual([]);
     expect(payload.skipped).toBe(0);
     expect(loadResponse.status).toBe(200);

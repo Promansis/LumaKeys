@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { Midi } from '@tonejs/midi';
 import { describe, expect, it } from 'vitest';
 import { getLoopRangeSeconds, getMeasureCount, getMeasureIndexForTime } from '../game/songUtils';
-import { parseMidiFile } from './midiFileParser';
+import { extractMidiMeta, parseMidiFile } from './midiFileParser';
 
 // The fixtures are byte copies of the Phase 11 lane C files in
 // scripts/audit/fixtures/midi/, with the hand-written expectations from
@@ -182,5 +182,27 @@ describe('parseMidiFile', () => {
         { ticks: 3840, bpm: 60, timeSec: 4 },
       ]);
     });
+  });
+});
+
+// PH-PAR-004: @tonejs/midi throws a plain string for a damaged header, so the
+// import catch blocks read `undefined` from `(err as Error).message`.
+describe('corrupt MIDI bytes', () => {
+  const corrupt = () => new TextEncoder().encode('not a midi file at all').buffer as ArrayBuffer;
+
+  it('rejects parseMidiFile with an Error that carries the parser reason', () => {
+    let thrown: unknown;
+    try {
+      parseMidiFile(corrupt(), { songId: 'bad', title: 'bad' });
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeInstanceOf(Error);
+    expect((thrown as Error).message).toMatch(/Bad MIDI file/);
+  });
+
+  it('rejects extractMidiMeta with an Error that carries the parser reason', () => {
+    expect(() => extractMidiMeta(corrupt())).toThrow(/Bad MIDI file/);
+    expect(() => extractMidiMeta(new ArrayBuffer(0))).toThrowError(Error);
   });
 });

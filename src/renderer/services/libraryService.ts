@@ -17,7 +17,8 @@ export function formatMidiImportResult(result: ImportResult, emptyMessage: strin
   if (errors.length > 0) {
     parts.push(`${errors.length} failed (${errors.map((error) => `${error.filename}: ${error.message}`).join('; ')})`);
   }
-  return parts.join('. ') + '. Review the metadata before playing.';
+  // The hint points at the metadata editor, which opens only when a song was added.
+  return parts.join('. ') + (songs.length > 0 ? '. Review the metadata before playing.' : '.');
 }
 
 export function formatFolderImportResult(result: { imported: unknown[]; skipped: number; errors: Array<{ filename: string; message: string }> }): string {

@@ -56,6 +56,15 @@ function resolveMidiConstructor(): MidiConstructor {
 
 const MidiCtor = resolveMidiConstructor();
 
+// @tonejs/midi throws plain strings for a damaged header; callers read `.message`.
+function readMidi(arrayBuffer: ArrayBuffer): MidiInstance {
+  try {
+    return new MidiCtor(arrayBuffer);
+  } catch (thrown) {
+    throw thrown instanceof Error ? thrown : new Error(String(thrown));
+  }
+}
+
 export interface MidiSourceMeta {
   songId: string;
   title: string;
@@ -67,7 +76,7 @@ export interface MidiFileMeta {
 }
 
 export function extractMidiMeta(arrayBuffer: ArrayBuffer): MidiFileMeta {
-  const midi = new MidiCtor(arrayBuffer);
+  const midi = readMidi(arrayBuffer);
   const result: MidiFileMeta = {};
 
   const rawName = midi.header.name?.trim();
@@ -87,7 +96,7 @@ export function extractMidiMeta(arrayBuffer: ArrayBuffer): MidiFileMeta {
 }
 
 export function parseMidiFile(arrayBuffer: ArrayBuffer, meta: MidiSourceMeta): ParsedSong {
-  const midi = new MidiCtor(arrayBuffer);
+  const midi = readMidi(arrayBuffer);
   ensureTempoAtTickZero(midi);
   const tempoMap = buildTempoMap(midi);
   const bpm = tempoMap[0].bpm;

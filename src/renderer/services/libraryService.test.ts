@@ -16,6 +16,19 @@ describe('libraryService', () => {
     }, 'Import canceled.')).toBe('Imported 1 song. 2 already in library. 1 failed (Broken.mid: Bad header). Review the metadata before playing.');
   });
 
+  it('does not ask for a metadata review when nothing was imported (PH-UI-009)', () => {
+    expect(formatMidiImportResult({
+      songs: [],
+      skipped: 0,
+      errors: [{ filename: 'minimal', message: 'MSCZ import requires MuseScore 4 on the Linux web server.' }],
+    }, 'Import canceled.')).toBe('1 failed (minimal: MSCZ import requires MuseScore 4 on the Linux web server.).');
+    expect(formatMidiImportResult({
+      songs: [],
+      skipped: 2,
+      errors: [],
+    }, 'Import canceled.')).toBe('2 already in library.');
+  });
+
   it('formats missing MIDI backup imports with reattach guidance', () => {
     expect(formatLibraryImportResult({
       songsImported: 2,
