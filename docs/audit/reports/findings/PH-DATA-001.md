@@ -158,8 +158,8 @@ The original proof below stays required.
     - Driver: `scripts/audit/browser/proof-data001-web.mjs` and `scripts/audit/electron/proof-data001-electron.mjs` (helpers `proof-data-common.mjs`, `proof-electron-harness.mjs`). Evidence: `/tmp/claude-1000/p11/PF/data/web001/` and `/tmp/claude-1000/p11/PF/data/el001/` (`run.out`, per-step JSON inventories, screenshots).
 - Residual risk: the three defects above are open. Harmless extra: a failed restore leaves a `restore-library:prepared` row in `durable_operations` until the next restart. Host-level failures by timing, Windows, macOS and a real full disk were not covered.
 - Revisit trigger: before backup/restore or destructive-data release sign-off.
-- Slice 19 fix branch/commit: `remediation/p11-s19-destructive-failures`, commits `aa49f9b`
-  and the review repair `d47bd51`; implemented 2026-11-02, awaiting independent review;
+- Slice 19 fix branch/commit: `remediation/p11-s19-destructive-failures`, commits `aa49f9b`,
+  and the review repairs `d47bd51` and `372ba43`; implemented 2026-11-02, awaiting independent review;
   not merged.
 - Review rulings (2026-11-02): the delete half of the rollback-failure change (a prepared
   row kept with a restart message) and the desktop `readLibraryBackupFile` wording are
@@ -185,6 +185,15 @@ The original proof below stays required.
     `.previous` copies stay for the restart the message asks for (`commitRestore` and
     `rollbackRestore` remove the folder themselves). New `readLibraryBackupFile` (used by the desktop
     `library:import` handler) words an unreadable backup file the same way.
+  - `src/persistence/database.ts` and `importSong.ts`, second review repair: while any
+    `prepared` operation row exists (a delete or restore whose rollback failed), the new
+    `AppDatabase.assertNoPendingRollback` refuses every new restore, delete, bulk delete,
+    reset (through `prepareDurableOperation`, the shared entry point) and MIDI import or
+    reattach (`importSongFromBuffer`, `reattachSongFromBuffer`), with the failed
+    operation's restart message. Both runtimes reach these through the same functions.
+    Without it, a same-session retry could write a song file that the next start's replay
+    of the old rollback removes, leaving a row with no file. A normal restart finishes the
+    old operation and clears the guard.
   - `src/storage/midiStorage.ts`: a restore commit undoes only a move it made, so a
     directory standing at the target reports the rename `EACCES` instead of `EISDIR`.
   - `src/persistence/database.ts`: `recoverDurableOperations` keeps going past a
@@ -225,12 +234,18 @@ The original proof below stays required.
     denied, open '<path>'`). Review repair: "keeps the staged files so a restart recovers
     the song when a restore rollback fails" (before, on `aa49f9b`: the restart's read of the
     song file failed with `ENOENT: no such file or directory`, leaving a row with no file).
+    Second review repair: "refuses a same-session retry after a failed restore rollback, so
+    the restart cannot remove its files" (the reviewer's probe: two-song backup into an empty
+    library, second file blocked, rollback fails, retry, restart, then a further start keeps
+    both rows and files; before, on `d47bd51`: `promise resolved "{ songsImported: 2, …(4) }"
+    instead of rejecting`) and "refuses deletes, resets and MIDI imports until a restart
+    finishes a failed restore rollback" (also checks that the restart clears the guard;
+    before: `promise resolved "{ …(8) }" instead of rejecting`).
   - `LibraryScreen.test.tsx`: "shows the unchanged-library retry message, without the IPC
     or OS error, when a delete fails" (before: `Delete failed: Error invoking remote method
     'bulk:delete-songs': ...`).
-  - `npm run verify` passes after the review repair: 506 tests passed, 1 skipped (75
-    files), both type checks, both builds and the Electron asset check.
-- Driver result, 2026-11-02, rerun after the review repair on this branch's `dist/` and `out/` builds, `chmod` faults only,
+  - `npm run verify` passes on `372ba43`: 508 tests passed, 1 skipped (75 files), both type checks, both builds and the Electron asset check.
+- Driver result, 2026-11-02, rerun on the `dist/` and `out/` builds of `372ba43`, `chmod` faults only,
   throwaway dirs under `$TMPDIR`:
   - Web, `scripts/audit/browser/proof-data001-web.mjs` (Node v24.15.0, Chromium
     141.0.7390.37): (a) single delete, bulk delete and both restore faults show the
@@ -245,6 +260,9 @@ The original proof below stays required.
     and the locked sample-pack reset. A relaunch with the reset leftover locked opens the
     window and logs the kept operation; the relaunch with permissions back clears it.
     `integrity_check` was `ok` in all 40 inventories.
+    An earlier attempt on the same build stopped at the first page load
+    (`ERR_ABORTED (-3)` loading `out/renderer/index.html`, written 2 minutes before) and is
+    not counted; the immediate rerun above loaded normally.
   - Evidence: `/tmp/claude-1000/s19/web-evid/` and `/tmp/claude-1000/s19/eevid/` (`run.out`,
     per-step JSON inventories, screenshots).
 - Proof owed: agent-runnable, none beyond the independent review. Human-only: user test of
@@ -258,7 +276,10 @@ The original proof below stays required.
   visible notice is PH-OPS-006 (slice 1). Not in scope, per review: a failed in-session
   reset rollback still clears its row and strands files (`crossStoreMutations.ts`, the
   reset `prepared` path), and invalid JSON on the web Import Library still shows a raw
-  error. Faults by timing, a
+  error. While a failed rollback waits for a restart, a concurrent in-flight operation's own
+  `prepared` row also blocks a new one (it is refused with the restart message instead of
+  running alongside); the bridge `addSong` row writes are not guarded, as they write no song
+  file. Faults by timing, a
   real full disk, Windows and macOS were not covered.
 - Revisit trigger: independent review of slice 19, and before backup/restore or
   destructive-data release sign-off.
