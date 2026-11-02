@@ -4,7 +4,8 @@ import { _electron as electron } from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const REPO = '/media/storage/LumaKeys';
+// LUMAKEYS_REPO points the harness at another checkout (for example a worktree's build).
+export const REPO = process.env.LUMAKEYS_REPO || '/media/storage/LumaKeys';
 const ELECTRON = path.join(REPO, 'node_modules/electron/dist/electron');
 
 export async function withElectron(profile, fn, opts = {}) {

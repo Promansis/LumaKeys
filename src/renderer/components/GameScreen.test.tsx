@@ -1,18 +1,30 @@
 import type { ComponentProps } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { Midi } from '@tonejs/midi';
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { AudioEngine } from '../../lib/audio/audioEngine';
 import { ComputerKeyboardInputService } from '../../lib/input/computerKeyboardInputService';
 import { GameSession } from '../../lib/game/GameSession';
 import type { InputEvent, KeyboardInputState } from '../../lib/input/types';
-import type { ParsedSong, SessionConfig } from '../../lib/game/types';
-import type { SongRow } from '../../shared/dbTypes';
+import type { ParsedSong, PlaybackSnapshot, SessionConfig, TrackAssignment } from '../../lib/game/types';
+import type { FingeringRow, SongRow } from '../../shared/dbTypes';
 import type { MidiInputService } from '../../lib/midi/midiInputService';
 import type { MidiInputDevice } from '../../lib/midi/types';
 import { GameScreen } from './GameScreen';
 
+const captured = vi.hoisted(() => ({
+  canvas: null as null | {
+    snapshot: PlaybackSnapshot;
+    onNoteSelect: (note: PlaybackSnapshot['visibleNotes'][number], anchor: { x: number; y: number }) => void;
+  },
+  assign: null as null | ((trackId: string, assignment: TrackAssignment) => void),
+}));
+
 vi.mock('./FallingNotesCanvas', () => ({
-  FallingNotesCanvas: () => <div data-testid="falling-notes" />,
+  FallingNotesCanvas: (props: NonNullable<typeof captured.canvas>) => {
+    captured.canvas = props;
+    return <div data-testid="falling-notes" />;
+  },
 }));
 
 vi.mock('./PianoKeyboard', () => ({
@@ -24,7 +36,10 @@ vi.mock('./ControlBar', () => ({
 }));
 
 vi.mock('./TrackAssignmentPanel', () => ({
-  TrackAssignmentPanel: () => <div data-testid="track-assignment-panel" />,
+  TrackAssignmentPanel: ({ onAssignmentChange }: { onAssignmentChange: NonNullable<typeof captured.assign> }) => {
+    captured.assign = onAssignmentChange;
+    return <div data-testid="track-assignment-panel" />;
+  },
 }));
 
 vi.mock('./ImmersiveInstrumentControl', () => ({
@@ -403,6 +418,82 @@ describe('GameScreen', () => {
     await waitFor(() => {
       expect(learningButton).toHaveClass('primary-button');
       expect(screen.getByText('Session setup changed. This run restarted.')).toBeInTheDocument();
+    });
+  });
+
+  describe('fingerings across a track assignment change (PH-MUS-017)', () => {
+    const MELODY_NOTE_ID = 'track-0-note-0';
+
+    function buildTwoTrackMidiBytes(): Uint8Array {
+      const midi = new Midi();
+      const melody = midi.addTrack();
+      melody.name = 'Melody';
+      melody.addNote({ midi: 65, time: 0.5, duration: 0.5, velocity: 0.8 });
+      const accompaniment = midi.addTrack();
+      accompaniment.name = 'Accompaniment';
+      accompaniment.addNote({ midi: 48, time: 0.5, duration: 0.5, velocity: 0.8 });
+      return midi.toArray();
+    }
+
+    function visibleFinger(noteId: string): number | null | undefined {
+      return captured.canvas?.snapshot.visibleNotes.find((note) => note.id === noteId)?.finger;
+    }
+
+    async function renderWithSavedFingering() {
+      // A fake persisted store: it starts with one fingering and honours clear.
+      let stored: FingeringRow[] = [
+        { songId: 'song-1', noteIndex: -1, noteId: MELODY_NOTE_ID, finger: 5, hand: 'right' },
+      ];
+      const bridge = {
+        getSetting: vi.fn().mockResolvedValue(null),
+        setSetting: vi.fn().mockResolvedValue(undefined),
+        getUserStats: vi.fn().mockResolvedValue(null),
+        getCustomFingerings: vi.fn(async () => stored),
+        loadMidiFileData: vi.fn().mockResolvedValue(buildTwoTrackMidiBytes()),
+        saveCustomFingering: vi.fn().mockResolvedValue(undefined),
+        clearCustomFingerings: vi.fn(async () => {
+          stored = [];
+        }),
+        updateSong: vi.fn().mockResolvedValue(undefined),
+      };
+      window.appBridge = bridge as unknown as typeof window.appBridge;
+      renderGameScreen({
+        librarySong: true,
+        sessionConfig: buildSessionConfig({ fingeringDisplayMode: 'always' }),
+      });
+      await waitFor(() => expect(visibleFinger(MELODY_NOTE_ID)).toBe(5));
+
+      fireEvent.click(screen.getByText('Menu'));
+      expect(screen.getByTestId('track-assignment-panel')).toBeInTheDocument();
+      return { bridge, getStored: () => stored };
+    }
+
+    beforeEach(() => {
+      captured.canvas = null;
+      captured.assign = null;
+    });
+
+    it('keeps saved fingerings, in memory and in the store, when a track assignment changes', async () => {
+      const { bridge, getStored } = await renderWithSavedFingering();
+
+      await act(async () => captured.assign!('track-1', 'ignore'));
+      await waitFor(() => expect(bridge.updateSong).toHaveBeenCalledTimes(1));
+      await act(async () => captured.assign!('track-1', 'left'));
+      await waitFor(() => expect(bridge.updateSong).toHaveBeenCalledTimes(2));
+
+      expect(visibleFinger(MELODY_NOTE_ID)).toBe(5);
+      expect(getStored()).toHaveLength(1);
+      expect(bridge.clearCustomFingerings).not.toHaveBeenCalled();
+    });
+
+    it('still clears fingerings on the explicit reset', async () => {
+      const { bridge, getStored } = await renderWithSavedFingering();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Reset to Auto' }));
+      await waitFor(() => expect(bridge.clearCustomFingerings).toHaveBeenCalledWith('song-1'));
+      await waitFor(() => expect(visibleFinger(MELODY_NOTE_ID)).not.toBe(5));
+      expect(bridge.clearCustomFingerings).toHaveBeenCalledTimes(1);
+      expect(getStored()).toHaveLength(0);
     });
   });
 
