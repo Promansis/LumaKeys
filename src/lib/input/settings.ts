@@ -144,7 +144,13 @@ export function parseKeyboardMapping(raw: string | null | undefined): KeyboardMa
 
     const next = { ...fallback };
     for (const action of KEYBOARD_ACTIONS) {
-      const value = normalizeCode((parsed as Record<string, unknown>)[action]);
+      const stored = (parsed as Record<string, unknown>)[action];
+      // An explicit null is the stored form of "unbound"; only a missing or unusable entry gets the default.
+      if (stored === null) {
+        next[action] = null;
+        continue;
+      }
+      const value = normalizeCode(stored);
       if (value === null) {
         continue;
       }
