@@ -3,7 +3,7 @@
 - Lane: UI/accessibility
 - Severity: P3
 - Confidence: high in Chrome and Electron; it did not reproduce in Edge 155 or Firefox 142
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), keyboard and focus() trace
 - Verifier: independent verifier recommended
@@ -76,7 +76,7 @@ Record the trigger once on mount (empty dependency list, callback through a ref,
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20.
-- Fix branch/commit/issue: `remediation/p11-s10-dialogs` (slice 10, single commit at the branch tip), implemented 2026-11-02, awaiting independent review; not merged. Base `c1a1fbf`.
+- Fix branch/commit/issue: `remediation/p11-s10-dialogs` (slice 10, single commit at the branch tip), implemented and independently reviewed 2026-11-02; merged to `main` in `e1a3bf0`; `fixed`, not `verified`: Electron `keyboard-walk.mjs` parts (b), (c) and (e) (lead) and the owner Edge and Firefox pass (sitting 3 item 3) are owed. Base `c1a1fbf`.
 - What changed: `ConfirmActionModal` in `SettingsScreen.tsx` records the element that had focus during its first render (a lazy `useState` initialiser), not in an effect, and restores focus to it on close. The trigger button is disabled in the same commit that mounts the modal, and Chromium then moves focus to `body` before any effect runs, so an effect recorded `body`. `busy` and `onCancel` are read through refs, so a parent re-render with new inline callbacks no longer re-runs the effect (it used to re-record the focus and re-focus Cancel).
 - Tests (`SettingsScreen.test.tsx > returns focus to the trigger when %s closes a confirmation dialog, even after a re-render`, Cancel button and Escape; source identity `c1a1fbf`): both cases failed before the fix (focus on `body`, not the trigger) and pass after it. jsdom cannot model Chromium's blur of a disabled trigger, so the test covers the unstable-callback re-render only; the web driver covers the blur.
 - Driver result: `scripts/audit/browser/confirm-dialog-focus-restore.mjs` against the built web server, headless Chromium 141: before the render-time capture focus was on `body` after Escape and after Cancel; after the fix focus returns to the "Clear Learning Progress" trigger for both.

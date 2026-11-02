@@ -3,7 +3,7 @@
 - Lane: UI
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), 2026-10-21
 - Verifier: TBD
@@ -93,7 +93,7 @@ return it sensibly on Retry. `src/renderer/components/GameScreen.tsx`.
 ## Resolution
 
 - Accepted/rejected rationale: accepted 2026-10-21.
-- Fix branch/commit/issue: `remediation/p11-s10-dialogs` (slice 10, single commit at the branch tip), implemented 2026-11-02, awaiting independent review; not merged. Base `c1a1fbf`.
+- Fix branch/commit/issue: `remediation/p11-s10-dialogs` (slice 10, single commit at the branch tip), implemented and independently reviewed 2026-11-02; merged to `main` in `e1a3bf0`; `fixed`, not `verified`: Electron `keyboard-walk.mjs` parts (b), (c) and (e) (lead), the owner Edge and Firefox pass (sitting 3 item 3) and a screen-reader read of the error panel are owed. Base `c1a1fbf`.
 - What changed: `GameScreen.tsx` keeps a ref on the load-error Retry button and an effect on `loadError` focuses it when the error panel appears and again after a failed retry. No state or load logic changed.
 - Tests (`GameScreen.test.tsx > moves focus to Retry when the load fails and again after a failed retry`; source identity `c1a1fbf`): failed before the fix (focus stayed on `body`) and passes after it.
 - Driver result: `scripts/audit/browser/proof-ph-arch-001-recovery.mjs` against the built web server, headless Chromium 141: 83 pass, 0 fail. Its older `keyboard Tab reaches Retry` and `Retry shows focus-visible` checks pass only because the driver Tabs 56 times around the page back to Retry, so they do not prove the initial focus. This slice added one real check, `focus is on Retry when the panel first shows, before any Tab`, which passes in all five failure scenarios. The unit test above is the fail-before proof.

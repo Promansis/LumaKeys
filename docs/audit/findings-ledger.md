@@ -67,14 +67,14 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-UI-007 | The library "Date Added" filter mixes UTC and local time and misplaces songs by up to a day | UI | P3 | high | both | accepted | WF-007 | [PH-UI-007](reports/findings/PH-UI-007.md) | Claude Code (acting) |
 | PH-UI-008 | Playlist order can only be changed by dragging | UI | P3 | high | both | accepted | WF-007 | [PH-UI-008](reports/findings/PH-UI-008.md) | Claude Code (acting) |
 | PH-UI-009 | A failed upload still tells the user to "Review the metadata before playing" | UI | P3 | high | both | accepted | WF-025, WF-004 | [PH-UI-009](reports/findings/PH-UI-009.md) | Claude Code (acting) |
-| PH-UI-010 | Latency calibration dialog is not keyboard operable and its Escape leaves Settings | UI | P2 | high | both | accepted | RT-008, WF-018, MOD-005 | [PH-UI-010](reports/findings/PH-UI-010.md) | Claude Code (acting) |
-| PH-UI-011 | Top-bar navigation has no visible keyboard focus or current-page indicator | UI | P2 | high | both | accepted | RT-008, WF-024, MOD-007 | [PH-UI-011](reports/findings/PH-UI-011.md) | Claude Code (acting) |
-| PH-UI-012 | Immersive HUD bar collides with its own controls at 150 to 189 percent zoom | UI | P2 | high | both | accepted | RT-006, RT-003, MOD-007 | [PH-UI-012](reports/findings/PH-UI-012.md) | Claude Code (acting) |
-| PH-UI-013 | Soundboard Escape leaves the screen after the session menu has been opened once | UI | P3 | high | both | accepted | RT-008, WF-016, WF-024, MOD-002 | [PH-UI-013](reports/findings/PH-UI-013.md) | Claude Code (acting) |
-| PH-UI-014 | Closed HUD popouts stay in the Tab order as aria-hidden, invisible controls | UI | P3 | high | both | accepted | RT-008, WF-015, WF-016, MOD-003, MOD-006 | [PH-UI-014](reports/findings/PH-UI-014.md) | Claude Code (acting) |
+| PH-UI-010 | Latency calibration dialog is not keyboard operable and its Escape leaves Settings | UI | P2 | high | both | fixed | RT-008, WF-018, MOD-005 | [PH-UI-010](reports/findings/PH-UI-010.md) | Claude Code (acting) |
+| PH-UI-011 | Top-bar navigation has no visible keyboard focus or current-page indicator | UI | P2 | high | both | fixed | RT-008, WF-024, MOD-007 | [PH-UI-011](reports/findings/PH-UI-011.md) | Claude Code (acting) |
+| PH-UI-012 | Immersive HUD bar collides with its own controls at 150 to 189 percent zoom | UI | P2 | high | both | fixed | RT-006, RT-003, MOD-007 | [PH-UI-012](reports/findings/PH-UI-012.md) | Claude Code (acting) |
+| PH-UI-013 | Soundboard Escape leaves the screen after the session menu has been opened once | UI | P3 | high | both | fixed | RT-008, WF-016, WF-024, MOD-002 | [PH-UI-013](reports/findings/PH-UI-013.md) | Claude Code (acting) |
+| PH-UI-014 | Closed HUD popouts stay in the Tab order as aria-hidden, invisible controls | UI | P3 | high | both | fixed | RT-008, WF-015, WF-016, MOD-003, MOD-006 | [PH-UI-014](reports/findings/PH-UI-014.md) | Claude Code (acting) |
 | PH-UI-015 | Colour-blind palette paints missed notes the same colour as pending right-hand notes | UI | P3 | high | both | accepted | RT-010, WF-009, MOD-003 | [PH-UI-015](reports/findings/PH-UI-015.md) | Claude Code (acting) |
 | PH-UI-016 | Results grade letter fails text contrast in the default theme | UI | P3 | high | both | accepted | RT-010, WF-010 | [PH-UI-016](reports/findings/PH-UI-016.md) | Claude Code (acting) |
-| PH-UI-017 | Settings confirmation dialog drops focus to the page body when it closes | UI | P3 | high | both | accepted | RT-008, WF-018, WF-021, WF-022, MOD-005 | [PH-UI-017](reports/findings/PH-UI-017.md) | Claude Code (acting) |
+| PH-UI-017 | Settings confirmation dialog drops focus to the page body when it closes | UI | P3 | high | both | fixed | RT-008, WF-018, WF-021, WF-022, MOD-005 | [PH-UI-017](reports/findings/PH-UI-017.md) | Claude Code (acting) |
 | PH-PAR-005 | Web Free Play records a take but offers no way to keep it, and says it can be exported | PAR | P3 | high | web | accepted | WF-015 | [PH-PAR-005](reports/findings/PH-PAR-005.md) | Claude Code (acting) |
 | PH-ARCH-004 | The web upload response echoes every imported MIDI back as a JSON object and discloses the server path | ARCH | P3 | high | web | accepted | WF-004, WF-025 | [PH-ARCH-004](reports/findings/PH-ARCH-004.md) | Claude Code (acting) |
 | PH-PAR-006 | Web "Install Better Sounds" stores the pack but never plays it | PAR | P2 | high | web | fixed | WF-019 | [PH-PAR-006](reports/findings/PH-PAR-006.md) | Claude Code (acting) |
@@ -92,7 +92,7 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-UI-019 | Ctrl+0 cannot reset the zoom because the computer keyboard takes Digit0 as a note | UI | P3 | high | both | fixed | RT-006 | [PH-UI-019](reports/findings/PH-UI-019.md) | Claude Code (acting) |
 | PH-MUS-017 | Changing a track assignment silently deletes every saved fingering for the song | MUS | P2 | high | both | fixed | WF-008, DATA-007, BR-034, MOD-003 | [PH-MUS-017](reports/findings/PH-MUS-017.md) | Claude Code (acting) |
 | PH-DATA-010 | The reset confirmation does not name packs, practice history or fingerings, and on the web says "from this device" for server-side data | DATA | P3 | high | both | fixed | DATA-014, OP-009, WF-022 | [PH-DATA-010](reports/findings/PH-DATA-010.md) | Claude Code (acting) |
-| PH-UI-020 | The song-load error panel does not take focus, and Retry is about 54 Tab presses away | UI | P3 | high | both | accepted | WF-009, RT-008, MOD-003 | [PH-UI-020](reports/findings/PH-UI-020.md) | Claude Code (acting) |
+| PH-UI-020 | The song-load error panel does not take focus, and Retry is about 54 Tab presses away | UI | P3 | high | both | fixed | WF-009, RT-008, MOD-003 | [PH-UI-020](reports/findings/PH-UI-020.md) | Claude Code (acting) |
 | PH-MUS-018 | On a fresh profile the count-in after the 3-2-1 countdown is lost while Settings shows 2 lead-in beats | MUS | P3 | high | both | verified | WF-009, WF-018, MOD-002, MOD-003 | [PH-MUS-018](reports/findings/PH-MUS-018.md) | Claude Code (acting) |
 | PH-UI-021 | Since the Electron 44 upgrade every desktop file dialog opens in Downloads and forgets the last folder | UI | P3 | high | Electron | fixed | WF-004, WF-005, WF-006, WF-020, MOD-008 | [PH-UI-021](reports/findings/PH-UI-021.md) | Claude Code (acting) |
 
@@ -233,6 +233,15 @@ in the detailed report.
   `library-one-hand.mjs` A2/A3 rerun (slice 8); the owner owes sitting 1 capstone on a real MIDI
   keyboard and a keyboard-only and screen-reader read of the delete prompt and the new Delete User
   Data wording. Counts: 72 findings (13 verified, 38 fixed, 20 accepted, 1 accepted-risk). See
+  [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#remediation-progress-2026-10-21).
+
+- Phase 11 wave 2 merges, 2026-11-02 (fourth batch): slices 11 (`1b95e9a`) and 10 (`e1a3bf0`)
+  merged to local `main` after independent review. PH-UI-011, PH-UI-012 and PH-UI-014 (slice 11)
+  and PH-UI-010, PH-UI-013, PH-UI-017 and PH-UI-020 (slice 10) moved from `accepted` to `fixed`.
+  None is `verified`: the lead owes the Electron `keyboard-walk.mjs` parts (a) and (d) (slice 11)
+  and (b), (c) and (e) (slice 10); the owner owes approval of the boxed top-bar look, real-zoom
+  sittings 1 and 3 in Edge and Firefox, sitting 3 item 3 in Edge and Firefox, and a screen-reader
+  pass. Counts: 72 findings (13 verified, 45 fixed, 13 accepted, 1 accepted-risk). See
   [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#remediation-progress-2026-10-21).
 
 - PH-DATA-001 is the canonical cross-store atomicity finding for backup restore,

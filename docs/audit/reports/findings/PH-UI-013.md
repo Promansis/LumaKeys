@@ -3,7 +3,7 @@
 - Lane: UI/accessibility
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), keyboard and mouse sequences on Soundboard, Free Play, and Game
 - Verifier: independent verifier recommended
@@ -79,7 +79,7 @@ Register the Soundboard handler once (empty or ref-based dependencies, as Free P
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20.
-- Fix branch/commit/issue: `remediation/p11-s10-dialogs` (slice 10, single commit at the branch tip), implemented 2026-11-02, awaiting independent review; not merged. Base `c1a1fbf`.
+- Fix branch/commit/issue: `remediation/p11-s10-dialogs` (slice 10, single commit at the branch tip), implemented and independently reviewed 2026-11-02; merged to `main` in `e1a3bf0`; `fixed`, not `verified`: Electron `keyboard-walk.mjs` parts (b), (c) and (e) (lead) and the owner Edge and Firefox pass (sitting 3 item 3) are owed. Base `c1a1fbf`.
 - What changed: the Escape effect in `NoveltySoundboardScreen.tsx` depended on `overlayVisible`, so every toggle re-registered the listener after `App.tsx`'s own Escape listener and the app listener ran first on later presses (it navigated away). The effect now registers once (`[]` dependencies, state read through its setter). `App.tsx` also lists `soundboard` in its Escape exclusion list, as it does for other screens that own Escape. No other App change.
 - Tests (source identity `c1a1fbf`): `NoveltySoundboardScreen.test.tsx > handles every Escape before the app-level listener, however often the menu toggles` failed before the fix (the app-style listener saw 4 unhandled Escapes) and passes after it. `App.test.tsx > lets soundboard own Escape` failed before the fix (the first Escape navigated away, "Mock Soundboard" was gone) and passes after it. The App test uses the mocked screen, so real listener ordering is covered by the Soundboard test.
 - Driver result: `scripts/audit/browser/escape-semantics.mjs` against the built web server, headless Chromium 141: Escape #1 opens, #2 closes, #3 opens, #4 closes, and the screen stays; mouse-open then Escape opens the overlay; Free Play and Game Escape behaviour unchanged.

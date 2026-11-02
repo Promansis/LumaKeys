@@ -226,12 +226,15 @@ Current failures on the audited baseline:
    history, with no confirmation (fixed in wave 2, `c1a1fbf`; awaiting proof).
 8. Keyboard and zoom access:
    - [PH-UI-010](findings/PH-UI-010.md): the latency calibration dialog is not keyboard
-     operable.
-   - [PH-UI-011](findings/PH-UI-011.md): the top bar shows no visible focus.
+     operable (fixed in wave 2, `e1a3bf0`; awaiting proof).
+   - [PH-UI-011](findings/PH-UI-011.md): the top bar shows no visible focus (fixed in
+     wave 2, `1b95e9a`; awaiting proof).
    - [PH-UI-012](findings/PH-UI-012.md): the HUD covers its own Settings button at 150 to
-     189 % real zoom, in Chrome and the packaged app.
+     189 % real zoom, in Chrome and the packaged app (fixed in wave 2, `1b95e9a`; awaiting
+     proof).
    - [PH-UI-019](findings/PH-UI-019.md): Ctrl+0 plays a note instead of resetting the zoom.
-   - [PH-UI-014](findings/PH-UI-014.md): Tab stops on invisible controls.
+   - [PH-UI-014](findings/PH-UI-014.md): Tab stops on invisible controls (fixed in wave 2,
+     `1b95e9a`; awaiting proof).
 
 Future improvements rather than current breakage: [PH-OPS-005](findings/PH-OPS-005.md)
 (no CI) and [PH-SEC-003](findings/PH-SEC-003.md) (no CSP). PH-OPS-005 is ordered first in
@@ -335,9 +338,9 @@ One finding was accepted as a risk after consolidation: [PH-OPS-004](findings/PH
 | PH-OPS-004 | Accepted risk: the database blobs in history hold no personal data, and a rewrite would break every clone for no privacy gain | Owner, decision 2 (taken 2026-10-20) | A database blob in history is found to hold personal data, or history is rewritten for another reason |
 | RT-010, PH-MUS-014, PH-MUS-015, GNOME switch, CPU on real hardware | Listening on speakers, a colour-vision review, GNOME's own reduced-motion switch and system-monitor numbers need this machine's desktop and a person | Owner, user tests B | After slices 6, 11, 16 and 18, and before release. Slice 6 merged 2026-11-02 (`c7216e2`): PH-MUS-015 is `fixed` and owes this speaker check |
 | PH-DATA-005 Windows half | A real `%APPDATA%\luma-keys` profile update. Slice 1 merged on 2026-10-21 (`c95586b`); the check needs a new Windows build from `main` at `a84acb0` or later | Owner, sitting 2 | After the new Windows build |
-| RT-006 residual | Edge's own browser zoom (Edge was checked with emulated zoom) | Owner, user tests D1 (optional) | After slice 11 |
+| RT-006 residual | Edge's own browser zoom (Edge was checked with emulated zoom). Slice 11 merged 2026-11-02 (`1b95e9a`): PH-UI-012 is `fixed` and owes this check | Owner, user tests D1 (optional) | After slice 11 |
 | RT-011, PH-MUS-001, PH-MUS-002, PH-MUS-004 | A physical MIDI keyboard: driver, OS path, Chrome's permission prompt, latency feel and a musician's check of loop labels. Slice 5 merged 2026-11-02 (`ccc68c2`): PH-MUS-010 and PH-MUS-011 are `fixed` and owe sitting 4 items 3 and 6 | Owner, user tests C | After slices 4 and 5 |
-| 17 fixed findings not yet `verified` (7 at consolidation) | Each one's owed proof is listed in the [remediation plan](phase-11-remediation-plan-2026-10-20.md#proof-owed-by-fixed-findings). Four of the earlier 12 were verified on 2026-10-21 and PH-DATA-001 was reopened. Slice 0 then verified PH-ARCH-001, and slices 2, 0 and 18 added PH-OPS-002, PH-SEC-002, PH-SEC-003, PH-OPS-005 and PH-MUS-014 as `fixed` (2026-10-21). Slices 1, 15 and 3 then added PH-DATA-005, PH-DATA-006, PH-OPS-006, PH-DATA-004, PH-DATA-007, PH-OPS-003 and PH-SEC-005 as `fixed` (2026-10-21), and PH-DATA-007 then moved to `verified` after its headless Electron run. On 2026-11-02 slices 6, 4 and 9 (`c7216e2`, `ea89f3e`, `6f327c9`) added PH-PAR-006, PH-MUS-007, PH-MUS-015, PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019, PH-MUS-006 and PH-MUS-008 as `fixed`, then slices 5, 20, 19 and 7 (`ccc68c2`, `c03f220`, `c8f9b1a`, `8fc933f`) added PH-MUS-010, PH-MUS-011, PH-MUS-017, PH-DATA-001 and PH-PAR-007 as `fixed`, then slices 21, 12 and 8 (`cb8926e`, `571571b`, `c1a1fbf`; slice 21 has no finding rows) added PH-MUS-013, PH-UI-018, PH-DATA-009, PH-UI-006 and PH-DATA-010 as `fixed`, so 38 are now `fixed` | Claude Code (acting) and owner sittings | When the named sitting, deploy or GitHub run happens |
+| 17 fixed findings not yet `verified` (7 at consolidation) | Each one's owed proof is listed in the [remediation plan](phase-11-remediation-plan-2026-10-20.md#proof-owed-by-fixed-findings). Four of the earlier 12 were verified on 2026-10-21 and PH-DATA-001 was reopened. Slice 0 then verified PH-ARCH-001, and slices 2, 0 and 18 added PH-OPS-002, PH-SEC-002, PH-SEC-003, PH-OPS-005 and PH-MUS-014 as `fixed` (2026-10-21). Slices 1, 15 and 3 then added PH-DATA-005, PH-DATA-006, PH-OPS-006, PH-DATA-004, PH-DATA-007, PH-OPS-003 and PH-SEC-005 as `fixed` (2026-10-21), and PH-DATA-007 then moved to `verified` after its headless Electron run. On 2026-11-02 slices 6, 4 and 9 (`c7216e2`, `ea89f3e`, `6f327c9`) added PH-PAR-006, PH-MUS-007, PH-MUS-015, PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019, PH-MUS-006 and PH-MUS-008 as `fixed`, then slices 5, 20, 19 and 7 (`ccc68c2`, `c03f220`, `c8f9b1a`, `8fc933f`) added PH-MUS-010, PH-MUS-011, PH-MUS-017, PH-DATA-001 and PH-PAR-007 as `fixed`, then slices 21, 12 and 8 (`cb8926e`, `571571b`, `c1a1fbf`; slice 21 has no finding rows) added PH-MUS-013, PH-UI-018, PH-DATA-009, PH-UI-006 and PH-DATA-010 as `fixed`, then slices 11 and 10 (`1b95e9a`, `e1a3bf0`) added PH-UI-011, PH-UI-012, PH-UI-014, PH-UI-010, PH-UI-013, PH-UI-017 and PH-UI-020 as `fixed`, so 45 are now `fixed` | Claude Code (acting) and owner sittings | When the named sitting, deploy or GitHub run happens |
 | `CLAUDE.md` and `AGENTS.md` | Closed 2026-10-21. Decision 3 keeps them gitignored. Task D1 moved the architecture and runtime content the audit cites into tracked documents (`CONTEXT.md`, ADR 0002) and repointed the citations, so a fresh clone has what the audit relies on. Merged to `main` in `64a8160` after a documentation review. The facts in `CONTEXT.md` change with the slices that change them | Claude Code (acting), task D1 | When a slice changes a cited runtime fact (the slice updates `CONTEXT.md`) |
 
 ## Remediation Roadmap
@@ -360,8 +363,8 @@ added slice 18 to wave 1 on 2026-10-21 (decision 5). Slices 19 and 20, added on
 | 7 | PH-PAR-007 | The web app loads without answering the MIDI prompt. Merged 2026-11-02 (`8fc933f`), `fixed` |
 | 8 | PH-UI-006, PH-DATA-010 | Song deletion asks first; the reset dialog names everything it removes. Merged 2026-11-02 (`c1a1fbf`), `fixed` |
 | 9 | PH-MUS-006, PH-MUS-008 | Metronome and late first-tempo timing are correct. Merged 2026-11-02 (`6f327c9`), `fixed` |
-| 10 | PH-UI-010, PH-UI-013, PH-UI-017, PH-UI-020 | Dialogs own focus and Escape; the load-error panel takes focus |
-| 11 | PH-UI-011, PH-UI-012, PH-UI-014 | Navigation focus is visible and the HUD fits at 150 to 200 % |
+| 10 | PH-UI-010, PH-UI-013, PH-UI-017, PH-UI-020 | Dialogs own focus and Escape; the load-error panel takes focus. Merged 2026-11-02 (`e1a3bf0`), `fixed` |
+| 11 | PH-UI-011, PH-UI-012, PH-UI-014 | Navigation focus is visible and the HUD fits at 150 to 200 %. Merged 2026-11-02 (`1b95e9a`), `fixed` |
 | 12 | PH-MUS-013, PH-UI-018, PH-DATA-009 | Capstones measure timing; drill results and save failures are shown. Merged 2026-11-02 (`571571b`), `fixed` |
 | 13 | PH-PAR-004, PH-UI-009, PH-ARCH-004, PH-SEC-004 | Import outcomes are accurate and cheap |
 | 14 | PH-DATA-008, PH-ARCH-003 | Settings values survive reload with their declared type |

@@ -3,7 +3,7 @@
 - Lane: UI/accessibility
 - Severity: P2
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), pixel comparison and custom-property probe
 - Verifier: independent verifier recommended
@@ -91,7 +91,7 @@ Give the top bar its own scoped styling (define the variables on `.app-topbar` o
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: `remediation/p11-s11-hud`, slice 11, implemented 2026-11-02, awaiting independent review; not merged. Commit: see the branch tip.
+- Fix branch/commit/issue: `remediation/p11-s11-hud`, slice 11, implemented and independently reviewed 2026-11-02; merged to `main` in `1b95e9a`; `fixed`, not `verified`: Electron `keyboard-walk.mjs` (a) (lead), owner approval of the boxed top-bar look, and owner sitting 3 items 2 and 3 in Edge and Firefox are owed.
 - What changed: `src/renderer/styles.css`. `.app-topbar` joins the "Shared Product Deck Surface" variables-only selector list, so the `--product-deck-*` values the `.immersive-hud-nav-btn` rules read now resolve in the top bar (before, they sat on `.app-shell-immersive` and a few screens only, so the focus and active declarations were invalid there and the `translateY(-1px)` was the whole indicator). A new rule `.app-frame .app-topbar .immersive-hud-nav-btn:focus-visible` draws a 3 px accent outline inside the button (`outline-offset: -3px`, `clip-path: none`, so the nav scroller and the corner clip cannot hide it) and outranks the Settings-screen nav overrides. `[aria-current="page"]` now adds a 2 px underline and a 4 px bottom border, so the current page differs from the rest by more than colour. No `App.tsx` change was needed; the immersive HUD nav is untouched. `scripts/audit/browser/keyboard-focus-matrix.mjs` gets `context: { bypassCSP: true }` because its `addStyleTag` call is refused by the app CSP (`style-src 'self'`).
 - Tests: jsdom cannot compute CSS, so there is no unit test; the proof is the runtime drivers below. Before the fix (source identity `c1a1fbf`), `keyboard-focus-matrix.mjs PART=destinations` reported every top-bar stop as `NONE (weak: transform)` (9 stops on Guided Lessons, Theory and Progress, 8 on Keyboard Setup) and `focus-hud-nav-visual.mjs` reported `outline=none 0px ... transform=translateY(-1px) boxShadow=none` on Progress and Theory.
 - Driver result (headless Chromium, web build of the branch, 2026-11-02): `keyboard-focus-matrix.mjs PART=destinations` reports `outline 3px solid` on every `immersive-hud-nav-btn` stop on Guided Lessons, Theory Trainer and Progress, and "none on 0" for each destination. `focus-hud-nav-visual.mjs` reports `outline=solid 3px ... transform=none clipPath=none` on Progress, Settings and Theory. Screenshots of the top bar on Play, Progress and Settings show the ring on the focused button and the underline on the current page. Electron `keyboard-walk.mjs` (a) not run; owed to the lead.

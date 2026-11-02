@@ -3,7 +3,7 @@
 - Lane: UI/accessibility
 - Severity: P3
 - Confidence: high
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), per-stop probe plus a pin-path check
 - Verifier: independent verifier recommended
@@ -79,7 +79,7 @@ Apply `inert` (or `visibility: hidden` after the close transition) to closed pop
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: `remediation/p11-s11-hud`, slice 11, implemented 2026-11-02, awaiting independent review; not merged. Commit: see the branch tip.
+- Fix branch/commit/issue: `remediation/p11-s11-hud`, slice 11, implemented and independently reviewed 2026-11-02; merged to `main` in `1b95e9a`; `fixed`, not `verified`: Electron `keyboard-walk.mjs` (d) (lead) and a screen-reader pass over the pinned and closed popouts are owed.
 - What changed: a new helper `src/renderer/components/inertWhenClosed.ts` returns `{ inert: '' }` while a popout is closed and nothing when it is open (React 18 does not type `inert` and drops a boolean). It is spread onto the four popouts: the instrument popout (`ImmersiveInstrumentControl.tsx`, used on Free Play, Soundboard and Game), the Free Play visual-mode popout (`FreePlayScreen.tsx`), and the Soundboard key-map and mode popouts (`NoveltySoundboardScreen.tsx`). The three screen-level toggles now close only a pinned popout (`isVisualControlsPinned`, `isAnimalMapPinned`, `isModeSelectorPinned`) instead of any open one, so the Enter that follows focus (which opens the popout by hover) pins it on the first press. The instrument toggle already worked this way. Choosing an instrument option by keyboard closes the popout, and `inert` blurs the focused option, so `ImmersiveInstrumentControl` now returns focus to its toggle after the pick (the Soundboard mode option already did through `closeModeSelector(true)`; the Free Play visual-mode options do not close the popout).
 - Behaviour change: a mouse user who hovers a Free Play or Soundboard popout open and then clicks the toggle now pins it open, and a second click closes it (as on the instrument popout), where before the click closed it. The test `opens the visual mode popout on hover, pins it on click and closes it on a second click` was updated for this.
 - Tests (source identity `c1a1fbf`; all three failed before with `expect(element).toHaveAttribute("inert")`, the element having no `inert` attribute, and pass after): `ImmersiveInstrumentControl > removes the closed instrument popout from the tab order with inert and restores it when open`; `FreePlayScreen > keeps the closed visual popout inert and pins it on the first keyboard press`; `NoveltySoundboardScreen > keeps closed soundboard popouts inert and pins them on the first keyboard press`. Review follow-up test `ImmersiveInstrumentControl > returns focus to the toggle when choosing an instrument closes the popout` fails before the focus change (`expect(element).toHaveFocus()`; the option kept focus) and passes after. The `FreePlayScreen` hover test now uses fake timers and advances past the 180 ms close delay after `mouseLeave`, so its pinned assertion exercises the timer. `npx vitest run src/renderer` passes (209 tests) and `npm run verify` passes.

@@ -3,7 +3,7 @@
 - Lane: UI/accessibility
 - Severity: P2
 - Confidence: high (real zoom in Chrome 151 and the packaged desktop app, sitting 1, 2026-10-20)
-- Status: accepted
+- Status: fixed
 - Owner: Claude Code (acting)
 - Challenger: Claude Code (acting), reachability sweeps at five sizes
 - Verifier: user sitting 1 with real zoom
@@ -83,7 +83,7 @@ Add a HUD breakpoint (for example collapse status cards or wrap the nav) for rou
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
-- Fix branch/commit/issue: `remediation/p11-s11-hud`, slice 11, implemented 2026-11-02, awaiting independent review; not merged. Commit: see the branch tip.
+- Fix branch/commit/issue: `remediation/p11-s11-hud`, slice 11, implemented and independently reviewed 2026-11-02; merged to `main` in `1b95e9a`; `fixed`, not `verified`: the owner real-zoom check, sitting 1 item 2 at 150 to 200 % in Edge and Firefox, is owed.
 - What changed: `src/renderer/styles.css`, a new `@media (min-width: 781px) and (max-width: 1100px)` block before the existing 780 px rules. In that band the immersive HUD grid becomes two columns: stats on the left and actions on the right of row 1, and the nav on its own full-width row 2 (`grid-column: 1 / -1`). The nav (about 555 px wide) no longer shares a track with the stats and the actions, which overflowed into it. At 780 px and below the existing flex layout still applies. It covers the Free Play, Soundboard and Game HUDs. Every selector in the block is scoped to a direct child of `.immersive-hud` (`.immersive-hud > .immersive-hud-core`, `> .immersive-hud-actions`, `> .free-play-hud-actions`, `> .animal-soundboard-hud-actions`, `> .immersive-hud-nav`), so the app top bar, whose nav and actions reuse the `immersive-hud-nav` and `immersive-hud-actions` classes, is unaffected. An earlier version of the block was unscoped and grew the fixed top bar from 53 to 93 px in the band, cutting off page headings (review finding).
 - Tests: CSS layout cannot be computed in jsdom, so there is no unit test; the proof is the driver. Before the fix (source identity `c1a1fbf`), `zoom-hud-overlap.mjs` reported Settings covered at 987x640 (Free Play, by Electric Piano) and at 846x549 on Free Play (Electric Piano), Soundboard (an `immersive-menu-btn`) and Game (Electric Piano), plus HUD cards overlapping the nav strip by up to 160 x 30 px. 1180x780, 1184x768 and 740x480 were clear.
 - Driver result (headless Chromium, viewport sizes as CSS pixels, web build of the branch, 2026-11-02): `zoom-hud-overlap.mjs` (rerun after the scoping change) reports no covered nav button and no HUD element overlapping the nav strip at all five sizes on Free Play, Soundboard and Game. The reviewer's `topbar-band.mjs` (Progress, Play Songs and Settings at 1101, 1100, 987, 846 and 781 px) reports the app top bar at 53 px on every screen and size, with no nav button covered and the page top padding (88 px, 66 px on Settings) clear of it. Screenshots at 846 and 987 show the nav on its own row under the stats and actions.
