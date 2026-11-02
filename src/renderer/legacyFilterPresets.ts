@@ -1,9 +1,8 @@
 const FILTER_PRESETS_STORAGE_KEY = 'lumakeys-filter-presets';
 
 // Pre-rename (PianoHero) key, read only to carry saved presets over.
-// Delete this file and its one call in LibraryScreen.tsx no earlier than 2027-01-31 (owner
-// decision 3), in the same release as the Node-side legacy fallback in
-// src/persistence/legacyBrandMigration.ts.
+// legacy-brand: remove in 0.3.0 (ADR 0002): delete this file and its one call in
+// LibraryScreen.tsx, with the Node-side fallback in src/persistence/legacyBrandMigration.ts.
 const LEGACY_FILTER_PRESETS_STORAGE_KEY = 'pianohero-filter-presets';
 
 /**

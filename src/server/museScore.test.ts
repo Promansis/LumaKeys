@@ -13,6 +13,13 @@ describe.skipIf(process.platform !== 'linux')('MuseScore import requirements', (
     await expect(convertMuseScoreToMidi(new Uint8Array([1]))).rejects.toThrow('MSCZ import requires MuseScore 4');
   });
 
+  // ADR 0002 item 4: a blank value is unset, and a value is trimmed.
+  it('treats a whitespace converter path as not configured', async () => {
+    vi.stubEnv('LUMAKEYS_MUSESCORE_PATH', '   ');
+
+    await expect(convertMuseScoreToMidi(new Uint8Array([1]))).rejects.toThrow('MSCZ import requires MuseScore 4');
+  });
+
   it('rejects empty and oversized scores before starting a converter', async () => {
     vi.stubEnv('LUMAKEYS_MUSESCORE_PATH', '/missing/musescore');
 

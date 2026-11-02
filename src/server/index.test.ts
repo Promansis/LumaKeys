@@ -13,7 +13,14 @@ import { afterEach, describe, expect, it } from 'vitest';
 const SERVER_ENTRY = fileURLToPath(new URL('./index.ts', import.meta.url));
 // Absolute, so the server can run from a temporary working directory.
 const TSX_LOADER = pathToFileURL(createRequire(import.meta.url).resolve('tsx')).href;
-const GATE_VARIABLES = ['LUMAKEYS_WEB_ACCESS_TOKEN', 'PIANOHERO_WEB_ACCESS_TOKEN', 'LUMAKEYS_TRUST_UPSTREAM_AUTH'];
+// Cleared unless a test sets them, so the developer's own environment cannot steer a case.
+const GATE_VARIABLES = [
+  'LUMAKEYS_WEB_ACCESS_TOKEN',
+  'PIANOHERO_WEB_ACCESS_TOKEN',
+  'LUMAKEYS_TRUST_UPSTREAM_AUTH',
+  'LUMAKEYS_DATA_DIR',
+  'PIANOHERO_DATA_DIR',
+];
 const GIVE_UP_AFTER_MS = 15000;
 const tempDirs: string[] = [];
 
@@ -76,6 +83,18 @@ async function waitForServer(base: string): Promise<void> {
   throw new Error(`Server at ${base} did not start.`);
 }
 
+/** Resolves once the server output matches, or rejects when it exits first. */
+async function waitForOutput(server: ReturnType<typeof spawnServer>, pattern: RegExp): Promise<string> {
+  const deadline = Date.now() + GIVE_UP_AFTER_MS;
+  while (Date.now() < deadline && server.child.exitCode === null) {
+    if (pattern.test(server.output())) {
+      return server.output();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Server output never matched ${pattern}:\n${server.output()}`);
+}
+
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
@@ -132,6 +151,53 @@ describe('web server startup', () => {
       expect(shell.headers.get('content-security-policy') ?? '').toMatch(/default-src 'self'.*frame-ancestors 'none'/);
       expect(unsigned.status).toBe(401);
       expect(signed.status).toBe(200);
+    } finally {
+      server.child.kill('SIGTERM');
+      await server.exited;
+    }
+  }, GIVE_UP_AFTER_MS * 2);
+});
+
+// ADR 0002 items 3 and 4: where the data lives, whether a legacy name found it, and no
+// unexpected library from a relative LUMAKEYS_DATA_DIR.
+describe('web server data directory', () => {
+  it('refuses a relative LUMAKEYS_DATA_DIR before it creates anything (V3)', async () => {
+    const cwd = await makeTempDir();
+    const server = spawnServer({ LUMAKEYS_DATA_DIR: 'rel/data', LUMAKEYS_TRUST_UPSTREAM_AUTH: '1' }, cwd);
+
+    expect(await server.exited).toBe(1);
+    expect(server.output()).toMatch(/LUMAKEYS_DATA_DIR is "rel\/data".*absolute path/);
+    expect(existsSync(join(cwd, 'rel'))).toBe(false);
+  }, GIVE_UP_AFTER_MS + 5000);
+
+  it('logs the data directory with legacy: no and no warning for current names', async () => {
+    const dataDir = join(await makeTempDir(), 'data');
+    const server = spawnServer({ LUMAKEYS_DATA_DIR: ` ${dataDir} `, LUMAKEYS_TRUST_UPSTREAM_AUTH: '1' });
+
+    try {
+      const output = await waitForOutput(server, /LumaKeys data directory:/);
+      expect(output).toContain(`LumaKeys data directory: ${dataDir} (legacy: no)`);
+      expect(output.match(/LumaKeys data directory:/g)).toHaveLength(1);
+      expect(output).not.toMatch(/PIANOHERO|pianohero/);
+    } finally {
+      server.child.kill('SIGTERM');
+      await server.exited;
+    }
+  }, GIVE_UP_AFTER_MS * 2);
+
+  it('logs legacy: yes and one warning naming the legacy directory and variable, never the token', async () => {
+    const cwd = await makeTempDir();
+    await mkdir(join(cwd, '.pianohero-data'));
+    const server = spawnServer({ PIANOHERO_WEB_ACCESS_TOKEN: 'legacy-secret-value' }, cwd);
+
+    try {
+      const output = await waitForOutput(server, /PIANOHERO_WEB_ACCESS_TOKEN/);
+      expect(output).toContain(`LumaKeys data directory: ${join(cwd, '.pianohero-data')} (legacy: yes)`);
+      const warnings = output.split('\n').filter((line) => line.includes('PianoHero names'));
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toContain(join(cwd, '.pianohero-data'));
+      expect(warnings[0]).toContain('PIANOHERO_WEB_ACCESS_TOKEN');
+      expect(output).not.toContain('legacy-secret-value');
     } finally {
       server.child.kill('SIGTERM');
       await server.exited;

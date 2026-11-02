@@ -222,6 +222,7 @@ export class AppDatabase {
     this.db.prepare(`UPDATE songs SET tags = '[]' WHERE tags = '' OR tags IS NULL`).run();
     this.db.prepare(`UPDATE songs SET track_assignments = '{}' WHERE track_assignments = '' OR track_assignments IS NULL`).run();
     this.db.prepare(`UPDATE game_results SET mode = 'luma-keys' WHERE mode IN ('normal', '') OR mode IS NULL`).run();
+    // legacy-brand: keep (ADR 0002 item 5). Normalizing stored rows is a data migration.
     this.db.prepare(`UPDATE game_results SET mode = 'luma-keys' WHERE mode = 'piano-hero'`).run();
     this.db
       .prepare(`INSERT OR IGNORE INTO settings (category, key, value) VALUES ('fingering', 'handSize', 'medium')`)

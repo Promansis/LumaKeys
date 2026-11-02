@@ -208,6 +208,27 @@ That folder contains:
 - the SQLite database
 - uploaded MIDI files
 
+On startup the server logs one line naming the folder it uses, for example
+`LumaKeys data directory: /data (legacy: no)`. `LUMAKEYS_DATA_DIR` must be an absolute path;
+the server refuses to start with a relative one.
+
+## Upgrading From PianoHero
+
+LumaKeys was called PianoHero. This release still reads the old names, logs a warning naming
+each one in use, and stops reading them in 0.3.0. Rename them before then:
+
+| Old | New |
+|---|---|
+| Docker host folder `/media/storage/pianohero` | `/media/storage/lumakeys`, the folder `docker-compose.yml` mounts: move the old folder there |
+| `PIANOHERO_DATA_DIR` | `LUMAKEYS_DATA_DIR` |
+| `PIANOHERO_WEB_ACCESS_TOKEN` | `LUMAKEYS_WEB_ACCESS_TOKEN` |
+| `PIANOHERO_SKIP_ELECTRON_REBUILD` | `LUMAKEYS_SKIP_ELECTRON_REBUILD` |
+| `.pianohero-data` in the working directory | `.lumakeys-data` |
+
+The desktop app keeps its library in `<appData>/lumakeys`. A library from an earlier build
+(`luma-keys`, `piano-hero` or `PianoHero` in the same folder) is carried over automatically on
+first start.
+
 ## Important Notes
 
 - This is the web version of LumaKeys, not the full Electron desktop version.

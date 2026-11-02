@@ -11,7 +11,8 @@ const run = promisify(execFile);
 let converting = false;
 
 export async function convertMuseScoreToMidi(bytes: Uint8Array): Promise<Uint8Array> {
-  const converterPath = process.env.LUMAKEYS_MUSESCORE_PATH;
+  // A blank or whitespace path counts as unset, like the other LUMAKEYS_* variables.
+  const converterPath = process.env.LUMAKEYS_MUSESCORE_PATH?.trim();
   if (!converterPath || process.platform !== 'linux') {
     throw new Error('MSCZ import requires MuseScore 4 on the Linux web server. Use the bundled Docker image.');
   }

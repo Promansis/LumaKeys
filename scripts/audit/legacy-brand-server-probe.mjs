@@ -131,6 +131,8 @@ async function runCase(id, description, setup, env, extra) {
   result.after = dbMap(caseRoot);
   result.dirsAfter = dirsUnder(caseRoot);
   if (!srv.up) result.logError = srv.log().split('\n').filter((l) => /Error/.test(l)).slice(0, 2);
+  // Slice 21 (ADR 0002 item 4): the startup line and the legacy-name warning, never a value.
+  result.startupLog = srv.log().split('\n').filter((l) => l.startsWith('LumaKeys data directory:') || l.includes('PianoHero names'));
   console.log('CASE ' + JSON.stringify(result));
 }
 

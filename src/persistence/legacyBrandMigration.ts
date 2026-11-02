@@ -1,7 +1,7 @@
-// Shared Node-side helper to carry a legacy `pianohero` data set into the
-// current `lumakeys` layout. Used by Electron main and the web server before
-// `new AppDatabase(...)`. Old brand names survive only inside this module and
-// its tests.
+// legacy-brand: remove in 0.3.0 (ADR 0002). Shared Node-side helper to carry a
+// legacy `pianohero` data set into the current `lumakeys` layout. Used by
+// Electron main and the web server before `new AppDatabase(...)`. Old brand
+// names survive only inside this module and its tests.
 
 import Database from 'better-sqlite3';
 import {
@@ -48,6 +48,23 @@ export interface LegacyBrandMigrationResult {
   backupDir?: string;
   /** The user chose to quit instead of choosing a library. */
   quit?: boolean;
+}
+
+/** The one startup line both hosts print: where the data is, and whether a legacy name or layout supplied it. */
+export function dataLocationLine(dataDir: string, legacy: boolean): string {
+  return `LumaKeys data directory: ${dataDir} (legacy: ${legacy ? 'yes' : 'no'})`;
+}
+
+/**
+ * One warning naming the legacy variables or directories in use, or null when there are
+ * none. It names each one and never prints a variable's value.
+ */
+export function legacyNamesWarning(names: string[]): string | null {
+  if (names.length === 0) {
+    return null;
+  }
+  return `Legacy PianoHero names are in use: ${names.join(', ')}. Rename them to the LumaKeys names `
+    + '(README "Upgrading From PianoHero"); LumaKeys 0.3.0 stops reading them (ADR 0002).';
 }
 
 const LEGACY_DB = 'pianohero.db';
@@ -351,8 +368,8 @@ function backupDirFactory(destinationDir: string, now: () => Date): () => string
 }
 
 /**
- * One-release compatibility boundary carrying a legacy `pianohero` profile or
- * database into the current `lumakeys` layout at startup.
+ * Compatibility boundary carrying a legacy `pianohero` profile or database into the
+ * current `lumakeys` layout at startup. legacy-brand: remove in 0.3.0 (ADR 0002).
  *
  * - Finishes a rename an earlier build left half done.
  * - Takes the one source holding `pianohero.db`: the destination itself, or one

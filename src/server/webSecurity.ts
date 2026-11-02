@@ -16,7 +16,8 @@ const ACCESS_TOKEN_HEADER = 'x-lumakeys-access-token';
 const ACCESS_DENIED_MESSAGE = 'Web API access token required. Sign in at /login.';
 
 export type WebAccessPolicy =
-  | { mode: 'token'; token: string }
+  // legacyVariable names the pre-rename variable when it supplied the token, never its value.
+  | { mode: 'token'; token: string; legacyVariable?: 'PIANOHERO_WEB_ACCESS_TOKEN' }
   | { mode: 'trust-upstream' };
 
 function jsonLimitError(c: Context, label: string) {
@@ -107,10 +108,11 @@ function setAccessCookie(c: Context, secret: string): void {
  * deployment that loses its Cloudflare Access policy cannot start with the library open.
  */
 export function resolveWebAccessPolicy(env: Record<string, string | undefined>): WebAccessPolicy {
-  // New variable first, legacy variable as a one-release fallback. A blank value counts as unset.
-  const token = [env.LUMAKEYS_WEB_ACCESS_TOKEN, env.PIANOHERO_WEB_ACCESS_TOKEN]
-    .map((value) => value?.trim())
-    .find(Boolean);
+  // New variable first. A blank value counts as unset.
+  const currentToken = env.LUMAKEYS_WEB_ACCESS_TOKEN?.trim();
+  // legacy-brand: remove in 0.3.0 (ADR 0002). PIANOHERO_WEB_ACCESS_TOKEN is the fallback.
+  const legacyToken = currentToken ? undefined : env.PIANOHERO_WEB_ACCESS_TOKEN?.trim();
+  const token = currentToken || legacyToken;
   if (token === WEB_ACCESS_TOKEN_PLACEHOLDER) {
     throw new Error(
       'LUMAKEYS_WEB_ACCESS_TOKEN is still the placeholder from docker-compose.yml. '
@@ -118,7 +120,9 @@ export function resolveWebAccessPolicy(env: Record<string, string | undefined>):
     );
   }
   if (token) {
-    return { mode: 'token', token };
+    return legacyToken
+      ? { mode: 'token', token, legacyVariable: 'PIANOHERO_WEB_ACCESS_TOKEN' }
+      : { mode: 'token', token };
   }
   if (env.LUMAKEYS_TRUST_UPSTREAM_AUTH?.trim() === '1') {
     return { mode: 'trust-upstream' };
