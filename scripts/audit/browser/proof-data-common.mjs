@@ -114,7 +114,7 @@ export function plantLockedDir(p) {
 // Web server lifecycle. Returns the base URL and controls. Spawned in-process so the sandbox keeps it alive.
 export async function startServer(dataDir, port, extraEnv = {}) {
   fs.mkdirSync(dataDir, { recursive: true });
-  const env = { ...process.env, PORT: String(port), LUMAKEYS_DATA_DIR: dataDir, ...extraEnv };
+  const env = { ...process.env, PORT: String(port), LUMAKEYS_DATA_DIR: dataDir, LUMAKEYS_TRUST_UPSTREAM_AUTH: '1', ...extraEnv };
   const logFile = path.join(path.dirname(dataDir), `server-${path.basename(dataDir)}.log`);
   const log = fs.createWriteStream(logFile, { flags: 'a' });
   const base = `http://127.0.0.1:${port}`;

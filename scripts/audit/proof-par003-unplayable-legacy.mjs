@@ -170,7 +170,7 @@ async function desktopRun(p) {
 
 // ---------------------------------------------------------------- web path
 async function startServer(cwd, dataDir) {
-  const env = { PATH: process.env.PATH, HOME: join(ROOT, 'home'), PORT: String(PORT), LUMAKEYS_DATA_DIR: dataDir };
+  const env = { PATH: process.env.PATH, HOME: join(ROOT, 'home'), PORT: String(PORT), LUMAKEYS_DATA_DIR: dataDir, LUMAKEYS_TRUST_UPSTREAM_AUTH: '1' };
   const child = spawn(process.execPath, [SERVER], { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
   let log = '';
   child.stdout.on('data', (d) => { log += d; });

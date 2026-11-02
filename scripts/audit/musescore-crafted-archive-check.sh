@@ -54,7 +54,7 @@ for f in ('traversal.mscz', 'bomb.mscz', 'long60000.mscz'):
     print(f'{f}: {os.path.getsize(f"{out}/{f}")} bytes')
 EOF
 
-cid="$(docker run -d --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -e PORT=3001 -e LUMAKEYS_DATA_DIR=/data \
+cid="$(docker run -d --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -e PORT=3001 -e LUMAKEYS_DATA_DIR=/data -e LUMAKEYS_TRUST_UPSTREAM_AUTH=1 \
   -v "$work/data:/data" -p "127.0.0.1:$port:3001" "$img" node dist/server/index.cjs)"
 trap 'docker stop "$cid" >/dev/null 2>&1 || true' EXIT
 for _ in $(seq 1 60); do curl -fsS -o /dev/null "http://127.0.0.1:$port/" 2>/dev/null && break; sleep 1; done

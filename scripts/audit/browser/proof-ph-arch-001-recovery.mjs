@@ -40,7 +40,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // ---- server (throwaway data dir) ----
 const srvLog = fs.createWriteStream(path.join(WORK, 'server.log'), { flags: 'a' });
 const srv = spawn('node', [path.join(REPO, 'dist/server/index.cjs')], {
-  env: { ...process.env, PORT: String(PORT), LUMAKEYS_DATA_DIR: DATA },
+  env: { ...process.env, PORT: String(PORT), LUMAKEYS_DATA_DIR: DATA, LUMAKEYS_TRUST_UPSTREAM_AUTH: '1' },
   stdio: ['ignore', 'pipe', 'pipe'], cwd: REPO,
 });
 srv.stdout.pipe(srvLog); srv.stderr.pipe(srvLog);

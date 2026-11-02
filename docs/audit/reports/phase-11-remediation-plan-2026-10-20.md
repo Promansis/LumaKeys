@@ -70,6 +70,7 @@ other than the implementer where one is available.
 | 18 | Fresh-profile audio defaults | PH-MUS-014 | P1 | none; wave 1 after slice 0 (owner decision 5) |
 | 19 | Destructive-operation failures | PH-DATA-001 | P2 | after slice 1 if both edit the desktop startup recovery in `src/main/index.ts` |
 | 20 | Fingering preservation | PH-MUS-017 | P2 | none |
+| 21 | ADR 0002 window items | none (ADR 0002 items 3, 4, 6 and 7) | n/a | none; must ship in a release before `0.3.0` (owner decision 8) |
 
 Order is by user risk: data loss on update first, then the open web surface, then the
 shipped runtime, then practice correctness, then access and polish. P2 slices without a
@@ -84,8 +85,8 @@ starts only when the owner says so.
 | Wave | Slices | Goal | Starts |
 |---|---|---|---|
 | Gate | sitting 0 item 4 | Settle PH-OPS-002. If the deployed `/api/*` is open, slice 2 moves to the front of wave 1. **Tripped 2026-10-20**: the live host answered `/` and `/api/*` with no login (from this host's own address; the owner's phone on mobile data confirmed it the same day, user tests A1) | done |
-| 1: carry-over release (proposed `0.2.0`) | 2, then 0, then 18, then 1 with 15, then 3; task D1 alongside | Close the open web surface, then CI, then audible volumes on a fresh profile, then the desktop and browser carry-over a safe desktop update needs, then a supported Electron. Slice 18 joined under owner decision 5 (2026-10-21) | started 2026-10-21 on the owner's go-ahead; see [Remediation Progress](#remediation-progress-2026-10-21) |
-| 2 | 4, 5, 6, 7, 8, 9, 10, 11, 19, 20, then 12 after 4 | P2 practice correctness, the capstone change from decision 1, and the reopened destructive-operation failures and the fingering loss found by the agent proofs | after slice 0 is merged |
+| 1: carry-over release (proposed `0.2.0`) | 2, then 0, then 18, then 1 with 15, then 3; task D1 alongside | Close the open web surface, then CI, then audible volumes on a fresh profile, then the desktop and browser carry-over a safe desktop update needs, then a supported Electron. Slice 18 joined under owner decision 5 (2026-10-21) | started 2026-10-21 on the owner's go-ahead; see [Remediation Progress](#remediation-progress-2026-10-21). `0.2.0` cut 2026-11-02 at `1180731` (owner decision 13): version bump `6ef1ec1`, branch `release/0.2`. The release gate below still holds before the `v0.2.0` tag |
+| 2 | 4, 5, 6, 7, 8, 9, 10, 11, 19, 20, 21, then 12 after 4 | P2 practice correctness, the capstone change from decision 1, the reopened destructive-operation failures and the fingering loss found by the agent proofs, and the ADR 0002 window items (slice 21, owner decision 14) | started 2026-11-02 on the owner's go-ahead (decision 12); slice 0 was merged |
 | Deferred | 13, 14, 16, 17 | P3 polish | a later owner decision |
 
 The dependencies in the execution order still hold: slice 3 merges after slice 1, and
@@ -602,7 +603,7 @@ refactors.
 ## Slice 4: Practice Input Integrity
 
 - Accepted finding IDs: PH-MUS-005, PH-MUS-012, PH-MUS-016, PH-UI-019 (the last two added
-  2026-10-20, awaiting the owner)
+  2026-10-20; accepted in the ledger)
 - Priority/order: 4, P2
 - Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: music-correctness reviewer
@@ -708,8 +709,8 @@ other durable state changes.
 
 ## Slice 6: Audio Output
 
-- Accepted finding IDs: PH-PAR-006, PH-MUS-007, PH-MUS-015 (added 2026-10-20, awaiting
-  the owner)
+- Accepted finding IDs: PH-PAR-006, PH-MUS-007, PH-MUS-015 (added 2026-10-20; accepted
+  in the ledger)
 - Priority/order: 6, P2
 - Implementation owner: Claude Code (acting), owner decision 4
 - Verifier: audio reviewer
@@ -1372,7 +1373,7 @@ No stored data changes. Users who already moved a slider keep their saved value.
 
 - Accepted finding IDs: PH-DATA-001 (reopened 2026-10-21 at P2)
 - Priority/order: 19, P2; wave 2
-- Implementation owner: Claude Code (acting), if the owner accepts the slice
+- Implementation owner: Claude Code (acting), owner decision 12 (wave 2 go-ahead, 2026-11-02)
 - Verifier: persistence reviewer
 - Proposed branch: `remediation/p11-s19-destructive-failures`
 
@@ -1424,7 +1425,7 @@ No stored data is rewritten. The reset leftover stays recoverable. Rollback: cod
 
 - Accepted finding IDs: PH-MUS-017 (added 2026-10-21)
 - Priority/order: 20, P2; wave 2
-- Implementation owner: Claude Code (acting), if the owner accepts the slice
+- Implementation owner: Claude Code (acting), owner decision 12 (wave 2 go-ahead, 2026-11-02)
 - Verifier: music-correctness reviewer
 - Proposed branch: `remediation/p11-s20-fingering-preserve`
 
@@ -1460,6 +1461,73 @@ fingerings.
 ### Validation
 
 - Narrow: `npx vitest run src/renderer/components`
+- Required: `npm run verify`
+
+## Slice 21: ADR 0002 Window Items
+
+- Accepted finding IDs: none. [ADR 0002](../../adr/0002-legacy-pianohero-compatibility-window.md)
+  items 3, 4, 6 and 7 (owner decisions 8 and 14, 2026-11-02)
+- Priority/order: 21; wave 2. They gate only the removal release (`0.3.0`): each must
+  ship in a release before it, and the item 3 warning must be in the current release
+  for a full release cycle first
+- Implementation owner: Claude Code (acting), owner decision 14
+- Verifier: runtime reviewer
+- Proposed branch: `remediation/p11-s21-legacy-window`
+
+### User-Visible Outcome
+
+An operator sees at startup where the data lives and whether a legacy name found it, and
+is warned while any `PIANOHERO_*` variable or a `.pianohero-data` directory is in use. A
+blank or relative `LUMAKEYS_DATA_DIR` no longer starts an unexpected library: blank is
+unset, and a relative path stops startup with a message that names it. `README.md` tells
+a pre-rename install what to change.
+
+### Boundaries Touched
+
+- Web host: `resolveDataDir` in `src/server/index.ts` (the startup line, the warning,
+  trimming, blank as unset, the absolute-path check) and `resolveWebAccessPolicy` in
+  `src/server/webSecurity.ts` (already trims; gets the marker and the warning).
+- Desktop host: the startup line in `src/main/index.ts` after the legacy profile lookup
+  in `src/persistence/legacyBrandMigration.ts`, naming the profile directory and whether
+  a legacy profile was carried over.
+- Tooling: `scripts/ensure-native-module.cjs` (`LUMAKEYS_SKIP_ELECTRON_REBUILD` trimmed,
+  the `PIANOHERO_*` warning). `src/server/museScore.ts` (`LUMAKEYS_MUSESCORE_PATH`
+  trimmed, blank is unset).
+- Markers: every shim gets `legacy-brand: remove in 0.3.0 (ADR 0002)` in place of its
+  "one release" or "ponytail" comment: the two above, `src/server/bridgeRouter.ts`
+  (the `piano-hero` mode alias), `legacyBrandMigration.ts`, `src/main/index.ts`,
+  `src/renderer/webBridge.ts` and `src/renderer/legacyFilterPresets.ts`. The
+  `game_results.mode` normalization is a data migration that stays (ADR item 5), so it is
+  marked `legacy-brand: keep (ADR 0002 item 5)` instead.
+- Docs: the upgrade note in `README.md` (item 7).
+
+### Scope
+
+Excluded: removing any shim, the tombstone check (item 5, the removal release's own
+work), and the "ponytail" comments that are not legacy-brand shims
+(`instrumentSamplePackStore.ts`, `museScore.ts` line 10). `PORT` is not a `LUMAKEYS_*`
+variable and keeps its handling.
+
+### Failure And Data Safety Plan
+
+No stored data changes and no shim is removed. The only new refusal is a relative or
+otherwise non-absolute `LUMAKEYS_DATA_DIR`, which today resolves against the working
+directory and can open an empty library; the message names the value and the fix.
+Docker sets `/data`, which is absolute. Rollback: code revert.
+
+### Test-First Proof
+
+| Proof | Fails before fix | Expected after fix | Runtime/fixture |
+|---|---|---|---|
+| Targeted regression | `resolveDataDir` with `LUMAKEYS_DATA_DIR` set to `''`, `'   '`, `'rel/data'` and `' /abs'` (legacy probe cases V1, V2, V3 and V5) | blank and whitespace are unset; `' /abs'` is trimmed; `'rel/data'` throws a message naming it | unit |
+| Targeted regression | no startup line; no warning with `PIANOHERO_DATA_DIR` or a cwd `.pianohero-data` | one line naming the resolved directory and `legacy: yes/no`; one warning naming the legacy variable or directory | unit, both hosts |
+| Web runtime | `scripts/audit/legacy-brand-server-probe.mjs` cases V1 to V8 and S1 to S9 | V3 exits 1 with the message; the others keep their data result and log the line | built server |
+| Electron runtime | `scripts/audit/electron-userdata-probe.mjs` | the startup line names `<appData>/lumakeys` and whether a legacy profile was used | headless Electron |
+| Marker inventory | `grep -rn "legacy-brand:"` finds nothing | it lists every shim above and nothing else | repository |
+
+### Validation
+
+- Narrow: `npx vitest run src/server src/persistence src/main`
 - Required: `npm run verify`
 
 ## Proof Owed By Fixed Findings

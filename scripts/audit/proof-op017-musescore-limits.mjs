@@ -63,7 +63,7 @@ const midi = new Midi(); midi.addTrack().addNote({ midi: 60, time: 0, duration: 
 const goodMid = Buffer.from(midi.toArray());
 const zipBytes = readFileSync(zip);
 
-const baseEnv = { PATH: process.env.PATH, HOME: dirs.home, TMPDIR: dirs.tmp, PORT: String(PORT), LUMAKEYS_DATA_DIR: dirs.data };
+const baseEnv = { PATH: process.env.PATH, HOME: dirs.home, TMPDIR: dirs.tmp, PORT: String(PORT), LUMAKEYS_DATA_DIR: dirs.data, LUMAKEYS_TRUST_UPSTREAM_AUTH: '1' };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const tmpLeft = () => readdirSync(dirs.tmp).filter((n) => n.startsWith('lumakeys-mscz-'));
 /** PIDs (not this script) whose command line contains the marker. */

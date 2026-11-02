@@ -100,8 +100,8 @@ The owner settled items 1 and 2 on 2026-10-20 and confirmed items 3 to 7 on
 2026-11-02. Items 3, 4, 6 and 7 gate the removal release only (owner decision 8,
 2026-11-02): the carry-over release may ship without them, but each must ship in a
 release before the removal release, and item 3's warning must have been in the
-current release for at least one full release cycle before removal. The Phase 11
-remediation plan does not schedule them yet. Item 5 (the tombstone check) is the
+current release for at least one full release cycle before removal. Phase 11
+remediation slice 21 schedules them in wave 2 (owner decision 14, 2026-11-02). Item 5 (the tombstone check) is the
 removal release's own work.
 
 ## Consequences

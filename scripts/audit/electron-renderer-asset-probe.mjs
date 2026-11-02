@@ -171,7 +171,7 @@ async function arch001(html) {
 }
 
 app.whenReady().then(async () => {
-  srv = spawn('node', [process.env.PROBE_SERVER], { env: { ...process.env, PORT: process.env.PROBE_PORT, LUMAKEYS_DATA_DIR: process.env.PROBE_DATA }, stdio: 'ignore' });
+  srv = spawn('node', [process.env.PROBE_SERVER], { env: { ...process.env, PORT: process.env.PROBE_PORT, LUMAKEYS_DATA_DIR: process.env.PROBE_DATA, LUMAKEYS_TRUST_UPSTREAM_AUTH: '1' }, stdio: 'ignore' });
   let up = false;
   for (let i = 0; i < 100 && !up; i++) {
     try { await rpc('getAllSongs', []); up = true; } catch { await new Promise((r) => setTimeout(r, 150)); }

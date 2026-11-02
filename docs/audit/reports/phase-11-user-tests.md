@@ -103,7 +103,7 @@ rebuild.
   `84fa94067d7122fbc52adbbe9d0f89c2decb95da1e94cfac0ce79274b2d3aec5`, the Electron 44.9.2
   executable itself, so it is the same in every build; the app code is in
   `resources/app.asar`).
-- AppImage: `/tmp/claude-1000/p11-owner-build-2/dist/LumaKeys-0.1.0.AppImage` (211,222,883
+- AppImage: `~/LumaKeys-builds/p11-owner-build-2/LumaKeys-0.1.0.AppImage`, copied out of `/tmp` on 2026-11-02 (211,222,883
   bytes, SHA-256 `42b7a5f23dc3e390f1b86454ad74c7b4caf9410e7c8afc013509f2ebdd616a30`).
 - The agent could not open its window: the single-instance lock aborts it inside the agent
   sandbox (G2). Run as Node, the packaged binary reports Electron 44.9.2 and opens and
@@ -232,7 +232,7 @@ person's eyes and ears continues as B1 to B6.
 (`git archive`, `npm ci` on Node 22.23.3). As you allowed (decision 11), only the
 electron-builder step ran outside the sandbox; no workaround was needed.
 
-- Path on this machine: `/tmp/claude-1000/p11-win2/src/dist/LumaKeys-0.1.0-portable.exe`.
+- Path on this machine: `~/LumaKeys-builds/p11-win2/LumaKeys-0.1.0-portable.exe` (copied out of `/tmp` on 2026-11-02; same SHA-256). Built from `93ac583`, so it reports `0.1.0`; the code matches `0.2.0`.
   It is gone after a reboot, so copy it somewhere permanent first. If it is gone, ask the
   agent to rebuild it.
 - Size 179,720,909 bytes; SHA-256
@@ -300,10 +300,13 @@ device, "Audit Keys 61". The real keyboard continues as C1 to C5.
 | 5 | Slice 18 (PH-MUS-014, fresh-profile volume): which wave | Decided 2026-10-21: wave 1, after slice 0. Merged to `main` in `db86adc` the same day; B1 is the speaker check of the fix |
 | 6 | PH-MUS-018 (lead-in beats read as 0 on a fresh profile, P3): accept it, and in which slice | Decided 2026-10-21: accepted; fix it now as a wave 1 follow-up ("fix"). Done: merged in `8a0a764`, then `verified` by the agent in the desktop and web builds. See [PH-MUS-018](findings/PH-MUS-018.md) |
 | 7 | PH-UI-021 (desktop file dialogs open in Downloads and forget the last folder since Electron 43, P3): accept it, remember the folders in memory or persist them, and in which slice | Decided 2026-10-21: accepted; each dialog remembers the last folder until the app closes (in memory), as a follow-up to slice 3. Done: merged in `d5507a6`; the agent's headless proof passed; B15 and sitting 2 item 4 remain. See [PH-UI-021](findings/PH-UI-021.md) |
-| 8 | ADR 0002 items 3, 4, 6 and 7 (a startup line naming the data location, uniform blank-environment handling, the `legacy-brand:` markers, the README upgrade note): must the carry-over release (proposed `0.2.0`) ship them, or do they gate only the removal release (`0.3.0`)? | Decided 2026-11-02: they gate the removal release only. `0.2.0` may ship without them; each must ship in a release before `0.3.0`, and the startup warning (item 3) must be in the current release for a full release cycle before removal. Not yet scheduled in the plan. See [ADR 0002](../../adr/0002-legacy-pianohero-compatibility-window.md) |
+| 8 | ADR 0002 items 3, 4, 6 and 7 (a startup line naming the data location, uniform blank-environment handling, the `legacy-brand:` markers, the README upgrade note): must the carry-over release (proposed `0.2.0`) ship them, or do they gate only the removal release (`0.3.0`)? | Decided 2026-11-02: they gate the removal release only. `0.2.0` may ship without them; each must ship in a release before `0.3.0`, and the startup warning (item 3) must be in the current release for a full release cycle before removal. Scheduled as slice 21 (decision 14). See [ADR 0002](../../adr/0002-legacy-pianohero-compatibility-window.md) |
 | 9 | ADR 0002 as a whole: confirm it | Decided 2026-11-02: confirmed as written, items 3 to 7 included. The ADR stays `accepted` |
 | 10 | Pushing `main`: five unpushed commits recorded a personal author address, so GitHub's email-privacy push protection rejects the push (GH007) | Decided 2026-10-21: keep the protection on and never publish the personal address. The five commits now use the GitHub noreply address, as does this repository's git config; all 78 unpushed commits got new hashes ([lookup table](commit-hash-rewrite-2026-10-21.md)) |
 | 11 | A small follow-up to slices 2 and 3: the `Secure` cookie behind the tunnel and the `hono` bump (plan leads (j) and (k)), plus a minimum Node version, the no-op `Dockerfile` line and the dead `npm run rebuild` (leads (b), (f) and (a)); then a new Windows build, cross-built by the agent outside the sandbox | Decided 2026-10-21: do all of it; a redeploy follows the web part. Done: merged in `93ac583` ([PH-SEC-006](findings/PH-SEC-006.md) `fixed`); the Windows build is in sitting 2. Your redeploy and A2 remain |
+| 12 | Start wave 2 (plan slices 4 to 11, 19, 20, then 12 after 4) | Decided 2026-11-02: go. Each slice runs in its own worktree with a separate reviewer, as in wave 1 |
+| 13 | Cut `0.2.0`, the ADR 0002 carry-over release | Decided 2026-11-02: cut at `1180731`. Version bump `6ef1ec1` on `main`, local branch `release/0.2`. The `v0.2.0` tag waits for the release gate (slices 1 and 15 verified in both runtimes: sittings 1 and 2) |
+| 14 | Schedule ADR 0002 items 3, 4, 6 and 7 | Decided 2026-11-02: add them as plan slice 21 in wave 2 |
 
 ## Moved To The Agent (headless Electron)
 

@@ -89,7 +89,7 @@ function dirsUnder(base) {
 }
 
 async function startServer(cwd, extraEnv) {
-  const env = { PATH: process.env.PATH, HOME: join(ROOT, 'home'), PORT: String(PORT), ...extraEnv };
+  const env = { PATH: process.env.PATH, HOME: join(ROOT, 'home'), PORT: String(PORT), LUMAKEYS_TRUST_UPSTREAM_AUTH: '1', ...extraEnv };
   const child = spawn(process.execPath, [SERVER], { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
   let log = '';
   child.stdout.on('data', (d) => { log += d; });
