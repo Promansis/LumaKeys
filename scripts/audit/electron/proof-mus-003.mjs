@@ -176,7 +176,7 @@ await withElectron(profile, async (h) => {
   await assignment(page, 'Accompaniment', 'Left Hand');
   const t1rows = rowsOf(h.userData);
   console.log('T1 rows after Accompaniment back to Left Hand', JSON.stringify(summ(t1rows)), 'assignments', await assignState(page));
-  WANT[MEL(1)] = t0.r.finger === undefined ? undefined : pickDifferent(FIRST[MEL(1)]);
+  WANT[MEL(1)] = pickDifferent(FIRST[MEL(1)]);
   check('T1: assignment change keeps the saved fingering in the store', t0rows.length === 1 && summ(t1rows) === summ(t0rows), `${summ(t0rows)} -> ${summ(t1rows)}`);
   await resume(page); await overlay(page); await editOn(page); await resume(page);
   const t1show = await clickNote(page, 'full', MEL(1));
