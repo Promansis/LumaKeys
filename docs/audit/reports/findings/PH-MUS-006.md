@@ -123,7 +123,7 @@ the only clock input (no second tempo factor). Have the effect call it. The coun
 - Fix branch/commit/issue: `remediation/p11-s09-timing`, slice 9, implemented 2026-11-02, awaiting
   independent review; not merged.
 - What changed: a new pure helper `getBeatAtSongTime` (`src/lib/game/beatClock.ts`) maps song
-  time to a quarter-note beat index and a downbeat flag, from the song's tempo map and
+  time to a pulse index (the click unit of each bar's time signature) and a downbeat flag, from the song's tempo map and
   `measureBoundaries`. Song time is its only clock input, so the practice tempo is not applied a
   second time. Pulses count from the start of each measure, so the accent falls on the barline in
   any meter and the spacing follows tempo changes. Pulse rule (from each bar's time signature, 4/4
