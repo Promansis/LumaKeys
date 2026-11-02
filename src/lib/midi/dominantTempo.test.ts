@@ -34,6 +34,12 @@ describe('getDominantTempo', () => {
     expect(getDominantTempo(map([0, 120, 0], [7680, 90, 8]), 0, 10)).toBe(120);
   });
 
+  it('reports the slowest step of an even accelerando, since it lasts the most seconds', () => {
+    // 60, 80, 100, 120 BPM for 4 beats each: 4 s, 3 s, 2.4 s, 2 s. Weighting by seconds, not
+    // beats, favours the slow step (documented residual risk in PH-MUS-019).
+    expect(getDominantTempo(map([0, 60, 0], [1920, 80, 4], [3840, 100, 7], [5760, 120, 9.4]), 0, 11.4)).toBe(60);
+  });
+
   it('ignores a placeholder that ends before the first note', () => {
     expect(getDominantTempo(map([0, 120, 0], [1920, 90, 2]), 2, 12)).toBe(90);
   });

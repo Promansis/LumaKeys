@@ -40,7 +40,8 @@ measure-boundary loop).
   plays.
 - The count-in clicks at the song's pulse (a quarter note at the starting tempo, the dotted
   unit in 6/8, a half note in 2/2), divided by the practice tempo.
-- The lane holds eight beats at the tempo in force at the current time.
+- The lane holds eight beats at the song's stored tempo, now the dominant tempo, so it fits most
+  of the song; it does not rescale at a tempo change (rescaling moved every visible note at once).
 - A malformed tempo does not poison the song; an unsupported time division is refused, not
   imported with a NaN duration.
 
@@ -84,8 +85,8 @@ to the last one, and carried float residue. The count-in and the lane length wer
 against that single number (or a constant): the count-in step is a literal 1000 ms and the
 lane length reads `song.bpm`, so neither follows the tempo map or the meter that the
 metronome (PH-MUS-006) already follows. Owning boundaries: `parseMidiFile` for the stored
-number and the malformed inputs, `GameScreen.runCountdown` for the count-in, and
-`GameSession.buildVisibleNotes` for the lane.
+number and the malformed inputs, `GameScreen.runCountdown` for the count-in; the lane
+(`GameSession.buildVisibleNotes`) follows the stored number.
 
 ## Recommended Remediation Boundary
 
@@ -93,7 +94,7 @@ Compute the stored BPM from the tempo map as the duration-weighted dominant temp
 notes' span (a helper with its own tests); collapse same-tick tempos before the tempo map is
 built; round the stored BPM to 2 decimals; drop zero or non-finite tempos and reject SMPTE
 division in the parser; take the count-in step from the beat clock's pulse at the starting
-tempo; take the lane's tempo from the tempo map at the current song time. Leave the Library
+tempo; leave the lane on the stored (now dominant) tempo. Leave the Library
 label (quarter-note BPM) and stored rows alone.
 
 ## Required Regression Proof
@@ -115,41 +116,46 @@ label (quarter-note BPM) and stored rows alone.
 
 ## Resolution
 
-- Accepted/rejected rationale: implemented 2026-11-02, awaiting independent review; not merged.
-- Fix branch/commit/issue: `remediation/p11-s22-bpm` (base `30165ff`; product code equals `cc40b63`); commits `b600ad0` (dominant tempo), `ded52ba` (same-tick tempos), `ac5ef11` (count-in), `b29a1a2` (lane lead time), `be9ab9b` (rounding, malformed tempo, SMPTE), plus the docs commit.
+- Accepted/rejected rationale: implemented and independently reviewed 2026-11-02 (PASS WITH NOTES); the review notes are addressed on the branch (see Review follow-up); not merged.
+- Fix branch/commit/issue: `remediation/p11-s22-bpm` (base `30165ff`; product code equals `cc40b63`); commits `b600ad0` (dominant tempo), `ded52ba` (same-tick tempos), `ac5ef11` (count-in), `be9ab9b` (rounding, malformed tempo, SMPTE), plus the docs commit and the review follow-up commits. `b29a1a2` (lane lead time from the tempo map) was reverted after review.
 - What changed:
   - `src/lib/midi/dominantTempo.ts` (new): `getDominantTempo(tempoMap, spanStartSec, spanEndSec)` weights each tempo by seconds in force within the notes' span, merges entries equal to 2 decimals, breaks ties toward the earlier tempo. `parseMidiFile` stores it, rounded to 2 decimals. The `tempoMap` keeps the raw values.
-  - `parseMidiFile`: `collapseSameTickTempos` keeps the last tempo per tick (file order); `dropMalformedTempos` removes zero or non-finite tempos (the 120 default then applies); an SMPTE division throws `SMPTE time division is not supported`, which `importSongFromBuffer`, `replaceSongFile` and `recomputeAllSongDifficulties` already report as an import error.
-  - `src/lib/game/beatClock.ts`: exported `getBpmAtSongTime` and `getPulseDurationSec`. `GameScreen.runCountdown` clicks 3-2-1 and the lead-in at that pulse divided by the practice tempo. `GameSession.buildVisibleNotes` reads `getBpmAtSongTime(song, currentTime)`.
+  - `parseMidiFile`: `collapseSameTickTempos` keeps the last tempo per tick (file order); `dropMalformedTempos` removes zero or non-finite tempos (the 120 default then applies); an SMPTE division or a division of 0 ticks per quarter note throws `Unsupported MIDI time division: the file uses SMPTE frame timing or 0 ticks per quarter note.`, which `importSongFromBuffer`, `reattachSongFromBuffer` and `recomputeAllSongDifficulties` already report as an import error.
+  - `src/lib/game/beatClock.ts`: exported `getBpmAtSongTime` and `getPulseDurationSec`. `GameScreen.runCountdown` clicks 3-2-1 and the lead-in at that pulse divided by the practice tempo. `GameSession.buildVisibleNotes` is unchanged (it reads `song.bpm`).
   - Two PH-MUS-008 test expectations changed: `late-first-tempo` and `3-4-to-4-4-tempo` now report 60 (the dominant tempo) instead of 120.
 - Tests (source identity `cc40b63` for "failed before"):
   - `midiFileParser.test.ts`, `song tempo (PH-MUS-019)`: `reports the dominant tempo of a slow intro and a longer fast body, not the first tempo` (failed: `expected 40 to be 160`), `reports the longer slow body of a fast intro` (`expected 160 to be 60`), `does not let the inserted 120 BPM placeholder win over a later first tempo that lasts` (`expected 120 to be 90`).
   - `importMetadata.test.ts`: `stores the dominant tempo of a slow intro and a longer fast body, not the first tempo` (`expected 40 to be 160`); `stores a 190 BPM file as exactly 190, not 190.0002850004275` (`expected 190.0002850004275 to be 190`).
-  - `midiFileParser.test.ts`, `several tempo events at the same tick (PH-MUS-019)`: three tests failed on `tempoMap` length 2 versus 1 and `[0,1920,1920]` versus `[0,1920]`.
+  - `midiFileParser.test.ts`, `several tempo events at the same tick (PH-MUS-019)`: three tests failed. The first two failed on `bpm` (`expected 120 to be 90`, `expected 90.00009000009 to be 120`), the third on the tempo map ticks (`[0,1920,1920]` versus `[0,1920]`).
   - `GameScreen.test.tsx`, `count-in clicks (PH-MUS-019)`: 190 BPM (`expected 684.2 to be <= 1`), start tempo 40 versus later 160 (`expected 1000 to be close to 1500`), 6/8 pulse (`expected 1000 to be close to 750`). The 0.5x and 2/2 cases pass before and after.
-  - `GameSession.test.ts`, `falling-note lead time follows the tempo in force (PH-MUS-019)`: three tests failed (visible notes `[3 notes]` versus `['tempo-note-0']`, `[]` versus 3 notes, `['tempo-note-0']` versus 4 notes).
   - `midiFileParser.test.ts`, `stored tempo precision (PH-MUS-019)`: 89.9999550000225 and 190.0002850004275 failed (`expected ... to be 90 / 190`); `reads a 0 microsecond tempo as the 120 BPM default with finite times` failed (`expected Infinity to be 120`); `rejects an SMPTE time division instead of returning a NaN duration` hung the old parser (killed after 40 s); `importSong.test.ts` `rejects an SMPTE time-division file and leaves no row or final file` covers the import path.
-  - New `dominantTempo.test.ts` (11) and `beatClock.test.ts` `getBpmAtSongTime and getPulseDurationSec` are new files or blocks, so they did not exist before.
+  - New `dominantTempo.test.ts` (12, one added at the review follow-up) and `beatClock.test.ts` `getBpmAtSongTime and getPulseDurationSec` are new files or blocks, so they did not exist before.
 - `song.bpm` consumer audit:
   - `importMetadata.calculateDifficulty` (tempo score): the dominant tempo is more representative; fine.
   - `computeSongMetadata` to `songs.bpm`, `importSong.ts`, `database.ts`, bridge: pass-through storage; fine.
   - Library (`LibraryScreen.tsx` `Math.round(song.bpm)`): shows the dominant quarter-note BPM; fine.
   - No Library BPM sort or filter, no use in recommendations or `ResultsScreen`.
-  - `GameSession.buildVisibleNotes`: changed to the tempo in force.
+  - `GameSession.buildVisibleNotes`: reads `song.bpm`, now the dominant tempo; unchanged.
   - `GameScreen` count-in: replaced with the pulse.
   - `GameScreen.tsx` SongRow copies: informational only.
   - `audioEngine.ts` `Transport.bpm`: scheduling is in seconds; no timing effect.
   - `songUtils.ts` fallbacks: only when there are no `measureBoundaries` (constant-tempo drills); fine.
   - `beatClock.ts` fallback, drills, `LessonScreen`, free play, scale practice: use their own tempo specs.
-- Driver result: not run. The parser, beat clock, lane and count-in are covered by unit tests; no Electron or web driver was needed.
+- Driver result: not run. The parser, beat clock and count-in are covered by unit tests; no Electron or web driver was needed.
 - Stored data: songs imported before the fix keep their stored BPM until they are re-imported or `recomputeAllSongDifficulties` runs (it re-parses every song and updates `bpm`, `difficulty`, `durationSec`, `noteCount`). No migration or backfill was added.
 - Proof owed: agent-runnable, none beyond review; human-only, owner listens to the count-in on a fast song and a 6/8 song.
 - Residual risk:
   - Existing songs keep their stored BPM until re-imported or recomputed.
   - The Library label stays quarter-note BPM, so 6/8 and 2/2 show a number that differs from the felt pulse.
-  - The lane scale jumps instantly at a tempo change.
-  - Dominant-tempo weighting is by song-seconds, so slower tempos get slightly more weight per beat.
-  - A Library backup that contains an SMPTE MIDI now fails validation on restore.
+  - The lane keeps one length per song, so in a section far from the dominant tempo it shows more or fewer than eight beats.
+  - Dominant-tempo weighting is by song-seconds, so slower tempos get more weight per beat. An even accelerando (60, 80, 100, 120 BPM for 4 beats each) reports 60, its slowest step, because that step lasts the most seconds (`dominantTempo.test.ts`, `reports the slowest step of an even accelerando`).
+  - A Library backup that contains an SMPTE MIDI now fails restore as a whole; the error names the song.
   - A setup tempo placed at tick 1 (not the same tick) is not collapsed.
   - The Library shows one number, with no range such as "40-160".
 - Revisit trigger: reviewer verification; owner ear check of the count-in; a decision on recomputing stored BPM or labelling compound meters.
+- Review follow-up, 2026-11-02 (lead), after the independent Opus review (PASS WITH NOTES):
+  - Lane: the lane rescaled in one frame at a tempo change, and visible notes jumped or vanished. `b29a1a2` was reverted; the lane reads `song.bpm` again, which is now the dominant tempo. Its three `GameSession.test.ts` tests were removed with it.
+  - Count-in race: pausing and pressing Play again inside one beat reset the shared cancel flag, and the old run resumed after its sleep, so two count-ins clicked and the game started twice. Each run now takes a number (`countdownRunRef`) and stops when a newer run starts. `GameScreen.test.tsx` `runs one count-in when Play is pressed, cancelled and pressed again inside one beat` failed before (15 interleaved clicks, `play` called 3 times) and passes (clicks at 0, 200, 400, 1900, 3400, 4900, 6400 ms; `play` once).
+  - Time-division wording: ppq 0 was reported as SMPTE; the error now names both cases. `midiFileParser.test.ts` `rejects a division of 0 ticks per quarter note without calling it SMPTE only` failed before (old wording) and passes.
+  - Restore naming: `importLibraryBackup` now wraps the parse of each backed-up MIDI and names the song by title and id (`describeBackupSong`, from slice 13): `MIDI backup file for "<title>" (id <id>) cannot be read: <reason>. Nothing was restored, and your library is unchanged.` `libraryBackup.test.ts` `names the song whose backed-up MIDI the parser refuses, and restores nothing (PH-MUS-019)` failed before (bare parser message) and passes; no row and no MIDI directory are left.
+  - Docs: `replaceSongFile` corrected to `reattachSongFromBuffer`; the same-tick failure modes corrected; the accelerando example added (with a test that pins it); PH-MUS-008 updated for the dominant tempo.
