@@ -1026,9 +1026,14 @@ export function GameScreen({
     const loopStart = loopStartForSong(currentSessionSong, sessionConfig);
     const targetSec = loopStart + progress * snapshot.durationSec;
     const shouldResume = game.isTransportPlaying() && shouldAutoplayMode(sessionConfig.mode);
+    if (shouldResume) {
+      // Hold the clock while the audio restarts, as resume and restart do, so the notes
+      // don't run ahead of the audio by the time playSong takes to resolve.
+      game.pause(now);
+    }
     game.seek(targetSec, now);
     if (shouldResume) {
-      await playSessionAudio(currentSessionSong, targetSec, sessionConfig);
+      await playSessionAudio(currentSessionSong, game.getCurrentTimeSec(now), sessionConfig);
       game.play(performance.now());
     } else {
       audioEngine.seek();

@@ -20,8 +20,12 @@ vi.mock('./PianoKeyboard', () => ({
 }));
 
 vi.mock('./ControlBar', () => ({
-  ControlBar: ({ tempoLocked }: { tempoLocked?: boolean }) => (
-    <div data-testid="control-bar" data-tempo-locked={String(Boolean(tempoLocked))} />
+  ControlBar: ({ tempoLocked, onSeek }: { tempoLocked?: boolean; onSeek?: (progress: number) => void }) => (
+    <div data-testid="control-bar" data-tempo-locked={String(Boolean(tempoLocked))}>
+      <button type="button" onClick={() => onSeek?.(0.5)}>
+        Seek to half
+      </button>
+    </div>
   ),
 }));
 
@@ -476,6 +480,47 @@ describe('GameScreen', () => {
       expect(audioReadyAt).toBeGreaterThan(0);
       expect(play).toHaveBeenCalledTimes(1);
       expect(play.mock.calls[0][0]).toBeGreaterThanOrEqual(audioReadyAt);
+    });
+
+    it('holds the game clock at the seek target while the audio restarts', async () => {
+      const audioEngine = buildAudioEngineStub();
+      (audioEngine.playSong as ReturnType<typeof vi.fn>).mockImplementation(
+        () => new Promise<void>((resolve) => {
+          setTimeout(resolve, 150);
+        }),
+      );
+      const play = vi.spyOn(GameSession.prototype, 'play');
+      onTestFinished(() => play.mockRestore());
+      renderGameScreen({ audioEngine });
+      await waitFor(() => expect(window.appBridge?.getSetting).toHaveBeenCalled());
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      // Fake performance.now too, so the 150 ms audio restart is 150 ms on the game clock.
+      vi.useFakeTimers({
+        toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'],
+      });
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true }));
+        await vi.advanceTimersByTimeAsync(3000 + 200);
+      });
+      const game = play.mock.contexts[0] as GameSession;
+      expect(game.isTransportPlaying()).toBe(true);
+
+      act(() => {
+        fireEvent.click(screen.getByText('Menu'));
+      });
+      expect(game.isTransportPlaying()).toBe(true);
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Seek to half' }));
+        await vi.advanceTimersByTimeAsync(150);
+      });
+
+      // The song is 2 s long, so the 0.5 seek targets 1.0 s. Had the clock kept running
+      // through the 150 ms audio restart, it would read 1.15 s here.
+      expect(play).toHaveBeenCalledTimes(2);
+      expect(game.getCurrentTimeSec(performance.now())).toBeCloseTo(1, 3);
     });
   });
 
