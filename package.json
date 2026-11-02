@@ -1,6 +1,6 @@
 {
   "name": "lumakeys",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "LumaKeys desktop piano learning app built with Electron, React, and TypeScript.",
   "main": "out/main/index.js",
