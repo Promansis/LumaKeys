@@ -423,11 +423,17 @@ describe('library backups', () => {
       }],
     };
 
-    await expect(importLibraryBackup(targetDb, backup, new FileSystemMidiStorageAdapter(targetMidiDir))).rejects.toThrow(
-      /content does not match/,
-    );
+    // PH-DATA-003: the message names the song by title (and id) and says what to do next.
+    const failure = importLibraryBackup(targetDb, backup, new FileSystemMidiStorageAdapter(targetMidiDir));
+    await expect(failure).rejects.toThrow(/content does not match "Tampered" \(id [0-9a-f]{64}\)/);
+    await expect(failure).rejects.toThrow(/nothing was restored.*library is unchanged.*try the import again/i);
     expect(targetDb.getAllSongs()).toEqual([]);
     expect(existsSync(targetMidiDir)).toBe(false);
+
+    // A blank title falls back to the id alone.
+    backup.songs[0].title = '  ';
+    const untitled = importLibraryBackup(targetDb, backup, new FileSystemMidiStorageAdapter(targetMidiDir));
+    await expect(untitled).rejects.toThrow(new RegExp(`content does not match ${id}\\.`));
     targetDb.close();
   });
 
