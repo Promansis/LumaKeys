@@ -54,3 +54,28 @@ legacy `"off"` to `0`.
 ## Resolution
 
 - Accepted/rejected rationale: accepted at the Phase 11 consolidation on 2026-10-20; the reproduction, root cause and remediation boundary survived the challenge.
+
+- Fix branch/commit/issue: `remediation/p11-s14-settings`, slice 14, commit `7f4a28c`;
+  implemented 2026-11-02, awaiting independent review; not merged.
+- What changed: `persistSetupState` in `src/renderer/App.tsx` writes
+  `String(postureReminderMinutes ?? 0)`, so reminders off store `'0'`. `SettingsScreen.tsx`
+  maps a stored `"off"` for `practice.postureReminderMinutes` to `'0'` when it loads. The
+  startup parse (`parsePositiveIntegerSetting`) and `GameScreen` already treat `"off"` as off,
+  so they are unchanged. The setup guide's own `Off` option is UI-only and still works.
+  The legacy row is not rewritten until the user next saves that setting.
+- Tests (source identity `cc40b63` for the failures): `App.test.tsx` `stores 0, not "off",
+  when first-run setup is skipped with reminders off` failed before (no call with
+  `'practice','postureReminderMinutes','0'`; the first call was the theme) and passes after.
+  `SettingsScreen.test.tsx` `shows 0 for a posture reminder stored as the legacy "off"` failed
+  before (`toHaveValue(0)`, the box was empty) and passes after. The `App.test.tsx`
+  `SetupGuideScreen` mock now renders a Skip button.
+- Driver result: Electron `workflows.mjs` not run, needs an Electron binary that starts. In the
+  sandbox `electron --version` aborts on the SUID chrome-sandbox check and the Playwright
+  launch times out at 30 s with no output; no workaround was attempted. Expected after the
+  fix: the `PH-ARCH-003 Electron settings with "off"` line prints `[]` after Skip for now.
+  The web driver does not cover this step.
+- Proof owed (agent-runnable outside the sandbox): `workflows.mjs` on the worktree build,
+  confirming the settings row holds `'0'`. Human-only: none.
+- Residual risk: other integer settings are still not validated in the bridge (excluded by the
+  slice).
+- Revisit trigger: reviewer verification and the Electron driver run.
