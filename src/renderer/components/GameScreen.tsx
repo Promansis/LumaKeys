@@ -410,6 +410,9 @@ export function GameScreen({
   // Each count-in run takes a number; a run stops as soon as a newer one starts. Without it, pausing
   // and pressing Play again inside one beat reset the cancel flag and left two count-ins running.
   const countdownRunRef = useRef(0);
+  // The count-in run that last asked for the song audio. A run stopped while the audio loads silences
+  // it, unless a newer run has asked for the audio since.
+  const countdownAudioRunRef = useRef(0);
   const metronomeLastBeatRef = useRef<number | null>(null);
   const rhythmClapTimeoutsRef = useRef<number[]>([]);
 
@@ -612,6 +615,8 @@ export function GameScreen({
 
   useEffect(() => {
     return () => {
+      // Leaving the screen ends a count-in still running.
+      countdownRunRef.current += 1;
       rhythmClapTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
       rhythmClapTimeoutsRef.current = [];
     };
@@ -808,6 +813,9 @@ export function GameScreen({
       nextGame.seek(options.currentTimeSec, now);
     }
 
+    // A new session (another song, setup or track change) ends any count-in still running for the old one.
+    countdownRunRef.current += 1;
+    setCountdownValue(null);
     gameSessionRef.current = nextGame;
     setSourceSong(nextSourceSong);
     setSessionSong(filteredSong);
@@ -929,9 +937,15 @@ export function GameScreen({
     const game = gameSessionRef.current;
     if (!game) return;
     if (shouldAutoplayMode(countdownConfig.mode)) {
+      countdownAudioRunRef.current = run;
       await playSessionAudio(song, startSec, countdownConfig);
     }
-    if (countdownRunRef.current !== run) return;
+    // Pause, Restart or a newer run while the audio loaded: this run must not start the game, and the
+    // sound it started stops unless a newer run has asked for the audio since.
+    if (cancelled()) {
+      if (countdownAudioRunRef.current === run) audioEngine.pauseSong();
+      return;
+    }
     // Read the clock after the audio start resolves: a stale reading would leave the game ahead of
     // the sound, and the first notes would already be late when the player hears them.
     game.play(performance.now());

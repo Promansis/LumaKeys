@@ -214,7 +214,8 @@ export async function importLibraryBackup(
         } catch (error) {
           // The bytes match their id but the parser refuses them (for example an SMPTE time
           // division, PH-MUS-019). Name the song so the user knows which one blocks the restore.
-          const reason = (error instanceof Error ? error.message : String(error)).trim().replace(/\.$/, '');
+          const reason = (error instanceof Error ? error.message : String(error)).trim().replace(/\.$/, '')
+            || 'the MIDI parser refused it';
           throw new Error(
             `MIDI backup file for ${describeBackupSong(backup.songs, midiFile.songId)} cannot be read: ${reason}. `
             + 'Nothing was restored, and your library is unchanged.',
