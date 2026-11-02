@@ -1,7 +1,6 @@
 import type { InputEvent } from '../input/types';
 import type { FingeringRow } from '../../shared/dbTypes';
 import { computeFingering } from './fingeringAlgorithm';
-import { getBpmAtSongTime } from './beatClock';
 import { ScoringEngine } from './ScoringEngine';
 import { buildScheduledNotes, getLoopRangeSeconds, getMeasureIndexForTime } from './songUtils';
 import { getKeyPosition } from '../piano/pianoLayout';
@@ -438,8 +437,7 @@ export class GameSession {
     const beatsVisible = this.sessionConfig.beatsVisible;
     const leadTimeSec = Math.max(
       1.5,
-      (beatsVisible * 60) /
-        (getBpmAtSongTime(this.song, currentTimeSec) * Math.max(this.sessionConfig.tempoMultiplier, 0.01)),
+      (beatsVisible * 60) / (this.song.bpm * Math.max(this.sessionConfig.tempoMultiplier, 0.01)),
     );
     const minHeightRatio = 0.03;
 
