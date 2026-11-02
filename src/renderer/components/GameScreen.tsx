@@ -407,6 +407,9 @@ export function GameScreen({
   onGameFinishedRef.current = onGameFinished;
   onLessonDrillFinishedRef.current = onLessonDrillFinished;
   const countdownCancelRef = useRef(false);
+  // Each count-in run takes a number; a run stops as soon as a newer one starts. Without it, pausing
+  // and pressing Play again inside one beat reset the cancel flag and left two count-ins running.
+  const countdownRunRef = useRef(0);
   const metronomeLastBeatRef = useRef<number | null>(null);
   const rhythmClapTimeoutsRef = useRef<number[]>([]);
 
@@ -897,14 +900,17 @@ export function GameScreen({
   };
 
   const runCountdown = async (song: ParsedSong, startSec: number, countdownConfig: SessionConfig) => {
+    const run = countdownRunRef.current + 1;
+    countdownRunRef.current = run;
     countdownCancelRef.current = false;
+    const cancelled = () => countdownCancelRef.current || countdownRunRef.current !== run;
     await ensureAudioReady();
 
     // One beat length for every click: the metronome's pulse at the tempo in force where the run
     // starts, at the practice tempo. The 3-2-1 and the lead-in beats then share it with the metronome.
     const beatMs = (getPulseDurationSec(song, startSec) / Math.max(countdownConfig.tempoMultiplier, 0.01)) * 1000;
     for (const count of [3, 2, 1] as const) {
-      if (countdownCancelRef.current) { setCountdownValue(null); return; }
+      if (cancelled()) { if (countdownRunRef.current === run) setCountdownValue(null); return; }
       setCountdownValue(count);
       void audioEngine.playMetronomeClick(count === 1);
       await new Promise<void>((resolve) => setTimeout(resolve, beatMs));
@@ -912,12 +918,12 @@ export function GameScreen({
 
     const leadInBeats = countdownConfig.leadInBeats ?? 0;
     for (let beat = 0; beat < leadInBeats; beat += 1) {
-      if (countdownCancelRef.current) { setCountdownValue(null); return; }
+      if (cancelled()) { if (countdownRunRef.current === run) setCountdownValue(null); return; }
       void audioEngine.playMetronomeClick(false);
       await new Promise<void>((resolve) => setTimeout(resolve, beatMs));
     }
 
-    if (countdownCancelRef.current) { setCountdownValue(null); return; }
+    if (cancelled()) { if (countdownRunRef.current === run) setCountdownValue(null); return; }
     setCountdownValue(null);
 
     const game = gameSessionRef.current;
@@ -925,6 +931,7 @@ export function GameScreen({
     if (shouldAutoplayMode(countdownConfig.mode)) {
       await playSessionAudio(song, startSec, countdownConfig);
     }
+    if (countdownRunRef.current !== run) return;
     // Read the clock after the audio start resolves: a stale reading would leave the game ahead of
     // the sound, and the first notes would already be late when the player hears them.
     game.play(performance.now());

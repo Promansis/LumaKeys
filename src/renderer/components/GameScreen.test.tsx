@@ -655,6 +655,47 @@ describe('GameScreen', () => {
         times.forEach((time, index) => expect(time).toBeCloseTo(index * 750, 0));
       });
 
+      it('runs one count-in when Play is pressed, cancelled and pressed again inside one beat', async () => {
+        const audioEngine = buildAudioEngineStub();
+        const clickTimes: number[] = [];
+        (audioEngine.playMetronomeClick as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+          clickTimes.push(performance.now());
+        });
+        const play = vi.spyOn(GameSession.prototype, 'play');
+        onTestFinished(() => play.mockRestore());
+        renderGameScreen({
+          audioEngine,
+          song: songAt([{ ticks: 0, bpm: 40, timeSec: 0 }]),
+          sessionConfig: buildSessionConfig({ leadInBeats: 2 }),
+        });
+        await waitFor(() => expect(window.appBridge?.getSetting).toHaveBeenCalled());
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        });
+
+        vi.useFakeTimers({
+          toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'],
+        });
+        const space = () => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true }));
+        await act(async () => {
+          space(); // start: first click at 0, one beat is 1500 ms at 40 BPM
+          await vi.advanceTimersByTimeAsync(200);
+          space(); // cancel inside the first beat
+          await vi.advanceTimersByTimeAsync(200);
+          space(); // start again, still inside the first run's first beat
+          // Five beats of the last run (7500 ms) and a little more: the game starts. A cancelled
+          // run that survived would click again 1500 ms after its own first click.
+          await vi.advanceTimersByTimeAsync(7_500 + 300);
+        });
+
+        // Each press clicks once at once (0, 200 and 400 ms); the first two are cancelled, and
+        // only the last run goes on, one beat (1500 ms) apart, and starts the game once.
+        expect(clickTimes.map((t) => Math.round(t - clickTimes[0]))).toEqual([
+          0, 200, 400, 1_900, 3_400, 4_900, 6_400,
+        ]);
+        expect(play).toHaveBeenCalledTimes(1);
+      });
+
       it('counts in on the half-note pulse of 2/2 (120 quarter BPM clicks every 1000 ms)', async () => {
         const times = await countInClickTimes(
           songAt([{ ticks: 0, bpm: 120, timeSec: 0 }], 960),
