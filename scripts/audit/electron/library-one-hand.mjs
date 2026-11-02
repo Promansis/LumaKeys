@@ -30,11 +30,13 @@ await withElectron(profile, async (h) => {
   const toLibrary = async () => {
     await settle(2000);
     if (/FIRST PRACTICE SETUP/i.test(await text(page()))) await page().getByRole('button', { name: 'Skip for now' }).click();
-    if (await page().locator('main.game-screen, .canvas-shell').count()) {
-      if (!(await page().locator('#game-overlay-title').count())) { await page().keyboard.press('Escape'); await settle(300); }
-      const back = page().getByRole('button', { name: /^(Main Menu|Back to Main Menu)$/ }).filter({ visible: true });
-      if (await back.count()) { await back.first().click(); await settle(800); }
+    // In a running game, Escape opens the overlay that holds Main Menu.
+    if ((await page().locator('main.game-screen, .canvas-shell').count()) && !(await page().locator('#game-overlay-title').count())) {
+      await page().keyboard.press('Escape'); await settle(300);
     }
+    // Any other screen (Results, Library) shows its own Main Menu button.
+    const back = page().getByRole('button', { name: /^(Main Menu|Back to Main Menu)$/ }).filter({ visible: true });
+    if (await back.count()) { await back.first().click(); await settle(800); }
     // The main menu now has a top nav ("Play" opens the library); older builds had a "Play Songs" tile.
     await page().getByRole('button', { name: 'Play' }).first().click();
     await page().waitForSelector('h1:has-text("Your Library")'); await settle(800);

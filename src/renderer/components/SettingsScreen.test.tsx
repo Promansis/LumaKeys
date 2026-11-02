@@ -83,6 +83,7 @@ describe('SettingsScreen', () => {
     'achievements',
     'fingerings',
     'trouble spots',
+    'lesson progress',
     'saved settings',
     'installed instrument packs',
   ];

@@ -421,7 +421,7 @@ function SettingsRangeField({
 }
 
 const DELETE_USER_DATA_REMOVED_LIST =
-  'songs, playlists, folders, results, practice history and streak, achievements, fingerings, trouble spots';
+  'songs, playlists, folders, results, practice history and streak, achievements, fingerings, trouble spots, lesson progress';
 
 function getDeleteUserDataScope(): string {
   return IS_WEB
