@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { AudioEngine } from '../../lib/audio/audioEngine';
 import { ComputerKeyboardInputService } from '../../lib/input/computerKeyboardInputService';
 import { GameSession } from '../../lib/game/GameSession';
@@ -339,6 +339,7 @@ describe('GameScreen', () => {
     const midiInputService = new MockMidiInputService();
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const ingest = vi.spyOn(GameSession.prototype, 'ingestInputEvent');
+    onTestFinished(() => ingest.mockRestore());
     renderGameScreen({ midiInputService });
 
     await waitFor(() => expect(window.appBridge?.getSetting).toHaveBeenCalled());
