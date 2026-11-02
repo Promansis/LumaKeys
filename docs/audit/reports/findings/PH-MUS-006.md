@@ -125,8 +125,15 @@ the only clock input (no second tempo factor). Have the effect call it. The coun
 - What changed: a new pure helper `getBeatAtSongTime` (`src/lib/game/beatClock.ts`) maps song
   time to a quarter-note beat index and a downbeat flag, from the song's tempo map and
   `measureBoundaries`. Song time is its only clock input, so the practice tempo is not applied a
-  second time. Beats count from the start of each measure, so the accent falls on the barline in
-  any meter and the spacing follows tempo changes. A song without a tempo map or barlines (the
+  second time. Pulses count from the start of each measure, so the accent falls on the barline in
+  any meter and the spacing follows tempo changes. Pulse rule (from each bar's time signature, 4/4
+  when the file has none; stored as `pulseTicks` on each measure boundary by the parser): compound
+  meters (denominator 8 or 16, numerator a multiple of 3 above 3: 6/8, 9/8, 12/8) click on the
+  dotted unit, three denominator notes, so 6/8 gives two clicks a bar; every other meter clicks on
+  the denominator note (4/4 quarters, 3/8 and 7/8 eighths, 2/2 halves). Clicks are evenly spaced and
+  a full bar holds a whole number of pulses. A pure `advanceMetronome` decision function (used by the
+  effect) sounds the accented click when a loop wrap or seek lands on a downbeat. Past the last
+  barline the helper stays on the last pulse, so a song ending off the beat gets no extra click. A song without a tempo map or barlines (the
   learning drills) falls back to 4/4 at `song.bpm`. `ParsedSong` gained an optional `tempoMap`
   (see PH-MUS-008). The metronome effect in `GameScreen.tsx` calls the helper and no longer
   depends on the tempo multiplier. The count-in and lead-in code is unchanged. No audible click
@@ -147,8 +154,14 @@ the only clock input (no second tempo factor). Have the effect call it. The coun
   frequency cannot be read from this driver (every click reads 440 Hz at `start()`), so accents
   rest on the unit tests.
 - Proof owed: optional by-ear check in sitting 1 item 7 (human-only). Agent-runnable: none left.
-- Residual risk: the click is on quarter-note beats in every meter (6/8 gets three clicks per bar,
-  not two dotted-quarter pulses); the first beat at song time 0 is still skipped because the first
+- Review round 1 tests (`beatClock.test.ts`), all failed before and pass after: 3/8 (was 0.50,
+  0.75, 1.25, 1.50 s; now eighths every 0.25 s, accent each 0.75 s), 7/8 and 9/8 (a 0.25 s gap before
+  each downbeat; now even), 6/8 (two dotted-quarter clicks, accent on the barline, also through the
+  6/8-to-3/4 change), 2/2 on halves; `does not click again at the last note-off when the last bar
+  is cut to 2.5 beats` (a click at 3.25 s; now none); `sounds the accented downbeat each time a
+  one-bar loop wraps` on the real `GameSession` loop (`advanceMetronome is not a function` before; the
+  wrap accent now sounds at 2, 4 and 6 s). Slice 4's loop-seam tests in `GameSession.test.ts` still pass.
+- Residual risk: the first beat at song time 0 is still skipped because the first
   tick only seeds the counter. `scripts/audit/metronome-replay-probe.ts` still copies the old
   formula and would show the old behaviour; it was not changed.
-- Revisit trigger: reviewer verification; a request for compound-meter (dotted-quarter) clicks.
+- Revisit trigger: reviewer verification; a request for other pulse rules (for example a quarter-note click in 6/8).

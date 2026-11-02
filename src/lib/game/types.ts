@@ -58,6 +58,8 @@ export interface MeasureBoundary {
   endTick: number;
   startSec: number;
   endSec: number;
+  /** Ticks per metronome pulse in this measure (see `getPulseTicks`). Absent means a quarter note. */
+  pulseTicks?: number;
 }
 
 /**

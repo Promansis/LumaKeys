@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Midi } from '@tonejs/midi';
 import { describe, expect, it } from 'vitest';
 import { parseMidiFile } from '../midi/midiFileParser';
-import { getBeatAtSongTime } from './beatClock';
+import { advanceMetronome, getBeatAtSongTime } from './beatClock';
 import { GameSession } from './GameSession';
 import type { ParsedSong, SessionConfig } from './types';
 
@@ -13,6 +14,15 @@ function parseFixture(name: string): ParsedSong {
   const path = join(dirname(fileURLToPath(import.meta.url)), '..', 'midi', 'fixtures', `${name}.mid`);
   const bytes = readFileSync(path);
   return parseMidiFile(new Uint8Array(bytes).buffer, { songId: name, title: name });
+}
+
+// A song in one time signature at 120 BPM whose last note ends at `endTick`.
+function meterSong(timeSignature: [number, number], endTick: number): ParsedSong {
+  const midi = new Midi();
+  midi.header.timeSignatures = [{ ticks: 0, timeSignature }];
+  midi.header.setTempo(120);
+  midi.addTrack().addNote({ midi: 60, ticks: endTick - 240, durationTicks: 240, velocity: 0.8 });
+  return parseMidiFile(midi.toArray().slice().buffer, { songId: 'meter', title: 'meter' });
 }
 
 // A hand-built 4/4 song: 120 BPM, four bars of 2 s.
@@ -102,14 +112,13 @@ describe('getBeatAtSongTime', () => {
   it('accents the first beat of each 6/8 bar and keeps accenting through a change to 3/4', () => {
     const pure68 = clickTimes(parseFixture('pure-6-8'), 4.4);
     expect(pure68.filter((click) => click.accent).map((click) => click.timeSec)).toEqual([1.5, 3]);
-    // Three quarter-note beats per 1.5 s bar.
-    expect(pure68.map((click) => click.timeSec)).toEqual([0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4]);
+    // Compound meter: two dotted-quarter pulses (0.75 s) per 1.5 s bar.
+    expect(pure68.map((click) => click.timeSec)).toEqual([0.75, 1.5, 2.25, 3, 3.75]);
 
     const changed = clickTimes(parseFixture('6-8-then-3-4-reached'), 5.9);
     expect(changed.filter((click) => click.accent).map((click) => click.timeSec)).toEqual([1.5, 3, 4.5]);
-    expect(changed.map((click) => click.timeSec)).toEqual([
-      0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5,
-    ]);
+    // Two dotted-quarter clicks per 6/8 bar, then three quarter-note clicks per 3/4 bar.
+    expect(changed.map((click) => click.timeSec)).toEqual([0.75, 1.5, 2.25, 3, 3.5, 4, 4.5, 5, 5.5]);
   });
 
   it('doubles the beat spacing after a 120 to 60 BPM change and accents the new barline', () => {
@@ -157,5 +166,84 @@ describe('getBeatAtSongTime', () => {
       previous = index;
     }
     expect(getBeatAtSongTime(song, 3.25)).toEqual(getBeatAtSongTime(song, 3.25));
+  });
+
+  describe('pulse unit from the time signature', () => {
+    const gaps = (clicks: Array<{ timeSec: number }>) =>
+      clicks.slice(1).map((click, index) => Math.round((click.timeSec - clicks[index].timeSec) * 1000) / 1000);
+
+    it('clicks 3/8 on eighths, evenly, with the accent on each barline', () => {
+      const clicks = clickTimes(meterSong([3, 8], 2880), 2.9);
+
+      expect(clicks.map((click) => click.timeSec)).toEqual([0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75]);
+      expect(new Set(gaps(clicks))).toEqual(new Set([0.25]));
+      expect(clicks.filter((click) => click.accent).map((click) => click.timeSec)).toEqual([0.75, 1.5, 2.25]);
+    });
+
+    it('clicks 7/8 on eighths with no short gap before the downbeat', () => {
+      const clicks = clickTimes(meterSong([7, 8], 5040), 5.1);
+
+      expect(new Set(gaps(clicks))).toEqual(new Set([0.25]));
+      expect(clicks.filter((click) => click.accent).map((click) => click.timeSec)).toEqual([1.75, 3.5]);
+    });
+
+    it('clicks 9/8 on dotted quarters and 2/2 on halves', () => {
+      const nineEight = clickTimes(meterSong([9, 8], 4320), 4.4);
+      expect(new Set(gaps(nineEight))).toEqual(new Set([0.75]));
+      expect(nineEight.filter((click) => click.accent).map((click) => click.timeSec)).toEqual([2.25]);
+
+      const cutTime = clickTimes(meterSong([2, 2], 7680), 7.7);
+      expect(new Set(gaps(cutTime))).toEqual(new Set([1]));
+      expect(cutTime.filter((click) => click.accent).map((click) => click.timeSec)).toEqual([2, 4, 6]);
+    });
+
+    it('clicks 6/8 twice a bar on the dotted quarter, accent on the barline', () => {
+      const clicks = clickTimes(meterSong([6, 8], 4320), 4.4);
+
+      expect(clicks.map((click) => click.timeSec)).toEqual([0.75, 1.5, 2.25, 3, 3.75]);
+      expect(clicks.filter((click) => click.accent).map((click) => click.timeSec)).toEqual([1.5, 3]);
+    });
+  });
+
+  it('does not click again at the last note-off when the last bar is cut to 2.5 beats', () => {
+    const song = fourFourSong();
+    song.measureBoundaries = [
+      { startTick: 0, endTick: 1920, startSec: 0, endSec: 2 },
+      { startTick: 1920, endTick: 3120, startSec: 2, endSec: 3.25 },
+    ];
+    const clicks = clickTimes(song, 5);
+
+    expect(clicks.map((click) => click.timeSec)).toEqual([0.5, 1, 1.5, 2, 2.5, 3]);
+    expect(getBeatAtSongTime(song, 3.25)).toEqual(getBeatAtSongTime(song, 3));
+    expect(getBeatAtSongTime(song, 5)).toEqual(getBeatAtSongTime(song, 3));
+  });
+});
+
+describe('advanceMetronome on a looping GameSession', () => {
+  it('sounds the accented downbeat each time a one-bar loop wraps', () => {
+    const song = fourFourSong();
+    const session = new GameSession(song, { ...sessionBase, loopRange: { startMeasure: 1, endMeasure: 1 } });
+    session.restart(0);
+    session.play(0);
+
+    const clicks: Array<{ wallSec: number; accent: boolean }> = [];
+    let last: number | null = null;
+    for (let nowMs = 0; nowMs <= 6100; nowMs += 25) {
+      const step = advanceMetronome(last, getBeatAtSongTime(song, session.getCurrentTimeSec(nowMs)));
+      last = step.lastBeatIndex;
+      if (step.click) clicks.push({ wallSec: nowMs / 1000, accent: step.click.accent });
+    }
+
+    // Loop is song time 2 s to 4 s: beats at 0.5 s, then the wrap downbeat at 2 s, 4 s and 6 s.
+    expect(clicks.filter((click) => click.accent).map((click) => click.wallSec)).toEqual([2, 4, 6]);
+    expect(clicks.filter((click) => !click.accent).length).toBe(9);
+  });
+
+  it('seeds silently, clicks forward beats, and stays quiet on a repeat', () => {
+    expect(advanceMetronome(null, { beatIndex: 3, isDownbeat: false })).toEqual({ lastBeatIndex: 3, click: null });
+    expect(advanceMetronome(3, { beatIndex: 3, isDownbeat: false })).toEqual({ lastBeatIndex: 3, click: null });
+    expect(advanceMetronome(3, { beatIndex: 4, isDownbeat: true })).toEqual({ lastBeatIndex: 4, click: { accent: true } });
+    // A seek backwards onto a non-downbeat resets without a click.
+    expect(advanceMetronome(7, { beatIndex: 5, isDownbeat: false })).toEqual({ lastBeatIndex: 5, click: null });
   });
 });

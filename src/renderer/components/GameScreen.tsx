@@ -1,7 +1,7 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { AudioEngine } from '../../lib/audio/audioEngine';
 import { GameSession } from '../../lib/game/GameSession';
-import { getBeatAtSongTime } from '../../lib/game/beatClock';
+import { advanceMetronome, getBeatAtSongTime } from '../../lib/game/beatClock';
 import { ComputerKeyboardInputService } from '../../lib/input/computerKeyboardInputService';
 import { HeldNoteTracker } from '../../lib/input/heldNotes';
 import type { InputEvent, InputMode } from '../../lib/input/types';
@@ -597,21 +597,13 @@ export function GameScreen({
 
       const now = performance.now();
       // Song time already runs at the practice tempo, so the helper takes it as is.
-      const { beatIndex, isDownbeat } = getBeatAtSongTime(sessionSong, game.getCurrentTimeSec(now));
-
-      if (metronomeLastBeatRef.current === null) {
-        metronomeLastBeatRef.current = beatIndex;
-        return;
-      }
-
-      if (beatIndex < metronomeLastBeatRef.current) {
-        metronomeLastBeatRef.current = beatIndex;
-        return;
-      }
-
-      if (beatIndex > metronomeLastBeatRef.current) {
-        metronomeLastBeatRef.current = beatIndex;
-        void audioEngine.playMetronomeClick(isDownbeat);
+      const step = advanceMetronome(
+        metronomeLastBeatRef.current,
+        getBeatAtSongTime(sessionSong, game.getCurrentTimeSec(now)),
+      );
+      metronomeLastBeatRef.current = step.lastBeatIndex;
+      if (step.click) {
+        void audioEngine.playMetronomeClick(step.click.accent);
       }
     }, 25);
 

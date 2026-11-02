@@ -1,4 +1,5 @@
 import * as MidiPackage from '@tonejs/midi';
+import { getPulseTicks } from '../game/beatClock';
 import { defaultAssignmentForNotes, defaultHandForMidi, noteNumberToName } from '../game/songUtils';
 import type { ParsedNote, ParsedSong, ParsedTrack, TempoChange } from '../game/types';
 
@@ -170,7 +171,7 @@ function buildMeasureBoundaries(midi: MidiInstance) {
     signatures.unshift({ ticks: 0, timeSignature: [4, 4] });
   }
 
-  const boundaries: Array<{ startTick: number; endTick: number; startSec: number; endSec: number }> = [];
+  const boundaries: Array<{ startTick: number; endTick: number; startSec: number; endSec: number; pulseTicks: number }> = [];
   let tick = 0;
   let signatureIndex = 0;
   while (tick < endTick) {
@@ -190,6 +191,7 @@ function buildMeasureBoundaries(midi: MidiInstance) {
       endTick: end,
       startSec: midi.header.ticksToSeconds(tick),
       endSec: midi.header.ticksToSeconds(end),
+      pulseTicks: getPulseTicks(midi.header.ppq, numerator, denominator),
     });
     tick = end;
   }
