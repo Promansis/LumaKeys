@@ -275,4 +275,177 @@ describe('GameSession', () => {
     expect(snapshot.upcomingNotes.some((note) => note.finger !== undefined)).toBe(false);
   });
 
+
+  describe('input while the transport is stopped', () => {
+    // Same shape as the audit probe (scripts/audit/paused-input-probe.ts): a note at 0 s
+    // before play, and a note 33 ms past a pause point.
+    const press = (session: GameSession, ms: number, note = 60, sourceId = 'computer-keyboard') => {
+      session.ingestInputEvent({
+        type: 'noteon', note, velocity: 0.8, timestamp: ms, sourceId, source: 'computer-keyboard',
+      });
+    };
+    const release = (session: GameSession, ms: number, note = 60, sourceId = 'computer-keyboard') => {
+      session.ingestInputEvent({
+        type: 'noteoff', note, velocity: 0, timestamp: ms, sourceId, source: 'computer-keyboard',
+      });
+    };
+    const OPENING_SONG: ParsedSong = {
+      ...SONG,
+      notes: [{ ...SONG.notes[0], id: 'open-0', startSec: 0 }, { ...SONG.notes[1], id: 'open-1', startSec: 1 }],
+    };
+
+    it('does not judge a press before the song has started or during the count-in', () => {
+      const session = new GameSession(OPENING_SONG, DEFAULT_SESSION);
+
+      press(session, 1000);
+      press(session, 2000);
+
+      const snapshot = session.getSnapshot(2100);
+      expect(snapshot.score.perfectCount + snapshot.score.goodCount + snapshot.score.okCount).toBe(0);
+      expect(snapshot.score.combo).toBe(0);
+      expect(snapshot.score.totalScore).toBe(0);
+      expect(snapshot.visibleNotes.find((note) => note.id === 'open-0')?.judgement).toBe('pending');
+    });
+
+    it('does not judge a press made while paused next to a note', () => {
+      const session = new GameSession(OPENING_SONG, DEFAULT_SESSION);
+      session.play(0);
+      session.pause(950);
+
+      press(session, 5000);
+
+      const snapshot = session.getSnapshot(5100);
+      expect(snapshot.score.totalScore).toBe(0);
+      expect(snapshot.score.combo).toBe(0);
+      expect(snapshot.visibleNotes.find((note) => note.id === 'open-1')?.judgement).toBe('pending');
+    });
+
+    it('keeps the pressed note active while stopped so the keyboard still lights', () => {
+      const session = new GameSession(OPENING_SONG, DEFAULT_SESSION);
+
+      press(session, 1000);
+      expect(session.getSnapshot(1010).activeInputNotes).toEqual([60]);
+      release(session, 1100);
+      expect(session.getSnapshot(1110).activeInputNotes).toEqual([]);
+    });
+
+    it('still judges the same note on time once the song runs', () => {
+      const session = new GameSession(OPENING_SONG, DEFAULT_SESSION);
+      press(session, 500);
+      release(session, 550);
+      session.play(3000);
+
+      press(session, 3000);
+
+      const snapshot = session.getSnapshot(3000);
+      expect(snapshot.score.perfectCount).toBe(1);
+      expect(snapshot.score.combo).toBe(1);
+    });
+
+    it('still judges a press while playing, and ignores one far from any note', () => {
+      const session = new GameSession(OPENING_SONG, DEFAULT_SESSION);
+      session.play(0);
+
+      press(session, 420);
+      expect(session.getSnapshot(430).score.totalScore).toBe(0);
+
+      press(session, 1000);
+      expect(session.getSnapshot(1000).score.perfectCount).toBe(1);
+    });
+  });
+
+  describe('a press just before the loop seam', () => {
+    // 120 bpm in 4/4 is 2 s a measure, so measure index 1 loops 2 s to 4 s.
+    const LOOP_SONG: ParsedSong = {
+      ...SONG,
+      durationSec: 6,
+      notes: [
+        { ...SONG.notes[0], id: 'loop-0', midi: 60, name: 'C4', startSec: 2 },
+        { ...SONG.notes[0], id: 'loop-1', midi: 62, name: 'D4', startSec: 3 },
+      ],
+    };
+    const LOOP_CONFIG: SessionConfig = { ...DEFAULT_SESSION, loopRange: { startMeasure: 1, endMeasure: 1 } };
+    const noteOn = (session: GameSession, ms: number, note: number) => {
+      session.ingestInputEvent({
+        type: 'noteon', note, velocity: 0.8, timestamp: ms, sourceId: 'midi-1', source: 'midi',
+      });
+    };
+
+    it('counts a press hitWindow - 1 ms early for the loop first note', () => {
+      const session = new GameSession(LOOP_SONG, LOOP_CONFIG);
+      session.play(0);
+
+      noteOn(session, 2000 - 99, 60);
+      const wrapped = session.getSnapshot(2010);
+
+      expect(wrapped.currentTimeSec).toBeLessThan(0.1 + 2);
+      expect(wrapped.score.okCount).toBe(1);
+      expect(wrapped.score.combo).toBe(1);
+      expect(wrapped.visibleNotes.find((note) => note.id === 'loop-0')?.judgement).toBe('ok');
+    });
+
+    it('scores a 15 ms early press as perfect and lets the rest of the pass score', () => {
+      const session = new GameSession(LOOP_SONG, LOOP_CONFIG);
+      session.play(0);
+
+      noteOn(session, 2000 - 15, 60);
+      expect(session.getSnapshot(2000).score.perfectCount).toBe(1);
+      noteOn(session, 3000, 62);
+
+      const snapshot = session.getSnapshot(3000);
+      expect(snapshot.score.perfectCount).toBe(2);
+      expect(snapshot.score.combo).toBe(2);
+    });
+
+    it('does not wait on the first note after the wrap in Learn mode', () => {
+      const session = new GameSession(LOOP_SONG, { ...LOOP_CONFIG, mode: 'learning', waitForInput: true });
+      session.play(0);
+      noteOn(session, 100, 60);
+      noteOn(session, 1100, 62);
+      expect(session.getSnapshot(1100).currentTimeSec).toBe(3);
+
+      noteOn(session, 2100 - 15, 60);
+      session.getSnapshot(2100);
+
+      const after = session.getSnapshot(2500);
+      expect(after.currentTimeSec).toBeGreaterThan(2);
+      expect(after.score.perfectCount).toBe(1);
+    });
+
+    it('still counts a press just after the seam, as before', () => {
+      const session = new GameSession(LOOP_SONG, LOOP_CONFIG);
+      session.play(0);
+
+      noteOn(session, 2020, 60);
+
+      expect(session.getSnapshot(2020).score.perfectCount).toBe(1);
+    });
+
+    it('does not carry an early press across a pause', () => {
+      const session = new GameSession(LOOP_SONG, LOOP_CONFIG);
+      session.play(0);
+      noteOn(session, 2000 - 15, 60);
+      session.pause(1990);
+      session.play(5000);
+
+      const wrapped = session.getSnapshot(5000 + 20);
+      expect(wrapped.score.perfectCount).toBe(0);
+    });
+
+    it('ignores a press near the seam that no loop-start note answers', () => {
+      const session = new GameSession(LOOP_SONG, LOOP_CONFIG);
+      session.play(0);
+
+      noteOn(session, 2000 - 15, 62);
+
+      expect(session.getSnapshot(2010).score.totalScore).toBe(0);
+    });
+
+    it('does not treat a non-loop song end as a seam', () => {
+      const session = new GameSession(SONG, DEFAULT_SESSION);
+      session.play(0);
+      noteOn(session, 2950, 60);
+      expect(session.getSnapshot(2950).score.totalScore).toBe(0);
+    });
+  });
 });

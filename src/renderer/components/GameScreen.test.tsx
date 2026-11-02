@@ -1,7 +1,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { AudioEngine } from '../../lib/audio/audioEngine';
-import type { ComputerKeyboardInputService } from '../../lib/input/computerKeyboardInputService';
+import { ComputerKeyboardInputService } from '../../lib/input/computerKeyboardInputService';
+import { GameSession } from '../../lib/game/GameSession';
 import type { InputEvent, KeyboardInputState } from '../../lib/input/types';
 import type { ParsedSong, SessionConfig } from '../../lib/game/types';
 import type { SongRow } from '../../shared/dbTypes';
@@ -169,7 +170,7 @@ function buildSessionConfig(overrides: Partial<SessionConfig> = {}): SessionConf
 function renderGameScreen(options: {
   audioEngine?: AudioEngine;
   midiInputService?: MockMidiInputService;
-  keyboardInputService?: MockKeyboardInputService;
+  keyboardInputService?: MockKeyboardInputService | ComputerKeyboardInputService;
   isRhythmClapping?: boolean;
   sessionConfig?: SessionConfig;
   librarySong?: boolean;
@@ -275,6 +276,32 @@ describe('GameScreen', () => {
     expect(audioEngine.noteOff).toHaveBeenCalledWith(60);
   });
 
+  it('ingests a computer-keyboard note after Resume returns focus to the Menu button', async () => {
+    const keyboardInputService = new ComputerKeyboardInputService();
+    keyboardInputService.init();
+    const ingest = vi.spyOn(GameSession.prototype, 'ingestInputEvent');
+    try {
+      const { audioEngine } = renderGameScreen({ keyboardInputService });
+      await waitFor(() => expect(window.appBridge?.getSetting).toHaveBeenCalled());
+
+      fireEvent.click(screen.getByText('Menu'));
+      fireEvent.click(screen.getByRole('button', { name: 'Resume' }));
+      await waitFor(() => expect(document.activeElement).toBe(screen.getByText('Menu')));
+
+      await act(async () => {
+        document.activeElement!.dispatchEvent(
+          new KeyboardEvent('keydown', { code: 'KeyZ', bubbles: true, cancelable: true }),
+        );
+      });
+
+      expect(ingest).toHaveBeenCalledWith(expect.objectContaining({ type: 'noteon', note: 48 }));
+      expect(audioEngine.noteOn).toHaveBeenCalledWith(48, expect.any(Number));
+    } finally {
+      ingest.mockRestore();
+      keyboardInputService.dispose();
+    }
+  });
+
   it('uses Space as rhythm clap instead of transport in rhythm drills', async () => {
     const { audioEngine } = renderGameScreen({ isRhythmClapping: true });
 
@@ -311,19 +338,27 @@ describe('GameScreen', () => {
   it('requires confirmation before structural controls restart a judged run', async () => {
     const midiInputService = new MockMidiInputService();
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const ingest = vi.spyOn(GameSession.prototype, 'ingestInputEvent');
+    onTestFinished(() => ingest.mockRestore());
     renderGameScreen({ midiInputService });
 
     await waitFor(() => expect(window.appBridge?.getSetting).toHaveBeenCalled());
-    act(() => {
+    const emitC4 = (timestamp: number) => {
       midiInputService.emit({
         type: 'noteon',
         source: 'midi',
         sourceId: 'midi:1',
-        timestamp: performance.now(),
+        timestamp,
         note: 60,
         velocity: 0.8,
       });
-    });
+    };
+    // Notes pressed while the song is stopped are not judged, so start the transport first.
+    act(() => emitC4(performance.now()));
+    const game = ingest.mock.contexts[0] as GameSession;
+    const startedAt = performance.now();
+    game.play(startedAt);
+    act(() => emitC4(startedAt));
     fireEvent.click(screen.getByText('Menu'));
 
     const learningButton = screen.getByRole('button', { name: 'Learning' });
@@ -331,6 +366,7 @@ describe('GameScreen', () => {
 
     expect(confirm).toHaveBeenCalledOnce();
     expect(learningButton).toHaveClass('secondary-button');
+    ingest.mockRestore();
 
     confirm.mockReturnValue(true);
     fireEvent.click(learningButton);
