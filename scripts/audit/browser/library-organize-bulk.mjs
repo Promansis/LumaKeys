@@ -326,6 +326,30 @@ await withServer(data, async ({ page, base, errors }) => {
   await gotoLibrary();
   await sidebar.locator('.sidebar-row').filter({ hasText: 'Set One' }).getByRole('button', { name: /Set One/ }).click(); await settle(500);
   check('reorder persisted after reload', eq(await rowTitles(), dbAfter), JSON.stringify(await rowTitles()));
+  // PH-UI-008: keyboard reorder with the Move up / Move down buttons
+  {
+    const first = dbAfter[0];
+    const moveBtn = (title, dir) => page.getByRole('button', { name: `Move ${dir}: ${title}`, exact: true });
+    check('first row Move up is disabled and last row Move down is disabled',
+      (await moveBtn(dbAfter[0], 'up').isDisabled()) && (await moveBtn(dbAfter[dbAfter.length - 1], 'down').isDisabled()), '');
+    await moveBtn(first, 'down').focus();
+    await page.keyboard.press('Enter'); await settle(800);
+    const kbAfter = await rowTitles();
+    const kbDb = (await rpc(base, 'getPlaylistSongs', [pl.id])).map((s) => s.title);
+    const focusedName = await page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.textContent);
+    const live = await page.locator('.playlist-view [role=status]').textContent();
+    console.log('keyboard Move down on row 1:', JSON.stringify(dbAfter), '->', JSON.stringify(kbAfter), 'db:', JSON.stringify(kbDb), 'focus:', JSON.stringify(focusedName), 'live:', JSON.stringify(live));
+    check('keyboard Move down swapped rows 1 and 2 and matches the database', eq(kbAfter, [dbAfter[1], dbAfter[0], dbAfter[2]]) && eq(kbAfter, kbDb), '');
+    check('focus stays on the moved row Move down button', focusedName === `Move down: ${first}`, String(focusedName));
+    check('live region announces the new position', (live ?? '').includes(`Moved ${first} to position 2 of 3.`), String(live));
+    await gotoLibrary();
+    await sidebar.locator('.sidebar-row').filter({ hasText: 'Set One' }).getByRole('button', { name: /Set One/ }).click(); await settle(500);
+    check('keyboard reorder persisted after reload', eq(await rowTitles(), kbDb), JSON.stringify(await rowTitles()));
+    await moveBtn(first, 'up').focus();
+    await page.keyboard.press('Space'); await settle(800);
+    check('keyboard Move up restores the previous order (and the database agrees)',
+      eq(await rowTitles(), dbAfter) && eq((await rpc(base, 'getPlaylistSongs', [pl.id])).map((s) => s.title), dbAfter), JSON.stringify(await rowTitles()));
+  }
   // keyboard / button alternative to drag?
   const reorderButtons = await page.locator('.playlist-row button').allTextContents();
   console.log('playlist row buttons (any non-drag reorder control?):', JSON.stringify([...new Set(reorderButtons)]));
