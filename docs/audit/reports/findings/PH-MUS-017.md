@@ -124,8 +124,8 @@ ask first and name the fingerings in the prompt. `src/renderer/components/GameSc
   kept plus five), and R1 (explicit Reset to Auto clears every stored row and the shown
   fingers). Before the fix the same sequence took the row count from 1 to 0. Not run: the
   web-bridge variant (same handler, shared renderer code).
-- Proof owed (agent-runnable): the web-bridge Ignore then Left Hand sequence in headless
-  Chromium. Human-only: none.
+- Proof owed: agent-runnable, none left (the check was of the store, not the finger shown on the note). Human-only: none.
+- Main-build proof, 2026-11-02 (`d393474`): new probe `proof-mus-017-web.mjs` (kept outside the repo), headless Chromium, passed: the seeded fingering row `track-0-note-1:right5` survives Ignore then Left Hand and a reload. Checked in the store only, not the finger shown on the note.
 - Residual risk: with the Editor open, the effect that refreshes `fingeringEditorState`
   (`GameScreen.tsx`, depends on `fingeringEditorState` and sets a new object each run) loops
   in a jsdom test; seen while writing the test, not changed here (left for the lead to triage).

@@ -160,6 +160,7 @@ the only clock input (no second tempo factor). Have the effect call it. The coun
   is cut to 2.5 beats` (a click at 3.25 s; now none); `sounds the accented downbeat each time a
   one-bar loop wraps` on the real `GameSession` loop (`advanceMetronome is not a function` before; the
   wrap accent now sounds at 2, 4 and 6 s). Slice 4's loop-seam tests in `GameSession.test.ts` still pass.
+- Main-build proof, 2026-11-02 (`d393474`): `metronome-and-quiz.mjs` parts A, B, headless Chromium, passed: 100% gaps 0.5 s; 50% gaps about 1 s (`[1,1,1,0.97,1.03,1,1]`, was 2.00 s); count-in at 0.01, 1, 2 s. Accents are not proven (the driver reads every click as 440 Hz).
 - Residual risk: the first beat at song time 0 is still skipped because the first
   tick only seeds the counter. `scripts/audit/metronome-replay-probe.ts` still copies the old
   formula and would show the old behaviour; it was not changed.
