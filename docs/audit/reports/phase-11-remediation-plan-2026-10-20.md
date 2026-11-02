@@ -1648,9 +1648,9 @@ lock needs a Unix socket); they run outside it, if the owner allows that through
 | PH-UI-010 | P2 | The Edge and Firefox pass of the same walk (owner sitting 3 item 3). Slice 10 merged in `e1a3bf0`; Electron `keyboard-walk.mjs` parts (b), (c) and (e) passed on a main build | owner sitting 3 |
 | PH-UI-013 | P3 | The owner keyboard pass in Edge and Firefox (sitting 3 item 3). Slice 10 merged in `e1a3bf0`; Electron `keyboard-walk.mjs` parts (b), (c) and (e) passed on a main build | owner sitting 3 |
 | PH-UI-017 | P3 | The owner pass in Edge and Firefox (sitting 3 item 3). Slice 10 merged in `e1a3bf0`; Electron `keyboard-walk.mjs` parts (b), (c) and (e) passed on a main build | owner sitting 3 |
-| PH-UI-020 | P3 | Electron `keyboard-walk.mjs` parts (b), (c) and (e) (lead), then the owner pass in Edge and Firefox (sitting 3 item 3) and a screen-reader read of the error panel. Slice 10 merged in `e1a3bf0` | lead; owner sitting 3 |
+| PH-UI-020 | P3 | The owner pass in Edge and Firefox (sitting 3 item 3) and a screen-reader read of the error panel. The web recovery driver passed on the main build (83 of 83); the `keyboard-walk.mjs` parts once listed here never applied to this finding. Slice 10 merged in `e1a3bf0` | owner sitting 3 |
 
-Agent-runnable proofs run on a main build at `d393474` on 2026-11-02; results in each finding's Resolution. The `keyboard-walk.mjs` run did not cover PH-UI-020 or PH-UI-012, and the PulseAudio item 6 for PH-PAR-006, PH-MUS-007 and PH-MUS-015 did not run (no PulseAudio server on this host).
+Agent-runnable proofs run on a main build at `d393474` on 2026-11-02; results in each finding's Resolution. The `keyboard-walk.mjs` run did not cover PH-UI-012; PH-UI-020's real driver, the web `proof-ph-arch-001-recovery.mjs`, passed 83 of 83 on the same build, and the PulseAudio item 6 for PH-PAR-006, PH-MUS-007 and PH-MUS-015 did not run (no PulseAudio server on this host).
 
 ## Phase 11 Remediation Start Gate
 
