@@ -87,7 +87,7 @@ starts only when the owner says so.
 | Gate | sitting 0 item 4 | Settle PH-OPS-002. If the deployed `/api/*` is open, slice 2 moves to the front of wave 1. **Tripped 2026-10-20**: the live host answered `/` and `/api/*` with no login (from this host's own address; the owner's phone on mobile data confirmed it the same day, user tests A1) | done |
 | 1: carry-over release (proposed `0.2.0`) | 2, then 0, then 18, then 1 with 15, then 3; task D1 alongside | Close the open web surface, then CI, then audible volumes on a fresh profile, then the desktop and browser carry-over a safe desktop update needs, then a supported Electron. Slice 18 joined under owner decision 5 (2026-10-21) | started 2026-10-21 on the owner's go-ahead; see [Remediation Progress](#remediation-progress-2026-10-21). `0.2.0` cut 2026-11-02 at `1180731` (owner decision 13): version bump `6ef1ec1`, branch `release/0.2`. The release gate below still holds before the `v0.2.0` tag |
 | 2 | 4, 5, 6, 7, 8, 9, 10, 11, 19, 20, 21, then 12 after 4 | P2 practice correctness, the capstone change from decision 1, the reopened destructive-operation failures and the fingering loss found by the agent proofs, and the ADR 0002 window items (slice 21, owner decision 14) | started 2026-11-02 on the owner's go-ahead (decision 12); slice 0 was merged |
-| Deferred | 13, 14, 16, 17 | P3 polish | a later owner decision |
+| 3 (was Deferred) | 13, 14, 16, 17 | P3 polish, plus a triage of the open `npm audit` advisories | started 2026-11-02 on the owner's go-ahead (decision 15); branches from `cc40b63` |
 
 The dependencies in the execution order still hold: slice 3 merges after slice 1, and
 slice 7 after slice 5 when both edit the MIDI startup in `App.tsx`.

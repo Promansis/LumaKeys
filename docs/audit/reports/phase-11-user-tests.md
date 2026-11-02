@@ -307,6 +307,7 @@ device, "Audit Keys 61". The real keyboard continues as C1 to C5.
 | 12 | Start wave 2 (plan slices 4 to 11, 19, 20, then 12 after 4) | Decided 2026-11-02: go. Each slice runs in its own worktree with a separate reviewer, as in wave 1 |
 | 13 | Cut `0.2.0`, the ADR 0002 carry-over release | Decided 2026-11-02: cut at `1180731`. Version bump `6ef1ec1` on `main`, local branch `release/0.2`. The `v0.2.0` tag waits for the release gate (slices 1 and 15 verified in both runtimes: sittings 1 and 2) |
 | 14 | Schedule ADR 0002 items 3, 4, 6 and 7 | Decided 2026-11-02: add them as plan slice 21 in wave 2 |
+| 15 | Start the deferred wave (plan slices 13, 14, 16 and 17, all P3) and triage the open `npm audit` advisories | Decided 2026-11-02: go, as wave 3. Each slice runs in its own worktree with a separate reviewer, as in waves 1 and 2 |
 
 ## Moved To The Agent (headless Electron)
 
