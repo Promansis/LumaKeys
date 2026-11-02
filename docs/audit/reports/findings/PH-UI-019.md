@@ -93,7 +93,10 @@ Alt is held, before `preventDefault`. Shift stays a velocity modifier.
 ## Resolution
 
 - Accepted/rejected rationale: accepted 2026-10-20.
-- Fix branch/commit/issue: none.
-- Verification evidence: none yet.
-- Residual risk: as stated in User Impact.
-- Revisit trigger: the next remediation wave selection.
+- Fix branch/commit/issue: `remediation/p11-s04-input`, slice 4, commit `418d6fe`; implemented 2026-11-02, awaiting independent review; not merged.
+- What changed: `handleKeyDown` in `src/lib/input/computerKeyboardInputService.ts` returns before `preventDefault` when Ctrl, Meta or Alt is held, so browser and window shortcuts such as Ctrl+0 reach the browser. `handleKeyUp` does not prevent default for a chord either, but still releases a note taken on key-down, so pressing Ctrl before lifting a note key cannot leave the note stuck. Shift remains a velocity modifier.
+- Tests (`computerKeyboardInputService.test.ts`, `modifier shortcuts`): `lets ctrlKey + Digit0`, `metaKey + Digit0`, `altKey + KeyZ` and `ctrlKey + KeyR reach the browser` all failed before the fix (`expected ['noteon', 'noteoff'] to deeply equal []`) and `releases a held note when Ctrl is pressed before its key comes up` failed before it (`expected true to be false`, key-up default-prevented); all pass after. `still plays Digit0 louder with Shift and without a shortcut modifier` passes before and after. Source identity for the reproduction: `1180731`.
+- Driver result: not run, needs real Chrome and the packaged desktop app under Xvfb with XTEST key events (`sitting1-visual-chrome.mjs`, `sitting1-visual-desktop.mjs`); the lead runs them.
+- Proof owed (agent-runnable, needs the lead): `sitting1-visual-chrome.mjs` Ctrl+0 resets 125 % to 100 % on Settings, Free Play and Library; `sitting1-visual-desktop.mjs` Ctrl+0 resets the zoom factor to 1. Human-only: none.
+- Residual risk: a player who rebinds a note to a key used in a browser chord loses only the Ctrl, Meta or Alt variant of it. AltGr layouts that report Ctrl and Alt together will not play a note on AltGr combinations.
+- Revisit trigger: reviewer verification and the runtime proofs above.
