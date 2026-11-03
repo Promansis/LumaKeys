@@ -4348,6 +4348,7 @@ main > .deck-layout-shell {
 .view-toggle,
 .filter-chips,
 .timing-breakdown {
+  display: flex;
   gap: 16px;
 }
 
