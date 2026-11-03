@@ -97,6 +97,7 @@ IDs are never reused. A duplicate row remains and links to the canonical ID.
 | PH-MUS-018 | On a fresh profile the count-in after the 3-2-1 countdown is lost while Settings shows 2 lead-in beats | MUS | P3 | high | both | verified | WF-009, WF-018, MOD-002, MOD-003 | [PH-MUS-018](reports/findings/PH-MUS-018.md) | Claude Code (acting) |
 | PH-MUS-019 | Beats per minute come out very strange (stored tempo is the first tempo event, count-in is a fixed 60 BPM) | MUS | P2 | high | both | fixed | WF-004, WF-008, MOD-011 | [PH-MUS-019](reports/findings/PH-MUS-019.md) | Claude Code (acting) |
 | PH-UI-021 | Since the Electron 44 upgrade every desktop file dialog opens in Downloads and forgets the last folder | UI | P3 | high | Electron | fixed | WF-004, WF-005, WF-006, WF-020, MOD-008 | [PH-UI-021](reports/findings/PH-UI-021.md) | Claude Code (acting) |
+| PH-UI-022 | Shared row containers lost `display: flex`; song-card BPM glued to duration or difficulty | UI | P1 | high | both | fixed | WF-007, WF-009, MOD-004 | [PH-UI-022](reports/findings/PH-UI-022.md) | Claude Code (acting) |
 
 ## Status Notes
 
@@ -265,6 +266,17 @@ in the detailed report.
   and a 6/8 song. Counts: 74 findings (13 verified, 60 fixed, 0 accepted, 1 accepted-risk). See
   [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#remediation-progress-2026-10-21).
 
+- Phase 11 slice 25, 2026-11-03: slice 25 (`35063cb`, branches `f84d7fc` and `ad223e4`) merged to
+  local `main` after independent review (PASS WITH NOTES; the note was fixed in `ad223e4`).
+  PH-UI-022 (new, P1: the shared row containers lost `display: flex` in `775924d`, so a Library
+  card read "1:31100 BPM" and a recommendation card "Difficulty 4100 BPM") was raised from the
+  owner's report of 2026-11-02 and fixed in the same batch. `npm run verify` passed (739 tests);
+  before and after web screenshots at 1280x800 and 420x800 are in the finding. It stays `fixed`,
+  not `verified`: the owner owes a glance at the Library and recommendation cards in their own
+  install and the Electron build, which was not screenshotted. Counts: 75 findings (13 verified,
+  61 fixed, 0 accepted, 1 accepted-risk). See
+  [the remediation plan](reports/phase-11-remediation-plan-2026-10-20.md#remediation-progress-2026-10-21).
+
 - PH-DATA-001 is the canonical cross-store atomicity finding for backup restore,
   song deletion, and full reset. Do not create separate findings for the same
   database-before-filesystem ordering without a distinct recovery root cause.
@@ -313,3 +325,7 @@ in the detailed report.
 - PH-UI-021 owns the desktop file dialogs' start folder (Downloads, no remembered folder)
   since Electron 43. Do not merge it with PH-OPS-003, whose fix is the upgrade itself, or
   with PH-PAR-004 and PH-UI-009, which own what an import reports after a file is picked.
+- PH-UI-022 owns the layout of the shared row containers, including the song-card meta line
+  (duration, difficulty, BPM). Do not merge it with PH-MUS-019, which owns which tempo is
+  stored and the count-in; both came from the owner's "beats per minute come out very
+  strange" report, but the stored BPM values were correct.

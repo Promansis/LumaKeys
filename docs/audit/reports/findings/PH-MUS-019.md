@@ -9,7 +9,7 @@
 - Verifier: TBD
 - Affected runtime: runtime-independent (shared parser and game code, used by import metadata in both runtimes and by GameScreen)
 - Coverage rows: WF-004, WF-008, MOD-011
-- Related/duplicate findings: PH-MUS-008 (late first tempo, same `bpm` line), PH-MUS-006 (metronome follows the tempo map), PH-MUS-002 (measure map across tempo changes)
+- Related/duplicate findings: PH-MUS-008 (late first tempo, same `bpm` line), PH-MUS-006 (metronome follows the tempo map), PH-MUS-002 (measure map across tempo changes), PH-UI-022 (the same owner report also had a display cause: the song-card values ran together)
 - First observed against: `main` at source identity `cc40b63`, owner report (decision 16)
 
 ## User Impact
