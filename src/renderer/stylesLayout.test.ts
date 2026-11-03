@@ -48,4 +48,20 @@ describe('styles.css row containers', () => {
   it.each(gridContainers)('.%s stays a grid', (className) => {
     expect(displayOf(className)).toBe('grid');
   });
+
+  it.each(['soundboard-key-map-popout', 'soundboard-mode-popout'])(
+    'the .%s heading stacks its title above the description',
+    (popoutClass) => {
+      const popout = document.createElement('div');
+      popout.className = popoutClass;
+      const heading = document.createElement('div');
+      heading.className = 'panel-heading';
+      popout.append(heading);
+      document.body.append(popout);
+      const computed = getComputedStyle(heading);
+      expect(computed.display).toBe('flex');
+      expect(computed.flexDirection).toBe('column');
+      popout.remove();
+    },
+  );
 });
