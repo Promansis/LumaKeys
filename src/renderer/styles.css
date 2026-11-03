@@ -4348,6 +4348,7 @@ main > .deck-layout-shell {
 .view-toggle,
 .filter-chips,
 .timing-breakdown {
+  display: flex;
   gap: 16px;
 }
 
@@ -6406,6 +6407,14 @@ main > .deck-layout-shell {
 
 .soundboard-key-map-popout .panel-heading {
   padding-bottom: 10px;
+}
+
+/* The popouts are narrow: stack the title above its description. */
+.soundboard-key-map-popout .panel-heading,
+.soundboard-mode-popout .panel-heading {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 .animal-soundboard-map-popout .soundboard-grid {
