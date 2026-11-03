@@ -98,7 +98,8 @@ after the regression, still stack. This is not implementation authorization.
 - Electron proof: the Electron build was not screenshotted.
 - Data/recovery proof: not applicable.
 - Manual hardware/UI proof: the owner looks at the Library and recommendation cards in
-  their own install.
+  their own install. Web: done 2026-11-04 on the owner's Docker install, rebuilt from
+  `53098f0`; the owner reported "Fixed". Electron: still owed.
 - Broader regression command: `npm run verify`.
 
 ## Challenge Record
@@ -117,7 +118,7 @@ after the regression, still stack. This is not implementation authorization.
 ## Resolution
 
 - Accepted/rejected rationale: accepted and fixed on the owner's report as slice 25.
-- Fix branch/commit/issue: branch `remediation/p11-s25-flex-rows`; `f84d7fc` restores `display: flex` and adds `src/renderer/stylesLayout.test.ts` (failed 8 of 10 before the fix); `ad223e4` stacks the `.soundboard-key-map-popout` and `.soundboard-mode-popout` headings (designed after the regression; the key-map title had squeezed to one word per line). Merged to `main` in `35063cb` on 2026-11-03 (not pushed).
+- Fix branch/commit/issue: branch `remediation/p11-s25-flex-rows`; `f84d7fc` restores `display: flex` and adds `src/renderer/stylesLayout.test.ts` (failed 8 of 10 before the fix); `ad223e4` stacks the `.soundboard-key-map-popout` and `.soundboard-mode-popout` headings (designed after the regression; the key-map title had squeezed to one word per line). Merged to `main` in `35063cb` on 2026-11-03; pushed with `53098f0` the same day (CI `verify` passed).
 - Verification evidence: independent Opus review PASS WITH NOTES (the note fixed in `ad223e4`); `npm run verify` passed with 739 tests. Playwright before and after screenshots, web build, 1280x800 and 420x800, throwaway data directories, in `/tmp/claude-1000/pw/s25/`. Better: Library grid, Library list, recommendations, playlist, game menu, narrow Library. Same: results (the Measure Accuracy hint now sits beside its title), scale practice, interval trainer, free play, theory hub and quiz, progress, keyboard setup, settings, latency wizard. Soundboard key-map popout: regressed, then fixed by `ad223e4`. Not reached: the paused in-game control bar. Status is `fixed`, not `verified`.
-- Residual risk: the Electron build was not screenshotted; the paused in-game control bar was not seen; the owner has not yet looked at the cards in their own install.
-- Revisit trigger: the owner's glance at the Library and recommendation cards after updating, and the Electron check, move this to `verified`.
+- Residual risk: the Electron build was not screenshotted; the paused in-game control bar was not seen. The owner confirmed the cards on the web install (2026-11-04), not yet on Electron.
+- Revisit trigger: the owner's Electron check moves this to `verified` (the web glance was done 2026-11-04).
